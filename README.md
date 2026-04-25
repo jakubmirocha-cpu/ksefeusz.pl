@@ -24,10 +24,15 @@ Schemat XSD: [Ministerstwo Finansów](https://ksef.podatki.gov.pl/informacje-ogo
 
 Nie wymaga instalacji ani serwera.
 
-1. Pobierz paczkę ZIP ze strony [ksefeusz.pl](https://ksefeusz.pl)
+1. Pobierz repozytorium: kliknij **Code → Download ZIP** na tej stronie
 2. Rozpakuj archiwum
 3. Otwórz plik `index.html` w przeglądarce
 4. Wczytaj plik `.xml` z fakturą KSeF
+
+Lub przez git:
+```bash
+git clone https://github.com/jakubmirocha-cpu/ksefeusz.pl.git
+```
 
 ## Struktura projektu
 
@@ -36,14 +41,17 @@ index.html          — strona główna
 privacy.html        — polityka prywatności
 css/
   style.css         — wszystkie style
+  lib/              — Font Awesome (ikony)
+  webfonts/         — pliki fontów
 js/
   core.js           — parsowanie FA(3), słowniki
   utils.js          — funkcje pomocnicze, wersja aplikacji
   renderer.js       — renderowanie HTML faktury
   main.js           — generowanie PDF, obsługa zdarzeń
-  lib/              — biblioteki zewnętrzne (pdfmake, qrcode)
+  lib/              — biblioteki zewnętrzne (pdfmake, qrcode, crypto-js)
 samples/            — przykładowe faktury FA(3)
-assets/             — logo
+assets/             — grafiki (podgląd na stronie głównej)
+documentations/     — schemat XSD i dokumentacja FA(3) z Ministerstwa Finansów
 ```
 
 ## Technologie
@@ -51,6 +59,7 @@ assets/             — logo
 - Vanilla JavaScript (bez frameworków)
 - [pdfmake](http://pdfmake.org/) — generowanie PDF
 - [qrcode.js](https://github.com/davidshimjs/qrcodejs) — kod QR
+- [crypto-js](https://github.com/brix/crypto-js) — SHA-256 do linku weryfikacyjnego KSeF
 - [Font Awesome](https://fontawesome.com/) — ikony
 
 ## Licencja
