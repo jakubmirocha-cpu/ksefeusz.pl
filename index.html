@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<title>KSeFeusz.pl — darmowy wizualizator faktur KSeF</title>
+<meta name="description" content="Zamień plik XML faktury z KSeF w czytelny PDF. Wizualizacja, eksport PDF, drukowanie — wszystko lokalnie w przeglądarce. Bez rejestracji, bez serwera.">
+<meta name="keywords" content="KSeF, faktura, wizualizator, PDF, darmowy, online">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="canonical" href="https://ksefeusz.pl/">
+<link rel="icon" type="image/png" href="favicon.png">
+
+<!-- Open Graph / Social Media -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ksefeusz.pl/">
+<meta property="og:title" content="KSeFeusz.pl — darmowy wizualizator faktur KSeF">
+<meta property="og:description" content="Zamień plik XML faktury z KSeF w czytelny PDF. Wizualizacja, eksport PDF, drukowanie — wszystko lokalnie w przeglądarce.">
+<meta property="og:image" content="https://ksefeusz.pl/assets/preview.png">
+<meta property="og:locale" content="pl_PL">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="KSeFeusz.pl — darmowy wizualizator faktur KSeF">
+<meta name="twitter:description" content="Zamień plik XML faktury z KSeF w czytelny PDF. Wizualizacja, eksport PDF, drukowanie — wszystko lokalnie w przeglądarce.">
+<meta name="twitter:image" content="https://ksefeusz.pl/assets/preview.png">
+
+<link rel="stylesheet" href="css/lib/font-awesome.min.css">
+<link rel="stylesheet" href="css/style.css?v=1.5.0">
+
+<style>
+/* ===== NOWY DESIGN v1.5.0 ===== */
+:root {
+  --bg: #F6F8FB;
+  --surface: #FFFFFF;
+  --surface-2: #F1F4F9;
+  --border: #E4EAF2;
+  --border-strong: #CBD5E0;
+  --text: #0F1E36;
+  --text-muted: #5A6A80;
+  --text-faint: #8A97AA;
+  --brand: #1E3A5F;
+  --brand-ink: #122540;
+  --accent: #2B6CB0;
+  --accent-hover: #1F5896;
+  --accent-soft: #E8F0FA;
+  --success: #1F8A5C;
+  --success-soft: #E6F4EE;
+  --warning: #B3541E;
+  --warning-soft: #FDF1E7;
+  --danger: #B42318;
+  --danger-soft: #FDECEA;
+  --shadow-sm: 0 1px 2px rgba(15,30,54,0.05);
+  --shadow: 0 1px 3px rgba(15,30,54,0.06), 0 1px 2px rgba(15,30,54,0.04);
+  --shadow-md: 0 4px 12px rgba(15,30,54,0.06), 0 2px 4px rgba(15,30,54,0.04);
+  --shadow-lg: 0 12px 32px rgba(15,30,54,0.08), 0 4px 12px rgba(15,30,54,0.04);
+  --font: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+  font-size: 15px;
+}
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+
+/* --- Panel system --- */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* --- NAV --- */
+.nav {
+  background: rgba(255,255,255,0.92);
+  -webkit-backdrop-filter: saturate(180%) blur(8px);
+  backdrop-filter: saturate(180%) blur(8px);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 50;
+}
+.nav-inner {
+  max-width: 1240px; margin: 0 auto;
+  padding: 0 28px; height: 72px;
+  display: flex; align-items: center; gap: 36px;
+}
+.brand {
+  display: flex; align-items: center; gap: 7px;
+  font-weight: 700; font-size: 19px; letter-spacing: -0.01em; color: var(--brand-ink);
+  flex-shrink: 0;
+}
+.brand-logo {
+  width: 40px; height: 40px; border-radius: 9px;
+  border: 1.5px solid #1A3E5F;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.brand-name { display: flex; align-items: baseline; gap: 2px; }
+.brand-name .dot { color: var(--accent); font-weight: 700; }
+
+.nav-links { display: flex; gap: 4px; margin-left: 12px; }
+/* Override old .tab styles for nav-link buttons */
+.nav-link {
+  padding: 8px 16px !important;
+  border-radius: 7px !important;
+  font-size: 14.5px !important;
+  font-weight: 500 !important;
+  color: var(--text-muted) !important;
+  transition: background 0.12s, color 0.12s !important;
+  display: inline-flex !important; align-items: center !important; gap: 7px !important;
+  white-space: nowrap !important;
+  background: none !important;
+  border: none !important; border-bottom: none !important;
+  border-radius: 7px !important; bottom: auto !important;
+}
+.nav-link:hover { background: var(--surface-2) !important; color: var(--text) !important; }
+.nav-link.active { color: var(--brand-ink) !important; background: var(--surface-2) !important; }
+.nav-link i { font-size: 13px; opacity: 0.75; }
+
+.nav-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.nav-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 500;
+  color: var(--success); background: var(--success-soft);
+  border: 1px solid rgba(31,138,92,0.18);
+}
+.nav-pill i { font-size: 8px; }
+.btn-primary {
+  background: var(--brand); color: #fff;
+  padding: 9px 18px; border-radius: 8px;
+  font-size: 14.5px; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 7px;
+  transition: background 0.12s;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.1) inset, 0 2px 4px rgba(15,30,54,0.15);
+}
+.btn-primary:hover { background: var(--brand-ink); }
+
+/* --- HERO --- */
+.hero {
+  max-width: 1240px; margin: 0 auto;
+  padding: 80px 24px 56px;
+  display: grid; grid-template-columns: 1.05fr 1.1fr;
+  gap: 56px; align-items: center;
+}
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 600; color: var(--accent);
+  text-transform: uppercase; letter-spacing: 0.08em;
+  padding: 5px 10px; background: var(--accent-soft); border-radius: 999px;
+  margin-bottom: 20px;
+}
+.eyebrow i { font-size: 8px; }
+.hero h1 {
+  font-size: 44px; line-height: 1.08; letter-spacing: -0.022em;
+  font-weight: 700; color: var(--brand-ink); margin-bottom: 18px;
+}
+.hero h1 .accent-word { color: var(--accent); }
+.hero-lede {
+  font-size: 17px; color: var(--text-muted); line-height: 1.55;
+  margin-bottom: 28px; max-width: 520px;
+}
+.hero-ctas { display: flex; gap: 10px; flex-wrap: wrap; }
+.btn-hero-primary {
+  background: var(--brand); color: #fff;
+  padding: 13px 22px; border-radius: 8px; font-size: 15px; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 9px;
+  transition: background 0.12s, transform 0.12s;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.12) inset, 0 2px 6px rgba(15,30,54,0.15);
+  border: none;
+}
+.btn-hero-primary:hover { background: var(--brand-ink); transform: translateY(-1px); }
+.btn-hero-primary .arrow { transition: transform 0.15s; }
+.btn-hero-primary:hover .arrow { transform: translateX(3px); }
+.btn-hero-secondary {
+  padding: 13px 22px; border-radius: 8px; font-size: 15px; font-weight: 600;
+  color: var(--text); border: 1px solid var(--border-strong);
+  background: var(--surface);
+  display: inline-flex; align-items: center; gap: 9px;
+  transition: background 0.12s, border-color 0.12s;
+}
+.btn-hero-secondary:hover { background: var(--surface-2); border-color: var(--text-muted); }
+.btn-hero-secondary.privacy {
+  color: var(--success); border-color: rgba(31,138,92,0.4);
+}
+.btn-hero-secondary.privacy:hover { background: var(--success-soft); border-color: var(--success); }
+.btn-hero-secondary.privacy i { color: var(--success); }
+.trust-row {
+  margin-top: 28px; display: flex; gap: 22px; flex-wrap: wrap;
+  font-size: 13px; color: var(--text-muted);
+}
+.trust-row span { display: inline-flex; align-items: center; gap: 7px; }
+.trust-row i { color: var(--success); font-size: 12px; }
+.trust-link {
+  display: inline-flex; align-items: center; gap: 7px;
+  color: inherit; text-decoration: none;
+  border-bottom: 1px solid transparent; transition: border-color 0.12s;
+}
+.trust-link:hover { border-bottom-color: var(--text-muted); }
+.hero-privacy-note {
+  margin-top: 20px;
+  display: flex; align-items: center; gap: 14px;
+  background: var(--success-soft); border: 1px solid rgba(31,138,92,0.18);
+  border-radius: 9px; padding: 12px 14px 12px 16px;
+  font-size: 13.5px; color: var(--text-muted);
+}
+.hero-privacy-note .hpn-icon {
+  flex-shrink: 0; width: 34px; height: 34px; border-radius: 8px;
+  background: rgba(31,138,92,0.14); color: var(--success);
+  display: flex; align-items: center; justify-content: center; font-size: 15px;
+}
+.hero-privacy-note .hpn-text { flex: 1; line-height: 1.45; }
+.hero-privacy-note .hpn-btn {
+  flex-shrink: 0;
+  padding: 13px 22px; border-radius: 8px; font-size: 15px; font-weight: 600;
+  color: var(--success); border: 1px solid rgba(31,138,92,0.35);
+  background: var(--surface);
+  display: inline-flex; align-items: center; gap: 8px;
+  text-decoration: none; white-space: nowrap;
+  transition: background 0.12s, border-color 0.12s;
+}
+.hero-privacy-note .hpn-btn:hover { background: #fff; border-color: var(--success); }
+
+/* --- Hero mockup --- */
+.hero-mockup {
+  position: relative;
+  background: linear-gradient(135deg, #EEF3FA 0%, #E3EBF5 100%);
+  border-radius: 16px; padding: 14px 14px;
+  border: 1px solid var(--border); box-shadow: var(--shadow-lg); overflow: hidden;
+}
+.hero-mockup::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 20% 0%, rgba(43,108,176,0.08), transparent 60%);
+  pointer-events: none;
+}
+.mockup-chrome {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px; padding: 0 4px;
+}
+.mockup-dots { display: flex; gap: 6px; }
+.mockup-dots span { width: 10px; height: 10px; border-radius: 50%; background: rgba(15,30,54,0.15); }
+.mockup-label { font-size: 11px; color: var(--text-faint); font-weight: 500; }
+.tool-preview {
+  background: #fff; border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(15,30,54,0.08), 0 2px 6px rgba(15,30,54,0.04);
+  overflow: hidden; border: 1px solid var(--border);
+}
+.tool-preview-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  background: var(--surface-2); gap: 10px; flex-wrap: wrap;
+}
+.tool-preview-file {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; color: var(--text);
+}
+.tool-preview-pill {
+  font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px;
+  background: var(--success-soft); color: var(--success); letter-spacing: 0.04em;
+}
+.tool-preview-actions { display: flex; gap: 6px; }
+.tool-preview-btn {
+  font-size: 11.5px; font-weight: 500; padding: 5px 9px; border-radius: 5px;
+  background: var(--surface); border: 1px solid var(--border); color: var(--text-muted);
+  display: inline-flex; align-items: center; gap: 5px; cursor: default;
+}
+.tool-preview-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.tool-preview-frame-wrap {
+  position: relative; overflow: hidden; background: var(--surface-2);
+}
+.tool-preview-img {
+  width: 100%; display: block;
+}
+.tool-preview-fade {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 70px;
+  background: linear-gradient(to bottom, rgba(255,255,255,0), #fff 90%);
+  pointer-events: none;
+}
+/* --- Main wrapper --- */
+.main {
+  max-width: 1240px; margin: 0 auto; padding: 40px 24px 96px;
+}
+
+/* --- Samples block --- */
+.samples-block {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden;
+  max-width: 820px; margin-left: auto; margin-right: auto;
+}
+.samples-head {
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.samples-head h4 {
+  font-size: 14px; font-weight: 600; color: var(--brand-ink);
+  display: flex; align-items: center; gap: 8px;
+}
+.samples-head h4 i { color: var(--text-muted); font-size: 12px; }
+.samples-head p { font-size: 13px; color: var(--text-muted); }
+.sample-row {
+  display: grid; grid-template-columns: 40px 1fr auto auto;
+  align-items: center; gap: 14px; padding: 14px 20px;
+  border-bottom: 1px solid var(--border); transition: background 0.1s;
+}
+.sample-row:last-child { border-bottom: none; }
+.sample-row:hover { background: var(--surface-2); }
+.sample-badge {
+  width: 36px; height: 36px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.02em;
+}
+.sample-badge.vat { background: var(--accent-soft); color: var(--accent); }
+.sample-badge.kor { background: var(--warning-soft); color: var(--warning); }
+.sample-badge.zal { background: var(--success-soft); color: var(--success); }
+.sample-row-info h5 { font-size: 14px; font-weight: 600; margin-bottom: 2px; color: var(--brand-ink); }
+.sample-row-info p { font-size: 12.5px; color: var(--text-muted); }
+.sample-row-btn {
+  padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 500;
+  display: inline-flex; align-items: center; gap: 6px; transition: all 0.12s;
+  white-space: nowrap;
+}
+.sample-row-btn.ghost {
+  color: var(--text-muted); border: 1px solid var(--border); background: var(--surface);
+}
+.sample-row-btn.ghost:hover { background: var(--surface-2); color: var(--text); }
+.sample-row-btn.primary {
+  color: var(--accent); border: 1px solid var(--accent); background: var(--surface);
+}
+.sample-row-btn.primary:hover { background: var(--accent); color: #fff; }
+
+/* --- Page sections (home) --- */
+.page-section { margin-top: 80px; }
+.page-section-sm { margin-top: 48px; }
+.section-title {
+  font-size: 26px; font-weight: 700; letter-spacing: -0.02em;
+  color: var(--brand-ink); margin-bottom: 8px; text-align: center;
+}
+.section-desc {
+  font-size: 16px; color: var(--text-muted); text-align: center;
+  margin-bottom: 36px; max-width: 640px; margin-left: auto; margin-right: auto;
+}
+/* How it works */
+.how-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.how-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 28px 24px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.how-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow-md); }
+.how-step {
+  font-size: 12px; font-weight: 600; color: var(--accent);
+  letter-spacing: 0.05em; margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+.how-step-num {
+  width: 24px; height: 24px; border-radius: 6px;
+  background: var(--accent-soft); color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700;
+}
+.how-card h4 {
+  font-size: 17px; font-weight: 600; color: var(--brand-ink);
+  margin-bottom: 8px; letter-spacing: -0.01em;
+}
+.how-card p { font-size: 14px; color: var(--text-muted); line-height: 1.55; }
+/* Benefits */
+.benefits-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.benefit-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 24px; display: flex; gap: 16px;
+}
+.benefit-card-icon {
+  flex-shrink: 0; width: 40px; height: 40px; border-radius: 8px;
+  background: var(--accent-soft); color: var(--accent);
+  display: flex; align-items: center; justify-content: center; font-size: 16px;
+}
+.benefit-card h4 { font-size: 15px; font-weight: 600; color: var(--brand-ink); margin-bottom: 6px; }
+.benefit-card p { font-size: 14px; color: var(--text-muted); line-height: 1.55; margin-bottom: 10px; }
+.benefit-sample {
+  font-family: 'SFMono-Regular', 'Consolas', monospace; font-size: 11.5px;
+  background: var(--surface-2); border-radius: 6px; padding: 8px 10px;
+  color: var(--text); border: 1px solid var(--border); overflow-x: auto; white-space: nowrap;
+}
+.benefit-rows { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.benefit-row {
+  font-family: 'SFMono-Regular', 'Consolas', monospace; font-size: 11px;
+  padding: 5px 8px; border-radius: 5px;
+  display: flex; justify-content: space-between;
+}
+.benefit-row.before { background: var(--warning-soft); color: var(--warning); }
+.benefit-row.after { background: var(--success-soft); color: var(--success); }
+.benefit-row.diff { background: var(--surface-2); color: var(--text); font-style: italic; }
+/* Privacy section */
+.privacy-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.privacy-card {
+  background: var(--surface); border: 1px solid rgba(31,138,92,0.22);
+  border-radius: 12px; padding: 24px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.privacy-card:hover { border-color: rgba(31,138,92,0.45); box-shadow: 0 4px 16px rgba(31,138,92,0.07); }
+.privacy-card-icon {
+  width: 40px; height: 40px; border-radius: 8px;
+  background: var(--success-soft); color: var(--success);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; margin-bottom: 16px;
+}
+.privacy-card h4 { font-size: 15px; font-weight: 600; color: var(--brand-ink); margin-bottom: 8px; }
+.privacy-card p { font-size: 14px; color: var(--text-muted); line-height: 1.6; }
+.privacy-cta {
+  text-align: center; margin-top: 32px;
+}
+.privacy-cta a {
+  display: inline-flex; align-items: center; gap: 8px;
+  color: var(--success); font-weight: 600; font-size: 14.5px;
+  border-bottom: 1px solid rgba(31,138,92,0.3); padding-bottom: 2px;
+  transition: border-color 0.12s, color 0.12s;
+}
+.privacy-cta a:hover { border-color: var(--success); }
+.privacy-cta a i { font-size: 12px; }
+
+/* FAQ */
+.faq-wrap { max-width: 720px; margin: 0 auto; }
+.faq-item { border-bottom: 1px solid var(--border); }
+.faq-item:first-child { border-top: 1px solid var(--border); }
+.faq-q {
+  width: 100%; text-align: left; padding: 18px 4px;
+  display: flex; justify-content: space-between; align-items: center; gap: 16px;
+  font-size: 15px; font-weight: 500; color: var(--brand-ink);
+  transition: color 0.12s; background: none; border: none; cursor: pointer;
+}
+.faq-q:hover { color: var(--accent); }
+.faq-q .faq-chev { transition: transform 0.2s; font-size: 12px; color: var(--text-muted); }
+.faq-item.open .faq-q .faq-chev { transform: rotate(180deg); color: var(--accent); }
+.faq-a {
+  max-height: 0; overflow: hidden;
+  transition: max-height 0.25s ease, padding 0.25s ease;
+  font-size: 14px; color: var(--text-muted); line-height: 1.6;
+}
+.faq-item.open .faq-a { max-height: 600px; padding: 0 4px 20px; }
+.faq-contact-link { color: var(--accent); font-weight: 500; }
+.upload-hint { font-size: 12.5px; color: var(--text-faint); margin-top: -12px; margin-bottom: 16px; }
+.upload-hint a { color: var(--accent); }
+
+/* --- Work panels (Wizualizator, PDF, Batch) --- */
+.work-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 20px; gap: 16px; flex-wrap: wrap;
+}
+.work-title-col { display: flex; flex-direction: column; }
+.work-title {
+  font-size: 20px; font-weight: 600; color: var(--brand-ink);
+  letter-spacing: -0.01em; display: flex; align-items: center; gap: 10px;
+}
+.wt-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: var(--accent-soft); color: var(--accent);
+  display: flex; align-items: center; justify-content: center; font-size: 14px;
+}
+.work-subtitle { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
+
+/* Override old .upload-area with new card design */
+.upload-area {
+  background: var(--surface) !important;
+  border: 1.5px dashed var(--border-strong) !important;
+  border-radius: 12px !important;
+  padding: 48px 24px !important;
+  text-align: center !important;
+  transition: border-color 0.15s, background 0.15s !important;
+  cursor: pointer !important;
+  box-shadow: none !important;
+}
+.upload-area:hover {
+  border-color: var(--accent) !important;
+  background: #FAFCFF !important;
+}
+.upload-area > i {
+  font-size: 44px !important;
+  display: block !important;
+  margin-bottom: 14px !important;
+}
+.upload-area h3 {
+  font-size: 18px !important; font-weight: 600 !important;
+  color: var(--brand-ink) !important; margin-bottom: 6px !important;
+}
+.upload-area p {
+  font-size: 14px !important; color: var(--text-muted) !important; margin-bottom: 20px !important;
+}
+.upload-pill-btn {
+  background: transparent; color: var(--accent);
+  border: 1.5px solid var(--accent);
+  padding: 8px 22px; border-radius: 30px;
+  font-size: 14px; font-weight: 500; cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  display: inline-flex; align-items: center; gap: 7px;
+}
+.upload-pill-btn:hover { background: var(--accent); color: #fff; }
+.upload-pill-btn.danger { color: var(--danger); border-color: var(--danger); }
+.upload-pill-btn.danger:hover { background: var(--danger); color: #fff; }
+.upload-pill-btn i { color: inherit !important; font-size: inherit !important; margin: 0 !important; }
+
+/* Filebar (replaces old .file-info) */
+.filebar {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 12px 10px 14px;
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 20px; flex-wrap: wrap;
+}
+.filebar-name {
+  display: flex; align-items: center; gap: 8px;
+  font-weight: 500; font-size: 13.5px; color: var(--text); min-width: 0;
+}
+.filebar-name .pill {
+  font-size: 10px; padding: 2px 6px;
+  background: var(--success-soft); color: var(--success);
+  border-radius: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+}
+.filebar-name code {
+  font-size: 12.5px; padding: 3px 8px; background: var(--surface-2);
+  border-radius: 5px; color: var(--text-muted);
+  max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.filebar-actions {
+  margin-left: auto; display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+}
+
+/* Override action-btn with new design */
+.action-btn {
+  padding: 7px 12px !important; border-radius: 7px !important;
+  font-size: 13px !important; font-weight: 500 !important;
+  color: var(--text) !important; border: 1px solid var(--border) !important;
+  background: var(--surface) !important;
+  display: inline-flex !important; align-items: center !important; gap: 6px !important;
+  transition: all 0.12s !important;
+}
+.action-btn:hover { background: var(--surface-2) !important; border-color: var(--border-strong) !important; }
+.action-btn.primary { background: var(--accent) !important; border-color: var(--accent) !important; color: #fff !important; }
+.action-btn.primary:hover { background: var(--accent-hover) !important; border-color: var(--accent-hover) !important; }
+.action-btn.danger-ghost { color: var(--danger) !important; }
+.action-btn.danger-ghost:hover { background: var(--danger-soft) !important; border-color: var(--danger) !important; }
+.action-btn i { font-size: 12px; }
+
+/* Toggle in filebar */
+.toggle-row {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 10px; border-radius: 7px;
+  background: var(--surface-2); font-size: 13px; color: var(--text);
+}
+
+/* --- Footer --- */
+.footer { background: var(--surface); border-top: 1px solid var(--border); margin-top: 100px; }
+.footer-inner {
+  max-width: 1240px; margin: 0 auto; padding: 48px 24px 32px;
+  display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr; gap: 40px;
+}
+.footer-brand p { font-size: 13.5px; color: var(--text-muted); margin-top: 16px; line-height: 1.6; }
+.footer-col h5 {
+  font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-faint); font-weight: 600; margin-bottom: 14px;
+}
+.footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 9px; padding: 0; }
+.footer-col li { padding: 0; }
+.footer-col li::before { display: none; }
+.footer-col a {
+  font-size: 13.5px; color: var(--text-muted);
+  display: inline-flex; align-items: center; gap: 6px; transition: color 0.12s;
+  background: none; border: none; cursor: pointer; font-family: inherit;
+}
+.footer-col button {
+  font-size: 13.5px; color: var(--text-muted);
+  display: inline-flex; align-items: center; gap: 6px; transition: color 0.12s;
+  background: none; border: none; cursor: pointer; padding: 0;
+}
+.footer-col a:hover, .footer-col button:hover { color: var(--accent); }
+.footer-col a i, .footer-col button i { font-size: 11px; opacity: 0.7; }
+.footer-bottom {
+  max-width: 1240px; margin: 0 auto; padding: 18px 24px;
+  border-top: 1px solid var(--border);
+  display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  font-size: 12.5px; color: var(--text-faint);
+}
+
+/* --- Hamburger button --- */
+.hamburger {
+  display: none; flex-shrink: 0;
+  width: 36px; height: 36px; border-radius: 8px;
+  flex-direction: column; align-items: center; justify-content: center;
+  gap: 5px; background: none; border: 1px solid var(--border);
+  transition: background 0.12s, border-color 0.12s; cursor: pointer;
+}
+.hamburger:hover { background: var(--surface-2); border-color: var(--border-strong); }
+.hamburger span {
+  display: block; width: 16px; height: 1.5px;
+  background: var(--text); border-radius: 2px;
+  transition: transform 0.22s ease, opacity 0.15s ease;
+  transform-origin: center;
+}
+.nav.open .hamburger span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+.nav.open .hamburger span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.nav.open .hamburger span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+
+/* --- Mobile nav dropdown --- */
+.nav-mobile {
+  display: none;
+  border-top: 1px solid var(--border);
+  background: rgba(255,255,255,0.97);
+  -webkit-backdrop-filter: saturate(180%) blur(8px);
+  backdrop-filter: saturate(180%) blur(8px);
+  padding: 8px 16px 12px;
+}
+.nav.open .nav-mobile { display: block; }
+.nav-mobile-item {
+  display: flex; align-items: center; gap: 11px;
+  width: 100%; padding: 12px 12px; border-radius: 8px;
+  font-size: 15px; font-weight: 500; color: var(--text-muted);
+  background: none; border: none; cursor: pointer; font-family: inherit;
+  transition: background 0.12s, color 0.12s; text-align: left;
+}
+.nav-mobile-item:hover { background: var(--surface-2); color: var(--text); }
+.nav-mobile-item.active { color: var(--brand-ink); background: var(--accent-soft); font-weight: 600; }
+.nav-mobile-item i { font-size: 14px; width: 18px; text-align: center; color: var(--accent); opacity: 0.85; }
+.nav-mobile-item.active i { opacity: 1; }
+.nav-mobile-sep { height: 1px; background: var(--border); margin: 6px 0; }
+.nav-mobile-cta {
+  display: flex; margin-top: 8px; padding: 0 0 4px;
+}
+.nav-mobile-cta .btn-primary { width: 100%; justify-content: center; padding: 11px; font-size: 14.5px; }
+
+/* --- Responsive --- */
+@media (max-width: 960px) {
+  .hero { grid-template-columns: 1fr; gap: 40px; padding-top: 48px; padding-bottom: 40px; }
+  .hero h1 { font-size: 34px; }
+  .how-grid { grid-template-columns: 1fr; }
+  .benefits-grid { grid-template-columns: 1fr; }
+  .privacy-grid { grid-template-columns: 1fr; }
+  .footer-inner { grid-template-columns: 1fr 1fr; gap: 28px; }
+  .nav-links { display: none; }
+  .float-badge-lock { display: none; }
+  .hamburger { display: flex; }
+  .nav-pill { display: none; }
+}
+@media (max-width: 768px) {
+  .sample-row { grid-template-columns: 36px 1fr auto; }
+  .sample-row .sample-row-btn.ghost { display: none; }
+  .filebar { flex-direction: column; align-items: flex-start; }
+  .filebar-actions { margin-left: 0; }
+}
+@media (max-width: 640px) {
+  .footer-inner { grid-template-columns: 1fr; }
+  .hero h1 { font-size: 28px; }
+  .hero { padding: 32px 16px 32px; }
+  .main { padding: 28px 16px 72px; }
+  .samples-head { flex-direction: column; align-items: flex-start; }
+}
+</style>
+
+<!-- Małe biblioteki potrzebne od razu -->
+<script src="js/lib/qrcode.min.js"></script>
+<script src="js/lib/crypto-js.min.js"></script>
+</head>
+
+<body>
+
+<!-- ===== NAV ===== -->
+<header class="nav">
+  <div class="nav-inner">
+    <a href="#" class="brand" onclick="event.preventDefault();switchTab('info')" >
+      <div class="brand-logo">
+        <svg width="26" height="28" viewBox="0 0 188 201">
+          <g transform="translate(0,201) scale(0.1,-0.1)">
+            <path fill="#1A3E5F" d="M140 990 l0 -900 205 0 205 0 0 900 0 900 -205 0 -205 0 0 -900z"/>
+            <path fill="#16704A" d="M1335 1882 l-240 -3 -217 -327 c-340 -513 -308 -456 -308 -556 l0 -85 72 -106 c57 -85 73 -104 83 -93 7 7 66 85 131 172 66 88 135 180 154 206 320 425 581 783 574 788 -5 4 -117 6 -249 4z"/>
+            <path fill="#1A3E5F" d="M849 839 l-117 -160 197 -294 196 -294 253 -1 c138 0 252 2 252 4 0 8 -650 901 -658 903 -4 1 -59 -70 -123 -158z"/>
+          </g>
+        </svg>
+      </div>
+      <span class="brand-name"><b style="color:#1A3E5F">KSeFeusz</b><b style="color:#16704A">.pl</b></span>
+    </a>
+    <nav class="nav-links">
+      <button class="tab nav-link active" data-tab="info" onclick="switchTab('info')">
+        <i class="fas fa-home"></i> Główna
+      </button>
+      <button class="tab nav-link" data-tab="faktura" onclick="switchTab('faktura')">
+        <i class="fas fa-file-invoice"></i> Wizualizator
+      </button>
+      <button class="tab nav-link" data-tab="pdf" onclick="switchTab('pdf')">
+        <i class="fas fa-file-pdf"></i> Eksport PDF
+      </button>
+      <button class="tab nav-link" data-tab="batch" onclick="switchTab('batch')">
+        <i class="fas fa-layer-group"></i> Wiele faktur
+      </button>
+    </nav>
+    <div class="nav-right">
+      <span class="nav-pill" title="Dane nie opuszczają przeglądarki">
+        <i class="fas fa-circle"></i>
+        Lokalnie w przeglądarce
+      </span>
+      <button class="btn-primary" onclick="switchTab('faktura')">
+        <i class="fas fa-upload"></i>
+        Wczytaj fakturę
+      </button>
+      <button class="hamburger" id="hamburger" onclick="toggleHamburger()" aria-label="Menu" aria-expanded="false" aria-controls="navMobile">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+  <div class="nav-mobile" id="navMobile" role="navigation" aria-label="Nawigacja mobilna">
+    <button type="button" class="nav-mobile-item" data-tab="info" onclick="switchTab('info');closeHamburger()">
+      <i class="fas fa-home"></i> Główna
+    </button>
+    <button type="button" class="nav-mobile-item" data-tab="faktura" onclick="switchTab('faktura');closeHamburger()">
+      <i class="fas fa-file-invoice"></i> Wizualizator
+    </button>
+    <button type="button" class="nav-mobile-item" data-tab="pdf" onclick="switchTab('pdf');closeHamburger()">
+      <i class="fas fa-file-pdf"></i> Eksport PDF
+    </button>
+    <button type="button" class="nav-mobile-item" data-tab="batch" onclick="switchTab('batch');closeHamburger()">
+      <i class="fas fa-layer-group"></i> Wiele faktur
+    </button>
+    <div class="nav-mobile-sep"></div>
+    <div class="nav-mobile-cta">
+      <button type="button" class="btn-primary" onclick="switchTab('faktura');closeHamburger()">
+        <i class="fas fa-upload"></i> Wczytaj fakturę
+      </button>
+    </div>
+  </div>
+</header>
+
+
+<!-- ===== PANEL: GŁÓWNA ===== -->
+<div id="panel-info" class="panel active">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div>
+      <div class="eyebrow">
+        <i class="fas fa-bolt"></i>
+        Darmowy wizualizator faktur KSeF
+      </div>
+      <h1>Zamień fakturę XML w <br><span class="accent-word">czytelny PDF</span><br>gotowy do druku i archiwizacji.</h1>
+      <p class="hero-lede">Otwórz plik XML z KSeF — w kilka sekund masz czytelny podgląd i PDF gotowy do druku lub archiwizacji. 100% bezpiecznie, bez wysyłania danych na serwer. Całkowicie za darmo</p>
+      <div class="hero-ctas">
+        <button class="btn-hero-primary" onclick="switchTab('faktura')">
+          <i class="fas fa-upload"></i>
+          Wczytaj fakturę XML
+          <span class="arrow">→</span>
+        </button>
+        <a href="privacy.html" class="btn-hero-secondary privacy">
+          <i class="fas fa-shield-alt"></i>
+          Polityka prywatności
+        </a>
+      </div>
+      <div class="trust-row">
+        <span><i class="fas fa-check"></i> Działa lokalnie w przeglądarce</span>
+        <span><i class="fas fa-check"></i> Bez rejestracji</span>
+        <span><i class="fas fa-check"></i> Schemat FA(3)</span>
+        <span><i class="fas fa-check"></i> Open source</span>
+      </div>
+    </div>
+
+    <div class="hero-mockup">
+      <div class="tool-preview">
+        <div class="tool-preview-head">
+          <div class="tool-preview-file">
+            <i class="fas fa-file-code" style="color:var(--accent)"></i>
+            <span>FA3_demo.xml</span>
+            <span class="tool-preview-pill">FA(3)</span>
+          </div>
+          <div class="tool-preview-actions">
+            <span class="tool-preview-btn"><i class="fas fa-print"></i> Drukuj</span>
+            <span class="tool-preview-btn primary"><i class="fas fa-file-pdf"></i> PDF</span>
+          </div>
+        </div>
+        <div class="tool-preview-frame-wrap">
+          <img src="assets/preview.png" alt="Przykładowa faktura KSeF wyrenderowana przez KSeFeusz" class="tool-preview-img">
+          <div class="tool-preview-fade"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Sekcje strony głównej -->
+  <main class="main" style="padding-top: 0;">
+
+    <!-- Przykłady -->
+    <div class="page-section page-section-sm">
+      <h2 class="section-title">Wypróbuj zanim wgrasz własną fakturę</h2>
+      <p class="section-desc">Nie masz jeszcze pliku z KSeF? Sprawdź możliwości KSeFeusza na gotowych przykładach — pobierz plik na dysk i zwizualizuj, lub kliknij „Pokaż" aby przejść od razu do wizualizacji.</p>
+    </div>
+    <div class="samples-block">
+      <div class="sample-row">
+        <div class="sample-badge vat">VAT</div>
+        <div class="sample-row-info">
+          <h5>Faktura VAT</h5>
+          <p>FV2026/02/150 · ABC AGD sp. z o.o. · 2 051,00 zł · 3 pozycje</p>
+        </div>
+        <a href="samples/FA3_faktura_vat.xml" download class="sample-row-btn ghost"><i class="fas fa-download"></i> Pobierz</a>
+        <button class="sample-row-btn primary" onclick="loadSampleFile('samples/FA3_faktura_vat.xml', 'FA3_faktura_vat')"><i class="fas fa-play"></i> Pokaż</button>
+      </div>
+      <div class="sample-row">
+        <div class="sample-badge kor">KOR</div>
+        <div class="sample-row-info">
+          <h5>Faktura korygująca</h5>
+          <p>FK2026/03/200 · Korekta do FV2026/02/150 · −200,00 zł</p>
+        </div>
+        <a href="samples/FA3_faktura_korekta.xml" download class="sample-row-btn ghost"><i class="fas fa-download"></i> Pobierz</a>
+        <button class="sample-row-btn primary" onclick="loadSampleFile('samples/FA3_faktura_korekta.xml', 'FA3_faktura_korekta')"><i class="fas fa-play"></i> Pokaż</button>
+      </div>
+      <div class="sample-row">
+        <div class="sample-badge zal">ZAL</div>
+        <div class="sample-row-info">
+          <h5>Faktura zaliczkowa</h5>
+          <p>FZ2026/02/150 · ABC Developex sp. z o.o. · 20 000,00 zł</p>
+        </div>
+        <a href="samples/FA3_faktura_zaliczkowa.xml" download class="sample-row-btn ghost"><i class="fas fa-download"></i> Pobierz</a>
+        <button class="sample-row-btn primary" onclick="loadSampleFile('samples/FA3_faktura_zaliczkowa.xml', 'FA3_faktura_zaliczkowa')"><i class="fas fa-play"></i> Pokaż</button>
+      </div>
+    </div>
+
+    <!-- Bezpieczeństwo i prywatność -->
+    <div class="page-section">
+      <h2 class="section-title">Twoje dane zostają na Twoim komputerze</h2>
+      <p class="section-desc">Nie musisz nam wierzyć na słowo — kod jest otwarty, a polityka prywatności napisana po ludzku.</p>
+      <div class="privacy-grid">
+        <div class="privacy-card">
+          <div class="privacy-card-icon"><i class="fas fa-laptop"></i></div>
+          <h4>Zero transferu danych</h4>
+          <p>Plik XML jest parsowany bezpośrednio w Twojej przeglądarce. Żaden bajt nie trafia na serwer — ani podczas wizualizacji, ani podczas generowania PDF.</p>
+        </div>
+        <div class="privacy-card">
+          <div class="privacy-card-icon"><i class="fas fa-eye-slash"></i></div>
+          <h4>Zero śledzenia</h4>
+          <p>Brak analityki, brak ciasteczek, brak logów aktywności. Celowo nie wiemy kto wchodzi na stronę — i nic o tej decyzji nie żałujemy.</p>
+        </div>
+        <div class="privacy-card">
+          <div class="privacy-card-icon"><i class="fas fa-code"></i></div>
+          <h4>Otwarty kod źródłowy</h4>
+          <p>Projekt działa na licencji AGPL v3 — każdy może sprawdzić co robi każda linia kodu. Żadnych ukrytych wywołań, żadnego „magic" w tle.</p>
+        </div>
+      </div>
+      <div class="privacy-cta">
+        <a href="privacy.html">Przeczytaj pełną politykę prywatności <i class="fas fa-arrow-right"></i></a>
+      </div>
+    </div>
+
+    <!-- Jak to działa -->
+    <div class="page-section" id="sekcja-jak">
+      <h2 class="section-title">Trzy kroki do gotowego dokumentu</h2>
+      <p class="section-desc">Wizualizator zrobi wszystko za Ciebie. Żadnych zakładek, konfiguracji, rejestracji.</p>
+      <div class="how-grid">
+        <div class="how-card">
+          <div class="how-step"><span class="how-step-num">01</span></div>
+          <h4>Wybierz plik XML</h4>
+          <p>Przeciągnij plik pobrany z KSeF lub kliknij aby wybrać. Obsługa FA(3) i wszystkich typów: VAT, korekta, zaliczka.</p>
+        </div>
+        <div class="how-card">
+          <div class="how-step"><span class="how-step-num">02</span></div>
+          <h4>Zobacz czytelny podgląd</h4>
+          <p>Faktura renderuje się automatycznie w kompaktowym układzie zoptymalizowanym do codziennej pracy.</p>
+        </div>
+        <div class="how-card">
+          <div class="how-step"><span class="how-step-num">03</span></div>
+          <h4>Drukuj lub zapisz PDF</h4>
+          <p>Jednym kliknięciem wygenerujesz profesjonalny PDF gotowy do archiwum lub wydruku A4 — bez znaków wodnych.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dla kogo -->
+    <div class="page-section">
+      <h2 class="section-title">Zaprojektowany do codziennej pracy</h2>
+      <p class="section-desc">Od magazynu po biuro rachunkowe — KSeFeusz rozwiązuje konkretne problemy konkretnych ludzi.</p>
+      <div class="benefits-grid">
+        <div class="benefit-card">
+          <div class="benefit-card-icon"><i class="fas fa-boxes"></i></div>
+          <div>
+            <h4>Dla magazyniera</h4>
+            <p>Wszystko w jednej linii: nazwa towaru, indeks, EAN, ilość, cena. Przyjmując dostawę sprawdzasz zgodność z dokumentem w kilka sekund — bez otwierania dodatkowych systemów.</p>
+            <div class="benefit-sample">XMAS FRIENDS · 11051055956 · 5903997556879 · 3 szt · 41,70 zł</div>
+          </div>
+        </div>
+        <div class="benefit-card">
+          <div class="benefit-card-icon"><i class="fas fa-calculator"></i></div>
+          <div>
+            <h4>Dla księgowej</h4>
+            <p>Korekty czytelne od razu: wiersz przed (pomarańczowy), wiersz po (zielony), różnica wyliczana automatycznie. Koniec z ręcznym porównywaniem dwóch faktur.</p>
+            <div class="benefit-rows">
+              <div class="benefit-row before"><span>PRZED</span><span>2 × 100,00 = 200,00 zł</span></div>
+              <div class="benefit-row after"><span>PO</span><span>3 × 100,00 = 300,00 zł</span></div>
+              <div class="benefit-row diff"><span>RÓŻNICA</span><span>+1 szt (+100,00 zł)</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="benefit-card">
+          <div class="benefit-card-icon"><i class="fas fa-user-tie"></i></div>
+          <div>
+            <h4>Dla właściciela firmy</h4>
+            <p>Dostajesz XML z KSeF i chcesz wiedzieć: ile, komu, za co. KSeFeusz daje czytelny podgląd w kilka sekund — bez zakładania konta w portalu i bez czekania na PDF od kontrahenta.</p>
+            <div class="benefit-rows">
+              <div class="benefit-row after"><span>Wczytaj plik XML</span><span>→ czytelna faktura</span></div>
+              <div class="benefit-row diff"><span>Czas do podglądu</span><span>poniżej 3 sekund</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="benefit-card">
+          <div class="benefit-card-icon"><i class="fas fa-briefcase"></i></div>
+          <div>
+            <h4>Dla biura rachunkowego</h4>
+            <p>Dziesiątki klientów, setki faktur miesięcznie. Wrzuć wszystkie pliki XML do zakładki „Wiele faktur" i pobierz wszystkie PDF-y jednym kliknięciem. Dane klientów zostają wyłącznie na Twoim komputerze.</p>
+            <div class="benefit-sample">32 × plik XML → 32 × PDF &nbsp;·&nbsp; 1 kliknięcie</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FAQ -->
+    <div class="page-section" id="sekcja-faq">
+      <h2 class="section-title">Najczęstsze pytania</h2>
+      <p class="section-desc">To, o co pytają najczęściej. Nie znalazłeś odpowiedzi? <a href="mailto:kontakt@ksefeusz.pl" class="faq-contact-link">Napisz do nas.</a></p>
+      <div class="faq-wrap">
+        <div class="faq-item open">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            <span>Czy moje dane są wysyłane na serwer?</span>
+            <i class="fas fa-chevron-down faq-chev"></i>
+          </button>
+          <div class="faq-a">Nie. Cały proces odbywa się w Twojej przeglądarce — plik XML nigdy nie opuszcza urządzenia. KSeFeusz działa w 100% offline po załadowaniu strony. Nie zbieramy żadnych danych, nie używamy ciasteczek, nie mamy analityki.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            <span>Jakie formaty faktur KSeF są obsługiwane?</span>
+            <i class="fas fa-chevron-down faq-chev"></i>
+          </button>
+          <div class="faq-a">Obsługujemy schemat FA(3) — aktualny wzór Ministerstwa Finansów. Wszystkie typy faktur: VAT, korygujące, zaliczkowe, końcowe, faktury do paragonu. Faktury z załącznikami również są renderowane.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            <span>Czy PDF generowany przez KSeFeusz jest zgodny z wymogami?</span>
+            <i class="fas fa-chevron-down faq-chev"></i>
+          </button>
+          <div class="faq-a">PDF zawiera te same dane co oryginalny plik XML: dane sprzedawcy i nabywcy, numer faktury, daty, pozycje, podsumowanie VAT, numer KSeF, kod QR weryfikacyjny. Może służyć do podglądu i archiwizacji, jednak oficjalnym dokumentem w systemie KSeF pozostaje plik XML.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            <span>Czy mogę wizualizować wiele faktur na raz?</span>
+            <i class="fas fa-chevron-down faq-chev"></i>
+          </button>
+          <div class="faq-a">Tak. W zakładce „Wiele faktur" wrzucasz dowolną liczbę plików XML i generujesz wszystkie PDF-y jednym kliknięciem — także tutaj nic nie jest wysyłane na zewnątrz.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            <span>Czy to naprawdę darmowe? Gdzie haczyk?</span>
+            <i class="fas fa-chevron-down faq-chev"></i>
+          </button>
+          <div class="faq-a">Nie ma haczyka. Projekt jest open source (licencja AGPL v3), rozwijany jako narzędzie pomocnicze. Nie wymagamy konta, nie mamy wersji płatnej, nie sprzedajemy danych (bo ich nie mamy).</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            <span>Dlaczego nie używać wizualizatora rządowego?</span>
+            <i class="fas fa-chevron-down faq-chev"></i>
+          </button>
+          <div class="faq-a">Możesz używać. KSeFeusz powstał, bo rządowy wzorzec jest rozwlekły przy większej liczbie pozycji i słabo drukuje się na A4. Stworzyliśmy własny, kompaktowy układ zoptymalizowany pod codzienną pracę.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            <span>W jakich przeglądarkach to działa?</span>
+            <i class="fas fa-chevron-down faq-chev"></i>
+          </button>
+          <div class="faq-a">We wszystkich nowoczesnych przeglądarkach: Chrome, Firefox, Edge, Safari, Opera. Zalecamy aktualną wersję. Nie działamy na Internet Explorer — ale jeśli nadal z niego korzystasz, mamy nadzieję, że to przejściowy stan.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            <span>Jak mogę zgłosić błąd lub pomysł?</span>
+            <i class="fas fa-chevron-down faq-chev"></i>
+          </button>
+          <div class="faq-a">Napisz na <a href="mailto:kontakt@ksefeusz.pl" class="faq-contact-link">kontakt@ksefeusz.pl</a>. Każdy e-mail czytamy osobiście. Wiele funkcji pojawiło się w aplikacji dzięki sugestiom użytkowników.</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div><!-- /panel-info -->
+
+
+<!-- ===== PANEL: WIZUALIZATOR ===== -->
+<div id="panel-faktura" class="panel">
+  <main class="main">
+    <div class="work-header">
+      <div class="work-title-col">
+        <div class="work-title">
+          <span class="wt-icon"><i class="fas fa-file-invoice"></i></span>
+          Wizualizator faktur
+        </div>
+        <div class="work-subtitle">Wczytaj plik XML aby zobaczyć czytelny podgląd i wygenerować PDF</div>
+      </div>
+    </div>
+
+    <!-- Obszar wgrywania pliku -->
+    <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+      <i class="fas fa-folder-open" style="color:var(--accent);"></i>
+      <h3>Wybierz plik faktury XML</h3>
+      <p>Przeciągnij plik z KSeF lub kliknij aby wybrać</p>
+      <p class="upload-hint">Plik XML pobierzesz z portalu <a href="https://www.podatki.gov.pl/ksef/" target="_blank" rel="noopener" onclick="event.stopPropagation()">podatki.gov.pl</a> → KSeF → Pobierz fakturę</p>
+      <button class="upload-pill-btn" onclick="event.stopPropagation();document.getElementById('fileInput').click()">
+        <i class="fas fa-upload"></i> Wybierz plik
+      </button>
+      <input type="file" id="fileInput" accept=".xml" style="display:none;">
+    </div>
+
+    <!-- Informacja o pliku (filebar) — ukryta domyślnie -->
+    <div id="fileInfo" class="filebar" style="display:none;">
+      <div class="filebar-name">
+        <i class="fas fa-file-invoice" style="color:var(--accent)"></i>
+        <span class="pill">FA(3)</span>
+        <code id="currentFile"></code>
+      </div>
+      <div class="filebar-actions">
+
+        <label class="view-toggle-label toggle-row" style="cursor:pointer;gap:8px;">
+          <input type="checkbox" id="viewToggle" onchange="toggleViewMode(this.checked)" style="display:none;">
+          <span class="view-toggle-track"><span class="view-toggle-thumb"></span></span>
+          <span style="font-size:13px;color:var(--text);">Wszystkie sekcje</span>
+        </label>
+        <span class="view-toggle-info" tabindex="0">
+          <i class="fas fa-info-circle" style="color:var(--text-faint);font-size:14px;"></i>
+          <span class="view-toggle-tooltip">
+            <strong>Widok uproszczony (domyślny)</strong><br>
+            Ukrywa sekcje opcjonalne, które nie zawierają istotnych danych:<br>
+            JST / GV gdy "nie", Adnotacje gdy wszystkie "nie",<br>
+            Nowe środki transportu gdy "nie dotyczy",<br>
+            Transakcja łańcuchowa gdy "nie".<br><br>
+            Jeśli sekcja zawiera dane — zawsze jest widoczna.
+          </span>
+        </span>
+
+        <span id="rowDetailsToggleGroup" style="display:none;align-items:center;gap:8px;">
+          <label class="view-toggle-label toggle-row" style="cursor:pointer;gap:8px;">
+            <input type="checkbox" id="rowDetailsToggle" onchange="toggleRowDetails(!this.checked)" style="display:none;">
+            <span class="view-toggle-track"><span class="view-toggle-thumb"></span></span>
+            <span style="font-size:13px;color:var(--text);">Ukryj dodatkowe info</span>
+          </label>
+          <span class="view-toggle-info" tabindex="0">
+            <i class="fas fa-info-circle" style="color:var(--text-faint);font-size:14px;"></i>
+            <span class="view-toggle-tooltip">
+              <strong>Dodatkowe informacje dla wierszy</strong><br>
+              Niektóre faktury zawierają rozbudowane dane przypisane do poszczególnych pozycji — np. kody projektów, opisy, daty.<br><br>
+              Włącz przełącznik (świeci na niebiesko), aby ukryć tę sekcję i zmniejszyć objętość wydruku.
+            </span>
+          </span>
+        </span>
+
+        <button class="action-btn" onclick="window.print()">
+          <i class="fas fa-print"></i> Drukuj
+        </button>
+        <button class="action-btn primary" id="pdfBtn">
+          <i class="fas fa-file-pdf"></i> PDF
+        </button>
+        <button class="action-btn danger-ghost" id="newInvoiceBtn" onclick="showUploadArea()" style="display:none;">
+          <i class="fas fa-undo-alt"></i> Nowa faktura
+        </button>
+
+      </div>
+    </div>
+
+    <!-- Kontener na wyrenderowaną fakturę -->
+    <div id="pages"></div>
+  </main>
+</div><!-- /panel-faktura -->
+
+
+<!-- ===== PANEL: EKSPORT PDF ===== -->
+<div id="panel-pdf" class="panel">
+  <main class="main">
+    <div class="work-header">
+      <div class="work-title-col">
+        <div class="work-title">
+          <span class="wt-icon" style="background:var(--danger-soft);color:var(--danger);">
+            <i class="fas fa-file-pdf"></i>
+          </span>
+          Szybki eksport PDF
+        </div>
+        <div class="work-subtitle">Wczytaj plik XML — PDF pobierze się automatycznie, bez pośredniego podglądu · Idealny gdy nie potrzebujesz wizualizacji</div>
+      </div>
+    </div>
+    <div id="pdfUploadArea" class="upload-area" onclick="document.getElementById('fileInputPdf').click()">
+      <i class="fas fa-file-pdf" style="color:var(--danger);"></i>
+      <h3>Wybierz plik faktury</h3>
+      <p>PDF zostanie wygenerowany i pobrany automatycznie</p>
+      <button class="upload-pill-btn danger" onclick="event.stopPropagation();document.getElementById('fileInputPdf').click()">
+        <i class="fas fa-upload"></i> Wybierz plik XML
+      </button>
+      <input type="file" id="fileInputPdf" accept=".xml" style="display:none;">
+    </div>
+    <div id="pdfStatus" style="display:none;text-align:center;padding:40px;">
+      <p id="pdfStatusMsg" style="font-size:18px;color:var(--brand-ink);"></p>
+    </div>
+  </main>
+</div><!-- /panel-pdf -->
+
+
+<!-- ===== PANEL: WIELE FAKTUR ===== -->
+<div id="panel-batch" class="panel">
+  <main class="main">
+    <div class="work-header">
+      <div class="work-title-col">
+        <div class="work-title">
+          <span class="wt-icon"><i class="fas fa-layer-group"></i></span>
+          Wiele faktur
+        </div>
+        <div class="work-subtitle">Wczytaj wiele plików XML i wygeneruj wszystkie PDF-y naraz</div>
+      </div>
+    </div>
+
+    <div class="upload-area" id="batchUploadArea" onclick="document.getElementById('fileInputBatch').click()">
+      <i class="fas fa-layer-group" style="color:var(--accent);"></i>
+      <h3>Wybierz pliki faktur</h3>
+      <p>Zaznacz wiele plików XML naraz — możesz też dorzucić kolejne później</p>
+      <button class="upload-pill-btn" onclick="event.stopPropagation();document.getElementById('fileInputBatch').click()">
+        <i class="fas fa-upload"></i> Wybierz pliki
+      </button>
+      <input type="file" id="fileInputBatch" accept=".xml" multiple style="display:none;">
+    </div>
+
+    <div id="batchPanel" style="display:none;">
+      <div class="batch-toolbar">
+        <button type="button" class="batch-toolbar-btn batch-toolbar-btn-add" onclick="document.getElementById('fileInputBatch').click()">
+          <i class="fas fa-plus"></i> Dodaj kolejne pliki
+        </button>
+        <button type="button" class="batch-toolbar-btn batch-toolbar-btn-all" onclick="confirmGenerateAll()">
+          <i class="fas fa-file-pdf"></i> Generuj wszystkie PDF
+        </button>
+        <button type="button" class="batch-toolbar-btn batch-toolbar-btn-clear" onclick="clearBatchQueue()">
+          <i class="fas fa-trash-alt"></i> Wyczyść listę
+        </button>
+        <span class="batch-count" id="batchCount"></span>
+      </div>
+      <div class="batch-table-wrap">
+        <table class="batch-table">
+          <thead>
+            <tr>
+              <th>Nr faktury</th>
+              <th>Dostawca</th>
+              <th>Kwota brutto</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="batchTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div><!-- /panel-batch -->
+
+
+<!-- ===== FOOTER ===== -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <div class="brand" style="font-size:16px;">
+        <div class="brand-logo" style="width:30px;height:30px;">
+          <svg width="19" height="21" viewBox="0 0 188 201">
+            <g transform="translate(0,201) scale(0.1,-0.1)">
+              <path fill="#1A3E5F" d="M140 990 l0 -900 205 0 205 0 0 900 0 900 -205 0 -205 0 0 -900z"/>
+              <path fill="#16704A" d="M1335 1882 l-240 -3 -217 -327 c-340 -513 -308 -456 -308 -556 l0 -85 72 -106 c57 -85 73 -104 83 -93 7 7 66 85 131 172 66 88 135 180 154 206 320 425 581 783 574 788 -5 4 -117 6 -249 4z"/>
+              <path fill="#1A3E5F" d="M849 839 l-117 -160 197 -294 196 -294 253 -1 c138 0 252 2 252 4 0 8 -650 901 -658 903 -4 1 -59 -70 -123 -158z"/>
+            </g>
+          </svg>
+        </div>
+        <span class="brand-name"><b style="color:#1A3E5F">KSeFeusz</b><b style="color:#16704A">.pl</b></span>
+      </div>
+      <p>Darmowy, bezpieczny wizualizator faktur ustrukturyzowanych KSeF. Działa w 100% w przeglądarce. Bez ciasteczek, bez analityki, bez serwera.</p>
+    </div>
+    <div class="footer-col">
+      <h5>Produkt</h5>
+      <ul>
+        <li><button onclick="switchTab('faktura')">Wizualizator</button></li>
+        <li><button onclick="switchTab('pdf')">Eksport PDF</button></li>
+        <li><button onclick="switchTab('batch')">Wiele faktur</button></li>
+        <li><button onclick="switchTab('info');setTimeout(()=>document.getElementById('sekcja-jak').scrollIntoView({behavior:'smooth'}),50)">Jak to działa</button></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h5>Zasoby</h5>
+      <ul>
+        <li><a href="privacy.html">Polityka prywatności i informacje prawne</a></li>
+        <li><a href="LICENSE" target="_blank" rel="noopener">Licencja AGPL v3 <i class="fas fa-external-link-alt"></i></a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h5>Kontakt</h5>
+      <ul>
+        <li><a href="mailto:kontakt@ksefeusz.pl"><i class="far fa-envelope"></i> kontakt@ksefeusz.pl</a></li>
+        <li><a href="https://vespero-studio.pl" target="_blank" rel="noopener"><i class="fas fa-building"></i> Vespero Studio</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div>© 2026 Jakub Mirocha · <a href="https://vespero-studio.pl" target="_blank" rel="noopener" style="color:inherit;opacity:0.8;">Vespero Studio</a> · KSeFeusz.pl · v<span id="footerVersion"></span> · <a href="LICENSE" target="_blank" rel="noopener" style="color:inherit;opacity:0.8;">AGPL v3</a></div>
+    <div style="display:flex;gap:18px;">
+      <span><i class="fas fa-shield-alt" style="color:var(--success);"></i> Bez ciasteczek</span>
+      <span><i class="fas fa-code"></i> Open source</span>
+      <span><i class="fas fa-server"></i> Bez backendu</span>
+    </div>
+  </div>
+</footer>
+
+
+<!-- Komunikaty błędów -->
+<div id="errorMessage" class="error-message"></div>
+
+<!-- Modal potwierdzenia batch -->
+<div class="batch-modal-overlay" id="batchModalOverlay">
+  <div class="batch-modal">
+    <div class="batch-modal-icon"><i class="fas fa-exclamation-triangle"></i></div>
+    <h3 id="batchModalTitle">Generowanie PDF</h3>
+    <p id="batchModalMsg"></p>
+    <div class="batch-modal-buttons">
+      <button type="button" class="batch-modal-confirm" id="batchModalConfirmBtn" onclick="confirmGenerateAllYes()">Generuj</button>
+      <button type="button" class="batch-modal-cancel" onclick="closeBatchModal()">Anuluj</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== SKRYPTY ===== -->
+<!-- pdfmake na dole — ładuje się po wyrenderowaniu strony -->
+<script src="js/lib/pdfmake.min.js"></script>
+<script src="js/lib/vfs_fonts.min.js"></script>
+
+<!-- Nasze skrypty -->
+<script src="js/core.js?v=1.5.0"></script>
+<script src="js/utils.js?v=1.5.0"></script>
+<script src="js/renderer.js?v=1.5.0"></script>
+<script src="js/main.js?v=1.5.0"></script>
+
+<script>
+function toggleFaq(btn) {
+  const item = btn.closest('.faq-item');
+  const wasOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
+  if (!wasOpen) item.classList.add('open');
+}
+function goToPrivacy() { window.location.href = 'privacy.html'; }
+
+function syncMobileNav() {
+  const activeTab = document.querySelector('.tab.active');
+  const current = activeTab ? activeTab.dataset.tab : null;
+  document.querySelectorAll('.nav-mobile-item').forEach(item => {
+    item.classList.toggle('active', item.dataset.tab === current);
+  });
+}
+function toggleHamburger() {
+  const nav = document.querySelector('.nav');
+  const opening = !nav.classList.contains('open');
+  nav.classList.toggle('open');
+  document.getElementById('hamburger').setAttribute('aria-expanded', opening);
+  if (opening) syncMobileNav();
+}
+function closeHamburger() {
+  document.querySelector('.nav').classList.remove('open');
+  document.getElementById('hamburger').setAttribute('aria-expanded', 'false');
+}
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.nav')) closeHamburger();
+});
+</script>
+
+</body>
+</html>

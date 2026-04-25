@@ -1,0 +1,57 @@
+RewriteEngine On
+
+# www → non-www (HTTP lub HTTPS)
+RewriteCond %{HTTP_HOST} ^www\.ksefeusz\.pl [NC]
+RewriteRule ^(.*)$ https://ksefeusz.pl/$1 [R=301,L]
+
+# HTTP → HTTPS (jawna domena, nie %{HTTP_HOST} — żeby nie zachować www)
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://ksefeusz.pl/$1 [R=301,L]
+
+# /index.html → /
+RewriteCond %{THE_REQUEST} /index\.html [NC]
+RewriteRule ^index\.html$ https://ksefeusz.pl/ [R=301,L]
+
+# ============================================================
+# Cache headers dla zasobów statycznych
+# ============================================================
+
+<IfModule mod_expires.c>
+    ExpiresActive On
+
+    # Biblioteki JS i CSS (wersjonowane przez ?v=)
+    ExpiresByType application/javascript     "access plus 1 year"
+    ExpiresByType text/javascript            "access plus 1 year"
+    ExpiresByType text/css                   "access plus 1 year"
+
+    # Obrazy i ikony
+    ExpiresByType image/png                  "access plus 1 year"
+    ExpiresByType image/jpeg                 "access plus 1 year"
+    ExpiresByType image/svg+xml             "access plus 1 year"
+    ExpiresByType image/x-icon              "access plus 1 year"
+    ExpiresByType image/vnd.microsoft.icon  "access plus 1 year"
+
+    # Czcionki
+    ExpiresByType font/woff                  "access plus 1 year"
+    ExpiresByType font/woff2                 "access plus 1 year"
+    ExpiresByType application/font-woff      "access plus 1 year"
+    ExpiresByType application/font-woff2     "access plus 1 year"
+
+    # HTML — krótki cache
+    ExpiresByType text/html                  "access plus 1 hour"
+</IfModule>
+
+<IfModule mod_headers.c>
+    <FilesMatch "\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+    <FilesMatch "\.(html|htm)$">
+        Header set Cache-Control "public, max-age=3600, must-revalidate"
+    </FilesMatch>
+</IfModule>
+
+# Kompresja gzip
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/css application/javascript text/javascript
+    AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>
