@@ -40,7 +40,8 @@ git clone https://github.com/jakubmirocha-cpu/ksefeusz.pl.git
 index.html          — strona główna
 privacy.html        — polityka prywatności
 css/
-  style.css         — wszystkie style
+  style.css         — style strony (nav, hero, panele, footer)
+  invoice.css       — style renderowania HTML faktury
   lib/              — Font Awesome (ikony)
   webfonts/         — pliki fontów
 js/
