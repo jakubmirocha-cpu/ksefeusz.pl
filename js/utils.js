@@ -1,8 +1,8 @@
 // ============================================================================
-// utils.js - wersja 1.5.0 (pomocnicze funkcje UI i nawigacji)
+// utils.js - wersja 1.5.1 (pomocnicze funkcje UI i nawigacji)
 // ============================================================================
-const APP_VERSION = '1.5.0';
-const BUILD_DATE = '2026-04-24';
+const APP_VERSION = '1.5.1';
+const BUILD_DATE = '2026-04-26';
 
 // ============================================================================
 // STAŁE GLOBALNE (UI)
@@ -135,6 +135,7 @@ function clearPdfTab() {
   document.getElementById('fileInputPdf').value = '';
   document.getElementById('pdfUploadArea').style.display = 'block';
   document.getElementById('pdfStatus').style.display = 'none';
+  document.getElementById('pdfSampleReady').style.display = 'none';
 }
 
 function showUploadArea() {

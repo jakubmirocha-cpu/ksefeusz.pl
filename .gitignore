@@ -1,18 +1,5 @@
-# Claude Code
-.claude/
-
-# IDE
-.vscode/
-
 # Stary monolityczny plik — kopia zapasowa, nie jest częścią aplikacji
 js/script.js
-
-# Prywatne notatki projektowe
-CLAUDE.md
-architecture.md
-context.md
-tasks.md
-Znane błędy.md
 
 # Narzędzia deweloperskie
 logo-preview.html

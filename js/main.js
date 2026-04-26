@@ -1,5 +1,5 @@
 // ============================================================================
-// main.js - wersja 1.5.0 (generowanie PDF i obsługa zdarzeń)
+// main.js - wersja 1.5.1 (generowanie PDF i obsługa zdarzeń)
 // ============================================================================
 // Zakładamy, że core.js, utils.js i renderer.js są załadowane przed main.js
 
@@ -1317,6 +1317,8 @@ if (unknownElements.length > 0) {
     if (action === 'print') {
       pdfMake.createPdf(docDefinition).print();
       showSuccess("Wysłano do druku!");
+    } else if (action === 'open') {
+      pdfMake.createPdf(docDefinition).open();
     } else {
       pdfMake.createPdf(docDefinition).download(`${nrFakturyDoNazwy}.pdf`);
       showSuccess("PDF wygenerowany pomyślnie!");
@@ -1367,14 +1369,30 @@ function loadSampleFile(url, name) {
       if (!faktura) throw new Error('Brak elementu <Faktura> w dokumencie.');
       currentXml = xml;
       currentXmlContent = xmlContent;
-      switchTab('faktura');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      render(xml, currentFileName, xmlContent);
+
+      if (window.innerWidth <= 768) {
+        switchTab('pdf');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        document.getElementById('pdfUploadArea').style.display = 'none';
+        document.getElementById('pdfStatus').style.display = 'none';
+        document.getElementById('pdfSampleFileName').textContent = currentFileName;
+        document.getElementById('pdfSampleReady').style.display = 'block';
+        hideLoading();
+      } else {
+        switchTab('faktura');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        render(xml, currentFileName, xmlContent);
+      }
     })
     .catch(err => {
       hideLoading();
       showError(err.message);
     });
+}
+
+function downloadSamplePdf() {
+  generatePdfWithPdfMake('download');
+  clearPdfTab();
 }
 
 // ============================================================================

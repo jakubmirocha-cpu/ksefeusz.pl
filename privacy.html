@@ -57,12 +57,13 @@
     display: flex; align-items: center; gap: 36px;
   }
   .brand {
-    display: flex; align-items: center; gap: 10px;
-    font-weight: 700; font-size: 17px; letter-spacing: -0.01em;
+    display: flex; align-items: center; gap: 7px;
+    font-weight: 700; font-size: 19px; letter-spacing: -0.01em;
     color: var(--brand-ink);
+    flex-shrink: 0;
   }
   .brand-logo {
-    width: 34px; height: 34px; border-radius: 8px;
+    width: 40px; height: 40px; border-radius: 9px;
     border: 1.5px solid #1A3E5F;
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
@@ -270,7 +271,7 @@
   .footer-author i { font-size: 11px; opacity: 0.7; }
   .section .contact-email { font-weight: 600; font-size: 15px; }
   b.brand-ksefeusz { color: #1A3E5F; }
-  b.brand-pl { color: #16704A; }
+  b.brand-pl { color: #2B6CB0; }
 
   @media (max-width: 960px) {
     .content-wrap { grid-template-columns: 1fr; }
@@ -295,7 +296,7 @@
         <svg width="26" height="28" viewBox="0 0 188 201">
           <g transform="translate(0,201) scale(0.1,-0.1)">
             <path fill="#1A3E5F" d="M140 990 l0 -900 205 0 205 0 0 900 0 900 -205 0 -205 0 0 -900z"/>
-            <path fill="#16704A" d="M1335 1882 l-240 -3 -217 -327 c-340 -513 -308 -456 -308 -556 l0 -85 72 -106 c57 -85 73 -104 83 -93 7 7 66 85 131 172 66 88 135 180 154 206 320 425 581 783 574 788 -5 4 -117 6 -249 4z"/>
+            <path fill="#2B6CB0" d="M1335 1882 l-240 -3 -217 -327 c-340 -513 -308 -456 -308 -556 l0 -85 72 -106 c57 -85 73 -104 83 -93 7 7 66 85 131 172 66 88 135 180 154 206 320 425 581 783 574 788 -5 4 -117 6 -249 4z"/>
             <path fill="#1A3E5F" d="M849 839 l-117 -160 197 -294 196 -294 253 -1 c138 0 252 2 252 4 0 8 -650 901 -658 903 -4 1 -59 -70 -123 -158z"/>
           </g>
         </svg>
@@ -324,7 +325,7 @@
   <div class="meta">
     <span><i class="far fa-calendar"></i> Obowiązuje od: 1 kwietnia 2026</span>
     <span><i class="far fa-calendar-check"></i> Ostatnia aktualizacja: kwiecień 2026</span>
-    <span><i class="fas fa-code-branch"></i> Wersja aplikacji: 1.5.0</span>
+    <span><i class="fas fa-code-branch"></i> Wersja aplikacji: 1.5.1</span>
   </div>
 </div>
 
@@ -407,7 +408,7 @@
         <dt>Studio</dt>
         <dd><a href="https://vespero-studio.pl" target="_blank" rel="noopener">Vespero Studio</a></dd>
         <dt>Wersja</dt>
-        <dd>1.5.0 (kwiecień 2026)</dd>
+        <dd>1.5.1 (kwiecień 2026)</dd>
         <dt>Zgodność</dt>
         <dd><a href="https://ksef.podatki.gov.pl/informacje-ogolne-ksef-20/struktura-logiczna-fa-3/" target="_blank" rel="noopener">Schemat FA(3)</a></dd>
       </dl>
@@ -439,7 +440,7 @@
           <svg width="19" height="21" viewBox="0 0 188 201">
             <g transform="translate(0,201) scale(0.1,-0.1)">
               <path fill="#1A3E5F" d="M140 990 l0 -900 205 0 205 0 0 900 0 900 -205 0 -205 0 0 -900z"/>
-              <path fill="#16704A" d="M1335 1882 l-240 -3 -217 -327 c-340 -513 -308 -456 -308 -556 l0 -85 72 -106 c57 -85 73 -104 83 -93 7 7 66 85 131 172 66 88 135 180 154 206 320 425 581 783 574 788 -5 4 -117 6 -249 4z"/>
+              <path fill="#2B6CB0" d="M1335 1882 l-240 -3 -217 -327 c-340 -513 -308 -456 -308 -556 l0 -85 72 -106 c57 -85 73 -104 83 -93 7 7 66 85 131 172 66 88 135 180 154 206 320 425 581 783 574 788 -5 4 -117 6 -249 4z"/>
               <path fill="#1A3E5F" d="M849 839 l-117 -160 197 -294 196 -294 253 -1 c138 0 252 2 252 4 0 8 -650 901 -658 903 -4 1 -59 -70 -123 -158z"/>
             </g>
           </svg>
@@ -475,7 +476,7 @@
     </div>
   </div>
   <div class="footer-bottom">
-    <div>© 2026 Jakub Mirocha · <a href="https://vespero-studio.pl" target="_blank" rel="noopener" class="footer-source-link muted">Vespero Studio</a> · KSeFeusz.pl · v1.5.0 · <a href="LICENSE" target="_blank" rel="noopener" class="footer-source-link muted">AGPL v3</a></div>
+    <div>© 2026 Jakub Mirocha · <a href="https://vespero-studio.pl" target="_blank" rel="noopener" class="footer-source-link muted">Vespero Studio</a> · KSeFeusz.pl · v1.5.1 · <a href="LICENSE" target="_blank" rel="noopener" class="footer-source-link muted">AGPL v3</a></div>
     <div class="footer-badges">
       <span><i class="fas fa-shield-alt icon-success"></i> Bez ciasteczek</span>
       <a href="https://github.com/jakubmirocha-cpu/ksefeusz.pl" target="_blank" rel="noopener" class="footer-source-link"><i class="fab fa-github"></i> Open source</a>
