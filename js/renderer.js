@@ -1,7 +1,18 @@
 // ============================================================================
-// renderer.js - wersja 1.5.1 (renderowanie HTML faktury)
+// renderer.js - wersja 1.5.2 (renderowanie HTML faktury)
 // ============================================================================
 // Zakładamy, że core.js i utils.js są załadowane przed renderer.js
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+function nipHtml(nip) {
+  if (!isValidNIP(nip)) {
+    return `${nip} <span style="color:#e74c3c;font-size:0.9em" title="Nieprawidłowa suma kontrolna NIP — sprawdź czy numer jest poprawny">⚠</span>`;
+  }
+  return nip;
+}
 
 // ============================================================================
 // FUNKCJE GRUPUJĄCE WIERSZE KOREKT
@@ -130,9 +141,13 @@ function renderNaglowekHTML(faData, fileName, naglowekData) {
   if (nrF) tytulZNr += ` nr ${nrF}`;
 
   const ksefNumber = extractKSeFNumberFromFilename(fileName);
-  const isValid = ksefNumber && isValidKSeFFormat(ksefNumber);
+  const isValid = ksefNumber && isValidKSeFNumber(ksefNumber);
 
-  let ksefInfo = isValid ? `<span>Nr KSeF: ${ksefNumber}</span>` : `<span>brak numeru KSeF w nazwie pliku</span>`;
+  let ksefInfo = isValid
+    ? `<span>Nr KSeF: ${ksefNumber}</span>`
+    : ksefNumber
+      ? `<span>Nr KSeF: ${ksefNumber} <span style="color:#e74c3c" title="Suma kontrolna CRC-8 jest nieprawidłowa — numer może być uszkodzony">⚠ błędna suma kontrolna</span></span>`
+      : `<span>brak numeru KSeF w nazwie pliku</span>`;
 
   let dodatkoweInfo = [];
   if (naglowekData?.dataWytworzenia) dodatkoweInfo.push(`Wytworzono: ${naglowekData.dataWytworzenia.replace('T', ' ').replace(/([+-]\d{2}:\d{2})$/, ' $1').replace(/Z$/, '')}`);
@@ -163,9 +178,8 @@ function renderPodmiotHTML(podmiot, tytul) {
 
   // NIP z prefiksem
   if (podmiot.nip) {
-    let nipText = podmiot.nip;
-    if (podmiot.prefiks) nipText = `${podmiot.prefiks} ${nipText}`;
-    html += `<div><strong>NIP:</strong> ${nipText}</div>`;
+    const nipDisplay = podmiot.prefiks ? `${podmiot.prefiks} ${nipHtml(podmiot.nip)}` : nipHtml(podmiot.nip);
+    html += `<div><strong>NIP:</strong> ${nipDisplay}</div>`;
   }
 
   // Adres
@@ -226,7 +240,7 @@ function renderPodmiotUpowaznionyHTML(puData) {
 
   let html = `<div class="col" style="margin-top: 5px;"><h2>PODMIOT UPOWAŻNIONY</h2>`;
   html += `<div><strong>Nazwa:</strong> ${puData.nazwa}</div>`;
-  html += `<div><strong>NIP:</strong> ${puData.nip}</div>`;
+  html += `<div><strong>NIP:</strong> ${nipHtml(puData.nip)}</div>`;
   if (puData.nrEORI) html += `<div><strong>EORI:</strong> ${puData.nrEORI}</div>`;
 
   if (puData.adres) {
@@ -262,7 +276,7 @@ function renderPodmiot3HTML(p3Data) {
 
   if (p3Data.nazwa) html += `<strong>${p3Data.nazwa}</strong><br>`;
 
-  if (p3Data.nip) html += `<div><strong>NIP:</strong> ${p3Data.prefiks ? p3Data.prefiks + ' ' : ''}${p3Data.nip}</div>`;
+  if (p3Data.nip) html += `<div><strong>NIP:</strong> ${p3Data.prefiks ? p3Data.prefiks + ' ' : ''}${nipHtml(p3Data.nip)}</div>`;
   if (p3Data.idWew) html += `<div><strong>ID wewn.:</strong> ${p3Data.idWew}</div>`;
   if (p3Data.kodUE && p3Data.nrVatUE) html += `<div><strong>VAT UE:</strong> ${p3Data.kodUE} ${p3Data.nrVatUE}</div>`;
   if (p3Data.kodKrajuId && p3Data.nrID) html += `<div><strong>ID zagraniczny:</strong> ${p3Data.kodKrajuId} ${p3Data.nrID}</div>`;
@@ -318,9 +332,8 @@ function renderPodmiot1KHTML(p1kData) {
 
   if (p1kData.nazwa) html += `<div><strong>Nazwa:</strong> ${p1kData.nazwa}</div>`;
   if (p1kData.nip) {
-    let nipText = p1kData.nip;
-    if (p1kData.prefiks) nipText = `${p1kData.prefiks} ${nipText}`;
-    html += `<div><strong>NIP:</strong> ${nipText}</div>`;
+    const nipDisplay = p1kData.prefiks ? `${p1kData.prefiks} ${nipHtml(p1kData.nip)}` : nipHtml(p1kData.nip);
+    html += `<div><strong>NIP:</strong> ${nipDisplay}</div>`;
   }
 
   if (p1kData.adres) {
@@ -345,7 +358,7 @@ function renderPodmiot2KFullHTML(p2kFullArray) {
 
     if (p2k.nazwa) html += `<div><strong>Nazwa:</strong> ${p2k.nazwa}</div>`;
 
-    if (p2k.nip) html += `<div><strong>NIP:</strong> ${p2k.nip}</div>`;
+    if (p2k.nip) html += `<div><strong>NIP:</strong> ${nipHtml(p2k.nip)}</div>`;
     if (p2k.kodUE && p2k.nrVatUE) html += `<div><strong>VAT UE:</strong> ${p2k.kodUE} ${p2k.nrVatUE}</div>`;
     if (p2k.kodKrajuId && p2k.nrID) html += `<div><strong>ID zagraniczny:</strong> ${p2k.kodKrajuId} ${p2k.nrID}</div>`;
     if (p2k.brakID) html += `<div><em>bez identyfikatora podatkowego</em></div>`;
@@ -713,7 +726,7 @@ function renderWarunkiTransakcjiHTML(w) {
 	  if (t.przewoznik.nazwa) html += t.przewoznik.nazwa;
 	  html += `</div>`;
 
-	  if (t.przewoznik.nip) html += `<div><small>NIP: ${t.przewoznik.nip}</small></div>`;
+	  if (t.przewoznik.nip) html += `<div><small>NIP: ${nipHtml(t.przewoznik.nip)}</small></div>`;
 	  if (t.przewoznik.kodUE && t.przewoznik.nrVatUE) html += `<div><small>VAT UE: ${t.przewoznik.kodUE} ${t.przewoznik.nrVatUE}</small></div>`;
 	  if (t.przewoznik.kodKrajuId && t.przewoznik.nrID) html += `<div><small>ID zagraniczny: ${t.przewoznik.kodKrajuId} ${t.przewoznik.nrID}</small></div>`;
 	  if (t.przewoznik.brakID) html += `<div><small>bez identyfikatora podatkowego</small></div>`;

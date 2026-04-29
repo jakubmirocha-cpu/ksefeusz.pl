@@ -1,4 +1,4 @@
-﻿/* ===== KSeFeusz.pl - style.css - wersja 1.5.1 (2026-04-26) ===== */
+﻿/* ===== KSeFeusz.pl - style.css - wersja 1.5.2 (2026-04-29) ===== */
 
 .upload-area.hidden {
   display: none;
@@ -32,7 +32,7 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; overflow-x: clip; }
+html { scroll-behavior: smooth; overflow-x: clip; overflow-y: scroll; }
 body {
   font-family: var(--font);
   background: var(--bg);

@@ -1,8 +1,8 @@
 // ============================================================================
-// utils.js - wersja 1.5.1 (pomocnicze funkcje UI i nawigacji)
+// utils.js - wersja 1.5.2 (pomocnicze funkcje UI i nawigacji)
 // ============================================================================
-const APP_VERSION = '1.5.1';
-const BUILD_DATE = '2026-04-26';
+const APP_VERSION = '1.5.2';
+const BUILD_DATE = '2026-04-29';
 
 // ============================================================================
 // STAŁE GLOBALNE (UI)
@@ -90,15 +90,42 @@ function generateVerificationUrl(nip, dataWystawienia, hash) {
 function extractKSeFNumberFromFilename(filename) {
   if (!filename) return null;
   const nameWithoutExt = filename.replace(/\.xml$/i, '');
-  const ksefRegex = /(\d{10}-\d{8}-[A-Z0-9]{10,14}-[A-F0-9]{2,4})/i;
+  const ksefRegex = /(\d{10}-\d{8}-[0-9A-F]{12}-[0-9A-F]{2})/i;
   const match = nameWithoutExt.match(ksefRegex);
-  return match ? match[1] : null;
+  return match ? match[1].toUpperCase() : null;
 }
 
-function isValidKSeFFormat(ksefNumber) {
+// Suma kontrolna NIP (wagi MF: 6,5,7,2,3,4,5,6,7) — dotyczy tylko pola NIP (polskie numery)
+function isValidNIP(nip) {
+  if (!nip) return false;
+  const digits = nip.replace(/[-\s]/g, '');
+  if (!/^\d{10}$/.test(digits)) return false;
+  const weights = [6, 5, 7, 2, 3, 4, 5, 6, 7];
+  const sum = weights.reduce((acc, w, i) => acc + w * parseInt(digits[i]), 0);
+  const check = sum % 11;
+  return check !== 10 && check === parseInt(digits[9]);
+}
+
+// CRC-8 (polinom 0x07, init 0x00) — zgodnie ze specyfikacją CIRT MF
+function crc8(str) {
+  let crc = 0x00;
+  for (let i = 0; i < str.length; i++) {
+    crc ^= str.charCodeAt(i);
+    for (let j = 0; j < 8; j++) {
+      crc = (crc & 0x80) ? ((crc << 1) ^ 0x07) & 0xFF : (crc << 1) & 0xFF;
+    }
+  }
+  return crc;
+}
+
+function isValidKSeFNumber(ksefNumber) {
   if (!ksefNumber) return false;
-  const pattern = /^\d{10}-\d{8}-[A-Z0-9]{10,14}-[A-F0-9]{2,4}$/i;
-  return pattern.test(ksefNumber);
+  const n = ksefNumber.toUpperCase();
+  if (n.length !== 35) return false;
+  if (!/^\d{10}-\d{8}-[0-9A-F]{12}-[0-9A-F]{2}$/.test(n)) return false;
+  const dataPart = n.substring(0, 32);
+  const checksumStr = n.substring(33);
+  return crc8(dataPart) === parseInt(checksumStr, 16);
 }
 
 // Po wczytaniu pliku, pokaż komunikat na telefonie

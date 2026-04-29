@@ -1,5 +1,5 @@
 // ============================================================================
-// main.js - wersja 1.5.1 (generowanie PDF i obsługa zdarzeń)
+// main.js - wersja 1.5.2 (generowanie PDF i obsługa zdarzeń)
 // ============================================================================
 // Zakładamy, że core.js, utils.js i renderer.js są załadowane przed main.js
 
@@ -1066,7 +1066,7 @@ function generatePdfWithPdfMake(action = 'download') {
     const unknownElements = findUnknownFakturaElements(currentXml);
     const nipSprzedawcy = p1Data?.nip;
     const ksefNumber = extractKSeFNumberFromFilename(currentFileName);
-    const isValidKSeF = ksefNumber && isValidKSeFFormat(ksefNumber);
+    const isValidKSeF = ksefNumber && isValidKSeFNumber(ksefNumber);
 
     // Definicja dokumentu
     const docDefinition = {
@@ -1135,6 +1135,7 @@ function generatePdfWithPdfMake(action = 'download') {
     });
     let metaItems = [];
     if (isValidKSeF) metaItems.push(`KSeF: ${ksefNumber}`);
+    else if (ksefNumber) metaItems.push(`KSeF: ${ksefNumber} (błędna suma kontrolna)`);
     else metaItems.push('brak numeru KSeF w nazwie pliku');
     if (naglowekData?.systemInfo) metaItems.push(`System: ${naglowekData.systemInfo}`);
     if (naglowekData?.dataWytworzenia) metaItems.push(`Wytworzono: ${naglowekData.dataWytworzenia.replace('T', ' ').replace(/([+-]\d{2}:\d{2})$/, ' $1').replace(/Z$/, '')}`);
