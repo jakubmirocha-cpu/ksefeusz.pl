@@ -1,5 +1,5 @@
 // ============================================================================
-// core.js - wersja 1.5.2 (rdzeń aplikacji)
+// core.js - wersja 1.6.9 (rdzeń aplikacji)
 // ============================================================================
 
 // ============================================================================
@@ -8,7 +8,7 @@
 const ns = "http://crd.gov.pl/wzor/2025/06/25/13775/";
 
 // ============================================================================
-// SŁOWNIKI (przeniesione z Twojego script.js)
+// SŁOWNIKI
 // ============================================================================
 const paymentMap = { "1":"Gotówka", "2":"Karta", "3":"Bon", "4":"Czek", "5":"Kredyt", "6":"Przelew", "7":"Mobilna" };
 const vatRateMap = {
@@ -939,22 +939,5 @@ function parsePodmiot1K(node) {
       linia2: getText(adres, "AdresL2"),
       gln: getText(adres, "GLN")
     } : null
-  };
-}
-
-// ============================================================================
-// EKSPORT FUNKCJI (do użycia w script.js)
-// ============================================================================
-
-// To pozwoli używać tych funkcji w głównym skrypcie
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = {
-    ns, paymentMap, vatRateMap, gtuMap, procedureMap, correctionTypeMap,
-    invoiceTypeMap, roleMap, taxpayerStatusMap, marzaTypeMap,
-    getText, formatPrice, fmtQty, isValidUUID,
-    parsePodmiot, parsePodmiotUpowazniony, parsePlatnosc,
-    parseFaWiersz, parseFa, parseAdnotacje, parseWarunkiTransakcji,
-    parseStopka, parseZalacznik, parseRozliczenie, parseZamowienie, 
-	parseZaliczkaCzesciowa, parsePodmiot1K
   };
 }

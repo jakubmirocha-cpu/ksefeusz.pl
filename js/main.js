@@ -1,5 +1,5 @@
 // ============================================================================
-// main.js - wersja 1.5.2 (generowanie PDF i obsługa zdarzeń)
+// main.js - wersja 1.6.9 (generowanie PDF i obsługa zdarzeń)
 // ============================================================================
 // Zakładamy, że core.js, utils.js i renderer.js są załadowane przed main.js
 
@@ -800,7 +800,12 @@ function pdfCreateTableBody(wiersze, rodzaj) {
         const diffQty = (parseFloat(item.after.ilosc) || 0) - (parseFloat(item.before.ilosc) || 0);
         const diffPrice = (parseFloat(item.after.cenaNetto) || 0) - (parseFloat(item.before.cenaNetto) || 0);
 
-        if (diffNet !== 0 || diffQty !== 0 || diffPrice !== 0) {
+        if (diffNet !== 0 || diffQty !== 0 || diffPrice !== 0 || diffVat !== 0 || diffGross !== 0) {
+          // Gdy stawka VAT się zmieniła (np. 8% → 23%), w wierszu RÓŻNICY pokazujemy
+          // tylko deltę kwot (VAT, brutto). Stawka jako "—" — różnica stawek nie ma sensu liczbowego.
+          const stawkaRoznicowa = (item.before.stawkaVat === item.after.stawkaVat)
+            ? item.before.stawkaVatDisplay
+            : '—';
           body.push([
             { text: '', alignment: 'center' },
             { text: 'RÓŻNICA', colSpan: 2 }, { text: '' },
@@ -809,7 +814,7 @@ function pdfCreateTableBody(wiersze, rodzaj) {
             { text: '—', alignment: 'center' },
             { text: diffPrice !== 0 ? formatPrice(diffPrice, true) : '', alignment: 'right' },
             { text: diffNet !== 0 ? formatPrice(diffNet, true) : '', alignment: 'right' },
-            { text: item.before.stawkaVatDisplay, alignment: 'center' },
+            { text: stawkaRoznicowa, alignment: 'center' },
             { text: diffVat !== 0 ? formatPrice(diffVat, true) : '', alignment: 'right' },
             { text: diffGross !== 0 ? formatPrice(diffGross, true) : '', alignment: 'right' }
           ]);
@@ -836,11 +841,23 @@ function pdfRowArray(w, isBefore) {
   if (w.pkob) dodatki.push(`PKOB: ${w.pkob}`);
   if (w.kwotaAkcyzy && w.kwotaAkcyzy !== "0") dodatki.push(`Akcyza: ${formatPrice(w.kwotaAkcyzy, true)}`);
   if (w.stawkaOSS) dodatki.push(`OSS: ${w.stawkaOSS}%`);
-  if (w.opusty && w.opusty !== "0") dodatki.push(`Opust: ${formatPrice(w.opusty. true)}`);
+  if (w.opusty && w.opusty !== "0") dodatki.push(`Opust: ${formatPrice(w.opusty, true)}`);
+  // Rabat/narzut zaszyty w wartości netto (gdy cena × ilość ≠ kwotaNetto)
+  {
+    const expectedN = (parseFloat(w.cenaNetto) || 0) * (parseFloat(w.ilosc) || 0);
+    const actualN = parseFloat(w.kwotaNetto) || 0;
+    if (!w.czyMarza && expectedN > 0.01 && Math.abs(expectedN - actualN) > 0.01) {
+      const diff = expectedN - actualN;
+      const pct = Math.abs(diff / expectedN * 100);
+      dodatki.push(diff > 0
+        ? `Rabat: ${formatPrice(diff, true)} (${pct.toFixed(1)}%)`
+        : `Narzut: ${formatPrice(-diff, true)} (${pct.toFixed(1)}%)`);
+    }
+  }
   if (w.dataPozycji) dodatki.push(`Data: ${w.dataPozycji}`);
   if (w.kursWaluty && w.kursWaluty !== "0") dodatki.push(`Kurs: ${w.kursWaluty}`);
   if (w.zal15) dodatki.push(`Zał.15`);
-  if (isValidUUID(w.uuid)) dodatki.push(`UUID: ${w.uuid.substring(0,8)}`);
+  if (isValidUUID(w.uuid)) dodatki.push(`UUID: ${w.uuid}`);
 
   if (dodatki.length > 0) {
     opisFragmenty.push({ text: ' (' + dodatki.join(' | ') + ')', fontSize: 6, color: '#666666' });
@@ -953,6 +970,82 @@ function pdfVatSummary(faData) {
       paddingLeft: () => 5, paddingRight: () => 5, paddingTop: () => 2, paddingBottom: () => 2
     },
     alignment: 'right'
+  };
+}
+
+// Walidacja dla faktur korygujących (PDF): czy delta z wierszy (po − przed)
+// zgadza się z wartościami zadeklarowanymi w P_13_X / P_14_X / P_15.
+// Tolerancja 0.02 zł. Zwraca pdfMake content (pomarańczowy box) lub null.
+function pdfCorrectionTotalsCheck(faData, wierszeArray) {
+  if (!faData.rodzaj || !faData.rodzaj.startsWith("KOR")) return null;
+  if (!wierszeArray || wierszeArray.length === 0) return null;
+
+  let calcN = 0, calcV = 0, calcG = 0;
+  for (const w of wierszeArray) {
+    const sign = w.stanPrzed ? -1 : 1;
+    calcN += sign * (parseFloat(w.kwotaNetto) || 0);
+    calcV += sign * (parseFloat(w.kwotaVat) || 0);
+    calcG += sign * (parseFloat(w.kwotaBrutto) || 0);
+  }
+
+  const v = faData.vatSummary || {};
+  const sumKeys = (keys) => keys.reduce((s, k) => s + (parseFloat(v[k]) || 0), 0);
+  const declN = sumKeys(['p13_1','p13_2','p13_3','p13_4','p13_5','p13_6_1','p13_6_2','p13_6_3','p13_7','p13_8','p13_9','p13_10','p13_11']);
+  const declV = sumKeys(['p14_1','p14_2','p14_3','p14_4','p14_5']);
+  const declG = parseFloat(v.p15) || 0;
+
+  const dN = calcN - declN;
+  const dV = calcV - declV;
+  const dG = calcG - declG;
+  const TOL = 0.02;
+
+  if (Math.abs(dN) <= TOL && Math.abs(dV) <= TOL && Math.abs(dG) <= TOL) return null;
+
+  const innerBody = [[
+    { text: '', fillColor: '#fff2d9', fontSize: 7, bold: true },
+    { text: 'Z wierszy', fillColor: '#fff2d9', fontSize: 7, bold: true, alignment: 'right' },
+    { text: 'Z podsumowania', fillColor: '#fff2d9', fontSize: 7, bold: true, alignment: 'right' },
+    { text: 'Różnica', fillColor: '#fff2d9', fontSize: 7, bold: true, alignment: 'right' }
+  ]];
+  const addRow = (label, calc, decl, delta) => innerBody.push([
+    { text: label, fontSize: 8 },
+    { text: formatPrice(calc, true), alignment: 'right', fontSize: 8 },
+    { text: formatPrice(decl, true), alignment: 'right', fontSize: 8 },
+    { text: formatPrice(delta, true), alignment: 'right', bold: true, fontSize: 8, color: '#b9521a' }
+  ]);
+  if (Math.abs(dN) > TOL) addRow('Netto',  calcN, declN, dN);
+  if (Math.abs(dV) > TOL) addRow('VAT',    calcV, declV, dV);
+  if (Math.abs(dG) > TOL) addRow('Brutto', calcG, declG, dG);
+
+  const inner = {
+    stack: [
+      { text: 'Niezgodność sum korekty', bold: true, color: '#b9521a', fontSize: 10, margin: [0, 0, 0, 3] },
+      { text: 'Różnica wyliczona z wierszy (po − przed) nie zgadza się z deklaracją w polach P_13 / P_14 / P_15.', fontSize: 8, color: '#5b3a1a', margin: [0, 0, 0, 4] },
+      {
+        table: { widths: ['*', 'auto', 'auto', 'auto'], body: innerBody },
+        layout: {
+          hLineWidth: (i, node) => (i === 0 || i === node.table.body.length) ? 0.5 : 0.3,
+          vLineWidth: (i, node) => (i === 0 || i === node.table.widths.length) ? 0.5 : 0.3,
+          hLineColor: () => '#e67e22',
+          vLineColor: () => '#e67e22',
+          paddingLeft: () => 5, paddingRight: () => 5, paddingTop: () => 2, paddingBottom: () => 2
+        }
+      },
+      { text: 'KSeFeusz.pl prezentuje dane wyłącznie w formie wizualizacji oryginalnego pliku XML. W razie wątpliwości zweryfikuj dane źródłowe w pliku XML lub bezpośrednio w KSeF — wizualizator nie modyfikuje wartości z faktury.', fontSize: 7, italics: true, color: '#6b4a22', margin: [0, 5, 0, 0] }
+    ]
+  };
+
+  return {
+    table: { widths: ['*'], body: [[{ stack: [inner], fillColor: '#fff8e6' }]] },
+    layout: {
+      hLineWidth: () => 0.8,
+      vLineWidth: () => 0.8,
+      hLineColor: () => '#e67e22',
+      vLineColor: () => '#e67e22',
+      paddingLeft: () => 8, paddingRight: () => 8, paddingTop: () => 6, paddingBottom: () => 6
+    },
+    unbreakable: true,
+    margin: [0, 0, 0, 8]
   };
 }
 
@@ -1224,6 +1317,10 @@ function generatePdfWithPdfMake(action = 'download') {
       ],
       margin: [0, 0, 0, 5]
     });
+
+    // Walidacja sum korekty (pojawia się tylko przy niezgodności)
+    const correctionCheck = pdfCorrectionTotalsCheck(faData, wierszeArray);
+    if (correctionCheck) docDefinition.content.push(correctionCheck);
 
     // Rozliczenie
     if (rozliczenieData) docDefinition.content.push(pdfBox(pdfRenderRozliczenie(rozliczenieData)));
@@ -1753,10 +1850,12 @@ window.addEventListener('beforeunload', function(e) {
 
 window.addEventListener('scroll', function() {
   const scrollTopBtn = document.getElementById('scrollTop');
-  if (window.scrollY > 400) {
-    scrollTopBtn.classList.add('visible');
-  } else {
-    scrollTopBtn.classList.remove('visible');
+  if (scrollTopBtn) {
+    if (window.scrollY > 400) {
+      scrollTopBtn.classList.add('visible');
+    } else {
+      scrollTopBtn.classList.remove('visible');
+    }
   }
 
   // Reset aktywnej sekcji gdy użytkownik jest blisko góry strony

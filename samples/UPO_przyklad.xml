@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Potwierdzenie xmlns="http://upo.schematy.mf.gov.pl/KSeF/v4-3">
+  <NazwaPodmiotuPrzyjmujacego>Ministerstwo Finansów</NazwaPodmiotuPrzyjmujacego>
+  <NumerReferencyjnySesji>20260115-AB-9D5A28BFDA-47C899773E-3F</NumerReferencyjnySesji>
+  <Uwierzytelnienie>
+    <IdKontekstu>
+      <Nip>5265877635</Nip>
+    </IdKontekstu>
+    <SkrotDokumentuUwierzytelniajacego>kyqH+QUgP8ATWd/95IY632mP4uqibwG66Oqclq9+qno=</SkrotDokumentuUwierzytelniajacego>
+  </Uwierzytelnienie>
+  <OpisPotwierdzenia>
+    <Strona>1</Strona>
+    <LiczbaStron>1</LiczbaStron>
+    <ZakresDokumentowOd>1</ZakresDokumentowOd>
+    <ZakresDokumentowDo>2</ZakresDokumentowDo>
+    <CalkowitaLiczbaDokumentow>2</CalkowitaLiczbaDokumentow>
+  </OpisPotwierdzenia>
+  <NazwaStrukturyLogicznej>Schemat_FA(3)_v1-0E.xsd</NazwaStrukturyLogicznej>
+  <KodFormularza>FA (3)</KodFormularza>
+  <Dokument>
+    <NipSprzedawcy>5265877635</NipSprzedawcy>
+    <NumerKSeFDokumentu>5265877635-20260115-010040741B3E-46</NumerKSeFDokumentu>
+    <NumerFaktury>FV2026/01/001</NumerFaktury>
+    <DataWystawieniaFaktury>2026-01-15</DataWystawieniaFaktury>
+    <DataPrzeslaniaDokumentu>2026-01-15T10:32:41.584+01:00</DataPrzeslaniaDokumentu>
+    <DataNadaniaNumeruKSeF>2026-01-15T10:32:42.084+01:00</DataNadaniaNumeruKSeF>
+    <SkrotDokumentu>jli86Kp2Kw7jppX59P8VmjWRcwLTvsPK3DcPEB87mNk=</SkrotDokumentu>
+    <TrybWysylki>Online</TrybWysylki>
+  </Dokument>
+  <Dokument>
+    <NipSprzedawcy>5265877635</NipSprzedawcy>
+    <NumerKSeFDokumentu>5265877635-20260115-0200A0D6723E-C2</NumerKSeFDokumentu>
+    <NumerFaktury>FV2026/01/002</NumerFaktury>
+    <DataWystawieniaFaktury>2026-01-15</DataWystawieniaFaktury>
+    <DataPrzeslaniaDokumentu>2026-01-15T10:45:40.841+01:00</DataPrzeslaniaDokumentu>
+    <DataNadaniaNumeruKSeF>2026-01-15T10:45:41.045+01:00</DataNadaniaNumeruKSeF>
+    <SkrotDokumentu>GZMGNVzs3krF6URKgvaw77OOeG3nJ+WGziT5xguliQ8=</SkrotDokumentu>
+    <TrybWysylki>Online</TrybWysylki>
+  </Dokument>
+</Potwierdzenie>

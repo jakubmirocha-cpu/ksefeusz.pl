@@ -1,5 +1,5 @@
 // ============================================================================
-// renderer.js - wersja 1.5.2 (renderowanie HTML faktury)
+// renderer.js - wersja 1.6.9 (renderowanie HTML faktury)
 // ============================================================================
 // Zakładamy, że core.js i utils.js są załadowane przed renderer.js
 
@@ -22,7 +22,7 @@ function groupCorrectionRows(wierszeArray) {
   const grouped = [];
   const used = new Set();
 
-  // Krok 1: Parowanie po UUID
+  // Krok 1: Parowanie po UUID (1:1, identyczne UU_ID + przeciwne stanPrzed)
   for (let i = 0; i < wierszeArray.length; i++) {
     if (used.has(i)) continue;
     const current = wierszeArray[i];
@@ -36,7 +36,12 @@ function groupCorrectionRows(wierszeArray) {
       if (next.uuid === current.uuid && current.stanPrzed !== next.stanPrzed) {
         const beforeRow = current.stanPrzed ? current : next;
         const afterRow = current.stanPrzed ? next : current;
-        grouped.push({ type: 'pair', before: beforeRow, after: afterRow });
+        grouped.push({
+          type: 'pair',
+          before: beforeRow,
+          after: afterRow,
+          _firstIdx: Math.min(i, j)
+        });
         used.add(i);
         used.add(j);
         break;
@@ -44,88 +49,99 @@ function groupCorrectionRows(wierszeArray) {
     }
   }
 
-  // Krok 2: Parowanie po GTIN/Indeks
-  const remainingIndices = [];
+  // Krok 2: Parowanie po GTIN/Indeks/nrWiersza
+  // UWAGA: w obrębie jednego klucza może istnieć WIELE wierszy "przed" i WIELE "po"
+  // (np. ten sam produkt skorygowany kilka razy). Zbieramy je w tablice i parujemy
+  // 1:1 w kolejności pojawiania się (FIFO). Nadwyżka po którejś stronie idzie jako 'single'.
+  const remainingMap = new Map(); // key -> { befores: [{idx,row}], afters: [{idx,row}] }
+
   for (let i = 0; i < wierszeArray.length; i++) {
-    if (!used.has(i)) remainingIndices.push(i);
-  }
+    if (used.has(i)) continue;
+    const row = wierszeArray[i];
 
-  const remainingMap = new Map();
-  for (const idx of remainingIndices) {
-    const row = wierszeArray[idx];
-
-    // Próba znalezienia klucza do grupowania
     let key = null;
     if (row.gtin && row.gtin !== "") {
       key = `gtin:${row.gtin}`;
     } else if (row.indeks && row.indeks !== "") {
       key = `indeks:${row.indeks}`;
     } else if (row.nrWiersza && row.nrWiersza !== "") {
-      // Jeśli nie ma GTIN ani indeksu, używamy numeru wiersza
-      // Ale tylko jeśli to faktura korygująca!
       key = `nr:${row.nrWiersza}`;
     }
 
     if (!key) {
-      grouped.push({ type: 'single', row: row, isBefore: row.stanPrzed });
-      used.add(idx);
+      grouped.push({ type: 'single', row, isBefore: row.stanPrzed, _firstIdx: i });
+      used.add(i);
       continue;
     }
 
     if (!remainingMap.has(key)) {
-      remainingMap.set(key, { before: null, after: null, indices: [] });
+      remainingMap.set(key, { befores: [], afters: [] });
     }
     const entry = remainingMap.get(key);
-    if (row.stanPrzed) {
-      entry.before = row;
-    } else {
-      entry.after = row;
-    }
-    entry.indices.push(idx);
+    if (row.stanPrzed) entry.befores.push({ idx: i, row });
+    else               entry.afters.push({ idx: i, row });
   }
 
-  // Przetwarzanie mapy
-  for (const [key, entry] of remainingMap) {
-    if (entry.before && entry.after) {
-      // Mamy kompletną parę
-      grouped.push({
-        type: 'pair',
-        before: entry.before,
-        after: entry.after
-      });
-      entry.indices.forEach(idx => used.add(idx));
-    } else if (entry.before) {
-      // Tylko przed korektą
-      grouped.push({
-        type: 'single',
-        row: entry.before,
-        isBefore: true
-      });
-      entry.indices.forEach(idx => used.add(idx));
-    } else if (entry.after) {
-      // Tylko po korekcie
-      grouped.push({
-        type: 'single',
-        row: entry.after,
-        isBefore: false
-      });
-      entry.indices.forEach(idx => used.add(idx));
-    }
-  }
+  // Parowanie 3-stopniowe w obrębie grupy:
+  //   (1) identyczna cena netto AND identyczna ilość       — najsilniejszy match
+  //   (2) identyczna cena netto                              — korekta ilości
+  //   (3) FIFO 1:1                                           — fallback (np. korekta ceny)
+  // Pozostałe niesparowane → single
+  const sameMoney = (x, y) => Math.abs((parseFloat(x) || 0) - (parseFloat(y) || 0)) < 0.001;
+  const sameQty   = (x, y) => Math.abs((parseFloat(x) || 0) - (parseFloat(y) || 0)) < 0.0001;
 
-  // Sortowanie wg oryginalnej kolejności
-  return grouped.sort((a, b) => {
-    const getFirstIndex = (item) => {
-      if (item.type === 'pair') {
-        const idx1 = wierszeArray.indexOf(item.before);
-        const idx2 = wierszeArray.indexOf(item.after);
-        return Math.min(idx1, idx2);
+  const pushPair = (b, a) => {
+    grouped.push({
+      type: 'pair',
+      before: b.row,
+      after: a.row,
+      _firstIdx: Math.min(b.idx, a.idx)
+    });
+    used.add(b.idx);
+    used.add(a.idx);
+  };
+
+  const matchPass = (befores, afters, predicate) => {
+    for (let i = 0; i < befores.length; ) {
+      const b = befores[i];
+      const j = afters.findIndex(a => predicate(b.row, a.row));
+      if (j >= 0) {
+        pushPair(b, afters[j]);
+        befores.splice(i, 1);
+        afters.splice(j, 1);
       } else {
-        return wierszeArray.indexOf(item.row);
+        i++;
       }
-    };
-    return getFirstIndex(a) - getFirstIndex(b);
-  });
+    }
+  };
+
+  for (const entry of remainingMap.values()) {
+    const remB = entry.befores.slice();
+    const remA = entry.afters.slice();
+
+    // Stage 1: cena + ilość
+    matchPass(remB, remA, (b, a) => sameMoney(b.cenaNetto, a.cenaNetto) && sameQty(b.ilosc, a.ilosc));
+    // Stage 2: sama cena
+    matchPass(remB, remA, (b, a) => sameMoney(b.cenaNetto, a.cenaNetto));
+    // Stage 3: FIFO 1:1
+    const n = Math.min(remB.length, remA.length);
+    for (let k = 0; k < n; k++) pushPair(remB[k], remA[k]);
+
+    // Nadwyżka jako single
+    for (let k = n; k < remB.length; k++) {
+      const b = remB[k];
+      grouped.push({ type: 'single', row: b.row, isBefore: true, _firstIdx: b.idx });
+      used.add(b.idx);
+    }
+    for (let k = n; k < remA.length; k++) {
+      const a = remA[k];
+      grouped.push({ type: 'single', row: a.row, isBefore: false, _firstIdx: a.idx });
+      used.add(a.idx);
+    }
+  }
+
+  // Sortowanie wg oryginalnej kolejności pierwszego wiersza grupy
+  return grouped.sort((a, b) => a._firstIdx - b._firstIdx);
 }
 
 // ============================================================================
@@ -478,10 +494,22 @@ function rowHTML(w, isBefore = false) {
   if (w.kwotaAkcyzy && w.kwotaAkcyzy !== "0") dodatki.push(`Akcyza: ${formatPrice(w.kwotaAkcyzy)}`);
   if (w.stawkaOSS) dodatki.push(`OSS: ${w.stawkaOSS}%`);
   if (w.opusty && w.opusty !== "0") dodatki.push(`Opust: ${formatPrice(w.opusty)}`);
+  // Rabat/narzut zaszyty w wartości netto (gdy cena × ilość ≠ kwotaNetto)
+  {
+    const expectedN = (parseFloat(w.cenaNetto) || 0) * (parseFloat(w.ilosc) || 0);
+    const actualN = parseFloat(w.kwotaNetto) || 0;
+    if (!w.czyMarza && expectedN > 0.01 && Math.abs(expectedN - actualN) > 0.01) {
+      const diff = expectedN - actualN;
+      const pct = Math.abs(diff / expectedN * 100);
+      dodatki.push(diff > 0
+        ? `Rabat: ${formatPrice(diff)} (${pct.toFixed(1)}%)`
+        : `Narzut: ${formatPrice(-diff)} (${pct.toFixed(1)}%)`);
+    }
+  }
   if (w.dataPozycji) dodatki.push(`Data: ${w.dataPozycji}`);
   if (w.kursWaluty && w.kursWaluty !== "0") dodatki.push(`Kurs: ${w.kursWaluty}`);
   if (w.zal15) dodatki.push(`Zał.15`);
-  if (isValidUUID(w.uuid)) dodatki.push(`UUID: ${w.uuid.substring(0,8)}`);
+  if (isValidUUID(w.uuid)) dodatki.push(`UUID: ${w.uuid}`);
 
   if (dodatki.length > 0) {
     pelnyOpis += ' <small>(' + dodatki.join(' | ') + ')</small>';
@@ -565,6 +593,55 @@ function vatSummaryHTML(faData) {
   html += `<th class="right">${formatPrice(p15)}</th></tr></table>`;
 
   return html;
+}
+
+// Walidacja dla faktur korygujących: czy delta z wierszy (po − przed)
+// zgadza się z wartościami zadeklarowanymi w P_13_X / P_14_X / P_15.
+// Tolerancja 0.02 zł (zaokrąglenia po stronie wystawcy).
+function correctionTotalsCheckHTML(faData, wierszeArray) {
+  if (!faData.rodzaj || !faData.rodzaj.startsWith("KOR")) return "";
+  if (!wierszeArray || wierszeArray.length === 0) return "";
+
+  let calcN = 0, calcV = 0, calcG = 0;
+  for (const w of wierszeArray) {
+    const sign = w.stanPrzed ? -1 : 1;
+    calcN += sign * (parseFloat(w.kwotaNetto) || 0);
+    calcV += sign * (parseFloat(w.kwotaVat) || 0);
+    calcG += sign * (parseFloat(w.kwotaBrutto) || 0);
+  }
+
+  const v = faData.vatSummary || {};
+  const sumKeys = (keys) => keys.reduce((s, k) => s + (parseFloat(v[k]) || 0), 0);
+  const declN = sumKeys(['p13_1','p13_2','p13_3','p13_4','p13_5','p13_6_1','p13_6_2','p13_6_3','p13_7','p13_8','p13_9','p13_10','p13_11']);
+  const declV = sumKeys(['p14_1','p14_2','p14_3','p14_4','p14_5']);
+  const declG = parseFloat(v.p15) || 0;
+
+  const dN = calcN - declN;
+  const dV = calcV - declV;
+  const dG = calcG - declG;
+
+  const TOL = 0.02;
+  if (Math.abs(dN) <= TOL && Math.abs(dV) <= TOL && Math.abs(dG) <= TOL) return "";
+
+  const row = (label, calc, decl, delta) =>
+    `<tr><td>${label}</td><td class="right">${formatPrice(calc)}</td><td class="right">${formatPrice(decl)}</td><td class="right"><strong>${formatPrice(delta)}</strong></td></tr>`;
+
+  let body = "";
+  if (Math.abs(dN) > TOL) body += row('Netto',  calcN, declN, dN);
+  if (Math.abs(dV) > TOL) body += row('VAT',    calcV, declV, dV);
+  if (Math.abs(dG) > TOL) body += row('Brutto', calcG, declG, dG);
+
+  return `
+    <div class="correction-mismatch no-break">
+      <strong>⚠ Niezgodność sum korekty</strong>
+      <p>Różnica wyliczona z wierszy (po&nbsp;−&nbsp;przed) nie zgadza się z deklaracją w&nbsp;polach P_13/P_14/P_15:</p>
+      <table>
+        <tr><th></th><th class="right">Z wierszy</th><th class="right">Z podsumowania</th><th class="right">Różnica</th></tr>
+        ${body}
+      </table>
+      <small>KSeFeusz.pl prezentuje dane wyłącznie w formie wizualizacji oryginalnego pliku XML. W razie wątpliwości zweryfikuj dane źródłowe w pliku XML lub bezpośrednio w KSeF — wizualizator nie modyfikuje wartości z faktury.</small>
+    </div>
+  `;
 }
 
 function renderRozliczenieHTML(r) {
@@ -1457,7 +1534,12 @@ if (faData.rodzaj.startsWith("KOR") && faData.daneKorygowane.length > 0) {
         const diffQty = (parseFloat(item.after.ilosc) || 0) - (parseFloat(item.before.ilosc) || 0);
         const diffPrice = (parseFloat(item.after.cenaNetto) || 0) - (parseFloat(item.before.cenaNetto) || 0);
 
-        if (diffNet !== 0 || diffQty !== 0 || diffPrice !== 0) {
+        if (diffNet !== 0 || diffQty !== 0 || diffPrice !== 0 || diffVat !== 0 || diffGross !== 0) {
+          // Gdy stawka VAT się zmieniła (np. 8% → 23%), w wierszu RÓŻNICY pokazujemy
+          // tylko deltę kwot (VAT, brutto). Stawka jako "—" — różnica stawek nie ma sensu liczbowego.
+          const stawkaRoznicowa = (item.before.stawkaVat === item.after.stawkaVat)
+            ? item.before.stawkaVatDisplay
+            : '—';
           tableRows += `
 <tr class="diff-row">
   <td></td>
@@ -1467,7 +1549,7 @@ if (faData.rodzaj.startsWith("KOR") && faData.daneKorygowane.length > 0) {
   <td class="center">—</td>
   <td class="right">${diffPrice !== 0 ? formatPrice(diffPrice) : ''}</td>
   <td class="right">${diffNet !== 0 ? formatPrice(diffNet) : ''}</td>
-  <td class="center">${item.before.stawkaVatDisplay}</td>
+  <td class="center">${stawkaRoznicowa}</td>
   <td class="right">${diffVat !== 0 ? formatPrice(diffVat) : ''}</td>
   <td class="right">${diffGross !== 0 ? formatPrice(diffGross) : ''}</td>
 </tr>`;
@@ -1503,6 +1585,7 @@ if (faData.rodzaj.startsWith("KOR") && faData.daneKorygowane.length > 0) {
 
   // Podsumowanie i dodatkowe sekcje
   containerContent += vatSummaryHTML(faData);
+  containerContent += correctionTotalsCheckHTML(faData, wierszeArray);
   containerContent += renderRozliczenieHTML(rozliczenieData);
   containerContent += renderDodatkoweInformacjeHTML(faData, p1Data);
   containerContent += renderZaliczkaCzesciowaHTML(faData.zaliczkiCzesciowe);
