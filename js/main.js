@@ -1,5 +1,5 @@
 // ============================================================================
-// main.js - wersja 1.6.9 (generowanie PDF i obsługa zdarzeń)
+// main.js - wersja 1.6.10 (generowanie PDF i obsługa zdarzeń)
 // ============================================================================
 // Zakładamy, że core.js, utils.js i renderer.js są załadowane przed main.js
 
@@ -168,7 +168,7 @@ function pdfRenderPodmiot1K(p1kData) {
     if (p1kData.adres.gln) content.push({ text: `GLN: ${p1kData.adres.gln}`, fontSize: 7, margin: [0, 0, 0, 1] });
   }
 
-  return { stack: content, margin: [0, 0, 0, 5] };
+  return { stack: content, margin: [0, 0, 0, 4] };
 }
 
 function pdfRenderPodmiot2KFull(p2kFullArray) {
@@ -203,65 +203,73 @@ function pdfRenderPodmiot2KFull(p2kFullArray) {
     }
   }
 
-  return { stack: content, margin: [0, 0, 0, 5] };
+  return { stack: content, margin: [0, 0, 0, 4] };
 }
 
 function pdfRenderPaymentInfo(p) {
   if (!p) return { text: "—" };
 
-  let parts = [];
+  const lbl = t => ({ text: t, color: '#555555' });
+  const typyMap = { "1": "rach. własny (wierzytelności)", "2": "rach. własny (pobranie)", "3": "rach. własny (gospodarka)" };
+  const rows = [];
 
-  if (p.formaPlatnosci) parts.push(`Forma: ${paymentMap[p.formaPlatnosci] || p.formaPlatnosci}`);
-  if (p.platnoscInna && p.opisPlatnosci) parts.push(`Inna: ${p.opisPlatnosci}`);
+  if (p.formaPlatnosci) rows.push([lbl('Forma:'), { text: paymentMap[p.formaPlatnosci] || p.formaPlatnosci }]);
+  if (p.platnoscInna && p.opisPlatnosci) rows.push([lbl('Inna:'), { text: p.opisPlatnosci }]);
 
-  if (p.terminData) parts.push(`Termin: ${p.terminData}`);
+  if (p.terminData) rows.push([lbl('Termin:'), { text: p.terminData }]);
   if (p.terminOpis) {
     const { ilosc, jednostka, zdarzenie } = p.terminOpis;
-    if (ilosc && jednostka && zdarzenie) parts.push(`Termin: ${ilosc} ${jednostka} od ${zdarzenie}`);
-    else if (ilosc && jednostka) parts.push(`Termin: ${ilosc} ${jednostka}`);
+    if (ilosc && jednostka && zdarzenie) rows.push([lbl('Termin:'), { text: `${ilosc} ${jednostka} od ${zdarzenie}` }]);
+    else if (ilosc && jednostka) rows.push([lbl('Termin:'), { text: `${ilosc} ${jednostka}` }]);
   }
 
   for (let rach of p.rachunki) {
     if (rach.nrRB) {
-      let rachunekParts = [`Rachunek: ${formatujRachunek(rach.nrRB)}`];
-      if (rach.swift) rachunekParts.push(`SWIFT: ${rach.swift}`);
-      const typyMap = { "1": "rach. własny (wierzytelności)", "2": "rach. własny (pobranie)", "3": "rach. własny (gospodarka)" };
-      if (rach.typWlasny) rachunekParts.push(typyMap[rach.typWlasny] || 'rach. własny');
-      if (rach.nazwaBanku) rachunekParts.push(rach.nazwaBanku);
-      parts.push(rachunekParts.join(' • '));
+      const sub = [];
+      if (rach.swift) sub.push(`SWIFT: ${rach.swift}`);
+      if (rach.typWlasny) sub.push(typyMap[rach.typWlasny] || 'rach. własny');
+      if (rach.nazwaBanku) sub.push(rach.nazwaBanku);
+      const val = sub.length ? { stack: [{ text: formatujRachunek(rach.nrRB) }, { text: sub.join(' • '), fontSize: 7, color: '#555555' }] } : { text: formatujRachunek(rach.nrRB) };
+      rows.push([lbl('Rachunek:'), val]);
     }
   }
 
   for (let rach of p.rachunkiFaktora) {
     if (rach.nrRB) {
-      let rachunekParts = [`Rachunek faktora: ${formatujRachunek(rach.nrRB)}`];
-      if (rach.swift) rachunekParts.push(`SWIFT: ${rach.swift}`);
-      const typyMap = { "1": "rach. własny (wierzytelności)", "2": "rach. własny (pobranie)", "3": "rach. własny (gospodarka)" };
-      if (rach.typWlasny) rachunekParts.push(typyMap[rach.typWlasny] || 'rach. własny');
-      if (rach.nazwaBanku) rachunekParts.push(rach.nazwaBanku);
-      parts.push(rachunekParts.join(' • '));
+      const sub = [];
+      if (rach.swift) sub.push(`SWIFT: ${rach.swift}`);
+      if (rach.typWlasny) sub.push(typyMap[rach.typWlasny] || 'rach. własny');
+      if (rach.nazwaBanku) sub.push(rach.nazwaBanku);
+      const val = sub.length ? { stack: [{ text: formatujRachunek(rach.nrRB) }, { text: sub.join(' • '), fontSize: 7, color: '#555555' }] } : { text: formatujRachunek(rach.nrRB) };
+      rows.push([lbl('Rach. faktora:'), val]);
     }
   }
 
-  if (p.zaplacono) parts.push(`Zapłacono: ${p.dataZaplaty}`);
+  if (p.zaplacono) rows.push([lbl('Zapłacono:'), { text: p.dataZaplaty }]);
 
   if (p.zaplatyCzesciowe.length > 0) {
-    parts.push(`Zapłaty częściowe:`);
-    for (let z of p.zaplatyCzesciowe) {
-      let zaplata = `  - ${formatPrice(z.kwota, true)} z ${z.data}`;
-      if (z.forma) zaplata += ` (${paymentMap[z.forma] || z.forma})`;
-      parts.push(zaplata);
-    }
+    const lista = p.zaplatyCzesciowe.map(z => {
+      let s = `${formatPrice(z.kwota, true)} z ${z.data}`;
+      if (z.forma) s += ` (${paymentMap[z.forma] || z.forma})`;
+      return s;
+    }).join('\n');
+    rows.push([lbl('Zapłaty częściowe:'), { text: lista, fontSize: 7 }]);
   }
 
   if (p.skonto) {
-    parts.push(`Skonto: ${p.skonto.warunki || ''} ${p.skonto.wysokosc ? '(' + p.skonto.wysokosc + ')' : ''}`);
+    const skontoVal = [p.skonto.warunki, p.skonto.wysokosc ? `(${p.skonto.wysokosc})` : ''].filter(Boolean).join(' ');
+    rows.push([lbl('Skonto:'), { text: skontoVal }]);
   }
 
-  if (p.linkDoPlatnosci) parts.push(`Link: ${p.linkDoPlatnosci}`);
-  if (p.ipksef) parts.push(`IPKSeF: ${p.ipksef}`);
+  if (p.linkDoPlatnosci) rows.push([lbl('Link:'), { text: p.linkDoPlatnosci, fontSize: 7 }]);
+  if (p.ipksef) rows.push([lbl('IPKSeF:'), { text: p.ipksef, fontSize: 7 }]);
 
-  return { stack: parts.map(t => ({ text: t, margin: [0, 1, 0, 1] })) };
+  if (rows.length === 0) return { text: "—" };
+
+  return {
+    table: { widths: ['auto', '*'], body: rows },
+    layout: { hLineWidth: () => 0, vLineWidth: () => 0, paddingLeft: () => 0, paddingRight: () => 4, paddingTop: () => 1, paddingBottom: () => 1 }
+  };
 }
 
 function pdfRenderRozliczenie(r) {
@@ -305,7 +313,7 @@ function pdfRenderZaliczkaCzesciowa(zaliczkiData) {
     }
   }
 
-  return { stack: content, margin: [0, 0, 0, 5] };
+  return { stack: content, margin: [0, 0, 0, 4] };
 }
 
 function pdfRenderWarunkiTransakcji(w) {
@@ -337,7 +345,7 @@ function pdfRenderWarunkiTransakcji(w) {
   }
 
   if (!hasContent) return null;
-  return { stack: content, margin: [0, 0, 0, 5] };
+  return { stack: content, margin: [0, 0, 0, 4] };
 }
 
 function pdfRenderTransport(t) {
@@ -408,54 +416,61 @@ function pdfRenderTransport(t) {
 function pdfRenderAdnotacje(a) {
   if (!a) return null;
 
-  function flagItem(label, valueTak, extra) {
-    const valueText = valueTak ? (extra ? `Tak (${extra})` : 'Tak') : (extra || 'Nie');
-    return {
-      stack: [{
-        text: [
-          { text: label + ': ', fontSize: 7, color: '#4e4e4e' },
-          { text: valueText, fontSize: 7, bold: true, color: valueTak ? '#1a5276' : '#333333' }
-        ]
-      }]
-    };
-  }
+  const lbl = t => ({ text: t, color: '#555555' });
+  const val = (valueTak, extra) => ({
+    text: valueTak ? (extra ? `Tak (${extra})` : 'Tak') : (extra || 'Nie'),
+    bold: true,
+    color: valueTak ? '#1a5276' : '#333333'
+  });
 
-  let content = [pdfSectionHeader('ADNOTACJE')];
-  let gridItems = [];
+  const rows = [];
 
-  if (a.p16)  gridItems.push(flagItem('Metoda kasowa',          a.p16  === "1"));
-  if (a.p17)  gridItems.push(flagItem('Samofakturowanie',       a.p17  === "1"));
-  if (a.p18)  gridItems.push(flagItem('Odwrotne obciążenie',    a.p18  === "1"));
-  if (a.p18a) gridItems.push(flagItem('Split payment',          a.p18a === "1"));
-  if (a.p23)  gridItems.push(flagItem('Proc. uproszczona WE',   a.p23  === "1"));
+  if (a.p16)  rows.push([lbl('Metoda kasowa:'),          val(a.p16  === "1")]);
+  if (a.p17)  rows.push([lbl('Samofakturowanie:'),       val(a.p17  === "1")]);
+  if (a.p18)  rows.push([lbl('Odwrotne obciążenie:'),    val(a.p18  === "1")]);
+  if (a.p18a) rows.push([lbl('Split payment:'),          val(a.p18a === "1")]);
+  if (a.p23)  rows.push([lbl('Proc. uproszczona WE:'),   val(a.p23  === "1")]);
 
   if (a.proceduraMarzy) {
     if (a.proceduraMarzy.wystepuje) {
-      let typy = [];
-      if (a.proceduraMarzy.biuraPodrozy)   typy.push("biura podróży");
-      if (a.proceduraMarzy.towaryUzywane)  typy.push("towary używane");
-      if (a.proceduraMarzy.dzielaSztuki)   typy.push("dzieła sztuki");
-      if (a.proceduraMarzy.antyki)         typy.push("kolekcjonerskie/antyki");
-      gridItems.push(flagItem('Procedura marży', true, typy.join(', ')));
+      const typy = [];
+      if (a.proceduraMarzy.biuraPodrozy)  typy.push("biura podróży");
+      if (a.proceduraMarzy.towaryUzywane) typy.push("towary używane");
+      if (a.proceduraMarzy.dzielaSztuki)  typy.push("dzieła sztuki");
+      if (a.proceduraMarzy.antyki)        typy.push("kolekcjonerskie/antyki");
+      rows.push([lbl('Procedura marży:'), val(true, typy.join(', '))]);
     } else {
-      gridItems.push(flagItem('Procedura marży', false));
+      rows.push([lbl('Procedura marży:'), val(false)]);
     }
-  }
-
-  if (gridItems.length > 0) {
-    content.push(pdfCreateGrid(gridItems, 3));
   }
 
   if (a.zwolnienie) {
     if (a.zwolnienie.p19) {
       const podstawa = a.zwolnienie.p19a || a.zwolnienie.p19b || a.zwolnienie.p19c || 'brak podstawy';
-      content.push({ text: [{ text: 'Zwolnienie: ', fontSize: 7, color: '#4e4e4e' }, { text: `Tak (${podstawa})`, fontSize: 7, bold: true, color: '#1a5276' }], margin: [2, 2, 0, 0] });
+      rows.push([lbl('Zwolnienie:'), val(true, podstawa)]);
     } else if (a.zwolnienie.p19n) {
-      content.push({ text: [{ text: 'Zwolnienie: ', fontSize: 7, color: '#4e4e4e' }, { text: 'Nie dotyczy', fontSize: 7, bold: true, color: '#333333' }], margin: [2, 2, 0, 0] });
+      rows.push([lbl('Zwolnienie:'), { text: 'Nie dotyczy', bold: true, color: '#333333' }]);
     }
   }
 
-  return { stack: content, margin: [0, 0, 0, 5] };
+  if (rows.length === 0) return null;
+
+  const makeKV = (r) => r.length === 0 ? { text: '' } : {
+    table: { widths: ['auto', 'auto'], body: r },
+    layout: { hLineWidth: () => 0, vLineWidth: () => 0, paddingLeft: () => 0, paddingRight: () => 4, paddingTop: () => 1, paddingBottom: () => 1 }
+  };
+
+  const col1 = rows.filter((_, i) => i % 3 === 0);
+  const col2 = rows.filter((_, i) => i % 3 === 1);
+  const col3 = rows.filter((_, i) => i % 3 === 2);
+
+  return {
+    stack: [
+      pdfSectionHeader('ADNOTACJE'),
+      { columns: [{ width: '*', stack: [makeKV(col1)] }, { width: '*', stack: [makeKV(col2)] }, { width: '*', stack: [makeKV(col3)] }], columnGap: 15 }
+    ],
+    margin: [0, 0, 0, 4]
+  };
 }
 
 function pdfRenderNoweSrodki(a) {
@@ -466,7 +481,7 @@ function pdfRenderNoweSrodki(a) {
 
   if (nst.p22n) {
     content.push({ text: 'Wewnątrzwspólnotowa dostawa nowych środków transportu: Nie dotyczy', margin: [0, 0, 0, 1] });
-    return { stack: content, margin: [0, 0, 0, 5] };
+    return { stack: content, margin: [0, 0, 0, 4] };
   }
 
   if (nst.p42_5 !== undefined) content.push({ text: `Art. 42 ust. 5: ${nst.p42_5 ? "Tak" : "Nie"}`, margin: [0, 0, 0, 1] });
@@ -500,7 +515,7 @@ function pdfRenderNoweSrodki(a) {
     if (pojazd.fabryczny) content.push({ text: `Nr fabryczny: ${pojazd.fabryczny}`, margin: [5, 0, 0, 1] });
   }
 
-  return { stack: content, margin: [0, 0, 0, 5] };
+  return { stack: content, margin: [0, 0, 0, 4] };
 }
 
 function pdfRenderFakturyZaliczkowe(faData) {
@@ -518,7 +533,7 @@ function pdfRenderFakturyZaliczkowe(faData) {
     }
   }
 
-  return { stack: content, margin: [0, 0, 0, 5] };
+  return { stack: content, margin: [0, 0, 0, 4] };
 }
 
 function pdfRenderDodatkoweInformacje(faData, p1Data) {
@@ -630,7 +645,7 @@ function pdfRenderDodatkoweInformacje(faData, p1Data) {
 		  body: tableBody
 		},
 		layout: 'lightHorizontalLines',
-		margin: [0, 0, 0, 5],
+		margin: [0, 0, 0, 4],
 		fontSize: fontSize
 	  });
 
@@ -693,7 +708,7 @@ function pdfRenderZalacznik(zalacznikData) {
     }
   }
 
-  return { stack: content, margin: [0, 0, 0, 5] };
+  return { stack: content, margin: [0, 0, 0, 4] };
 }
 
 function pdfRenderFooter(stopkaData) {
@@ -716,7 +731,7 @@ function pdfRenderFooter(stopkaData) {
     }
   }
 
-  return { stack: content, margin: [0, 0, 0, 5] };
+  return { stack: content, margin: [0, 0, 0, 4] };
 }
 
 function pdfCreateGrid(items, columns = 3) {
@@ -737,7 +752,13 @@ function pdfCreateGrid(items, columns = 3) {
 
 function pdfSectionHeader(title, topMargin) {
   if (topMargin === undefined) topMargin = 0;
-  return { text: title, bold: true, fontSize: 9, color: '#1a5276', margin: [0, topMargin, 0, 3] };
+  if (!title) return { text: '', margin: [0, topMargin, 0, 0] };
+  return {
+    stack: [
+      { text: title, bold: true, fontSize: 9, color: '#1a5276', margin: [0, topMargin, 0, 2] },
+      { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 150, y2: 0, lineWidth: 0.5, lineColor: '#1a5276' }], margin: [0, 0, 0, 4] }
+    ]
+  };
 }
 
 function pdfBox(content, breakable) {
@@ -745,16 +766,14 @@ function pdfBox(content, breakable) {
   const box = {
     table: { widths: ['*'], body: [[{ stack: items }]] },
     layout: {
-      hLineWidth: function() { return 0.5; },
-      vLineWidth: function() { return 0.5; },
-      hLineColor: function() { return '#aaaaaa'; },
-      vLineColor: function() { return '#aaaaaa'; },
-      paddingLeft: function() { return 6; },
-      paddingRight: function() { return 6; },
-      paddingTop: function() { return 4; },
-      paddingBottom: function() { return 3; }
+      hLineWidth: function() { return 0; },
+      vLineWidth: function() { return 0; },
+      paddingLeft: function() { return 0; },
+      paddingRight: function() { return 0; },
+      paddingTop: function() { return 2; },
+      paddingBottom: function() { return 2; }
     },
-    margin: [0, 0, 0, 3]
+    margin: [0, 0, 0, 4]
   };
   if (!breakable) box.unbreakable = true;
   return box;
@@ -769,17 +788,16 @@ function pdfTwoBox(leftContent, rightContent) {
       body: [[{ stack: left }, { stack: right }]]
     },
     layout: {
-      hLineWidth: function() { return 0.5; },
-      vLineWidth: function() { return 0.5; },
-      hLineColor: function() { return '#aaaaaa'; },
-      vLineColor: function() { return '#aaaaaa'; },
-      paddingLeft: function() { return 6; },
-      paddingRight: function() { return 6; },
-      paddingTop: function() { return 4; },
+      hLineWidth: function() { return 0; },
+      vLineWidth: function(i) { return i === 1 ? 0.5 : 0; },
+      vLineColor: function() { return '#cccccc'; },
+      paddingLeft: function(i) { return i === 0 ? 0 : 10; },
+      paddingRight: function(i) { return i === 0 ? 10 : 0; },
+      paddingTop: function() { return 2; },
       paddingBottom: function() { return 3; }
     },
     unbreakable: true,
-    margin: [0, 0, 0, 3]
+    margin: [0, 0, 0, 4]
   };
 }
 
@@ -959,7 +977,7 @@ function pdfVatSummary(faData) {
 
   return {
     table: {
-      widths: ['auto', 'auto', 'auto', 'auto'],
+      widths: ['*', 45, 45, 45],
       body: body
     },
     layout: {
@@ -968,8 +986,7 @@ function pdfVatSummary(faData) {
       hLineColor: () => '#aaaaaa',
       vLineColor: () => '#aaaaaa',
       paddingLeft: () => 5, paddingRight: () => 5, paddingTop: () => 2, paddingBottom: () => 2
-    },
-    alignment: 'right'
+    }
   };
 }
 
@@ -1045,7 +1062,7 @@ function pdfCorrectionTotalsCheck(faData, wierszeArray) {
       paddingLeft: () => 8, paddingRight: () => 8, paddingTop: () => 6, paddingBottom: () => 6
     },
     unbreakable: true,
-    margin: [0, 0, 0, 8]
+    margin: [0, 0, 0, 4]
   };
 }
 
@@ -1055,7 +1072,7 @@ function pdfRenderZamowienie(zamowienieData) {
   let content = [pdfSectionHeader('ZAMÓWIENIE / UMOWA')];
 
   if (zamowienieData.wartoscZamowienia) {
-    content.push({ text: `Wartość zamówienia: ${formatPrice(zamowienieData.wartoscZamowienia, true)}`, margin: [0, 0, 0, 5] });
+    content.push({ text: `Wartość zamówienia: ${formatPrice(zamowienieData.wartoscZamowienia, true)}`, margin: [0, 0, 0, 4] });
   }
 
   const tableBody = [
@@ -1099,7 +1116,7 @@ function pdfRenderZamowienie(zamowienieData) {
       body: tableBody
     },
     layout: 'lightHorizontalLines',
-    margin: [0, 0, 0, 5]
+    margin: [0, 0, 0, 4]
   });
 
   return { stack: content };
@@ -1232,7 +1249,7 @@ function generatePdfWithPdfMake(action = 'download') {
     else metaItems.push('brak numeru KSeF w nazwie pliku');
     if (naglowekData?.systemInfo) metaItems.push(`System: ${naglowekData.systemInfo}`);
     if (naglowekData?.dataWytworzenia) metaItems.push(`Wytworzono: ${naglowekData.dataWytworzenia.replace('T', ' ').replace(/([+-]\d{2}:\d{2})$/, ' $1').replace(/Z$/, '')}`);
-    docDefinition.content.push({ text: metaItems.join('  ·  '), fontSize: 7, color: '#95a5a6', margin: [0, 0, 0, 5] });
+    docDefinition.content.push({ text: metaItems.join('  ·  '), fontSize: 7, color: '#95a5a6', margin: [0, 0, 0, 4] });
 
     // Sprzedawca i nabywca
     docDefinition.content.push(pdfTwoBox(
@@ -1257,38 +1274,54 @@ function generatePdfWithPdfMake(action = 'download') {
     }
 
     // Dane faktury i płatność
-    let daneFakturyContent = [
-      { text: `Numer: ${faData.nrFaktury}`, margin: [0, 0, 0, 1] },
-      { text: `Data wystawienia: ${faData.dataWystawienia}${faData.miejsceWystawienia ? ', ' + faData.miejsceWystawienia : ''}`, margin: [0, 0, 0, 1] }
+    const faKvRows = [
+      [{ text: 'Numer:', color: '#555555' }, { text: faData.nrFaktury || '—', bold: true }],
+      [{ text: 'Data wystawienia:', color: '#555555' }, { text: faData.dataWystawienia + (faData.miejsceWystawienia ? ', ' + faData.miejsceWystawienia : '') }]
     ];
-    if (faData.dataSprzedazy) daneFakturyContent.push({ text: `Data sprzedaży: ${faData.dataSprzedazy}`, margin: [0, 0, 0, 1] });
-    if (faData.okresSprzedazy) daneFakturyContent.push({ text: `Okres: ${faData.okresSprzedazy.od} - ${faData.okresSprzedazy.do}`, margin: [0, 0, 0, 1] });
+    if (faData.dataSprzedazy) faKvRows.push([{ text: 'Data sprzedaży:', color: '#555555' }, { text: faData.dataSprzedazy }]);
+    if (faData.okresSprzedazy) faKvRows.push([{ text: 'Okres sprzedaży:', color: '#555555' }, { text: `${faData.okresSprzedazy.od} – ${faData.okresSprzedazy.do}` }]);
 
-    // Korekty
     if (faData.rodzaj.startsWith("KOR") && faData.daneKorygowane.length > 0) {
-  let fakturyList = faData.daneKorygowane.map(dk => {
-    let opis = `${dk.nr} z ${dk.data}`;
-    if (dk.nrKSeF) {
-      opis += ` KSeF: ${dk.nrKSeF}`;
-    } else if (dk.pozaKSeF) {
-      opis += ` (poza KSeF)`;
+      if (faData.typKorekty) faKvRows.push([{ text: 'Typ korekty:', color: '#555555' }, { text: faData.typKorektyDisplay }]);
     }
-    return { text: opis, margin: [0, 0, 0, 1], fontSize: 7 };
-  });
 
-  daneFakturyContent.push({ text: 'Korygowane faktury:', margin: [0, 0, 0, 1], bold: true });
-  daneFakturyContent.push(...fakturyList);
+    if (faData.przyczynaKorekty) faKvRows.push([{ text: 'Przyczyna korekty:', color: '#555555' }, { text: faData.przyczynaKorekty }]);
 
-  if (faData.typKorekty) {
-    daneFakturyContent.push({ text: `Typ korekty: ${faData.typKorektyDisplay}`, margin: [0, 0, 0, 1], fontSize: 8 });
-  }
-}
-    if (faData.przyczynaKorekty) daneFakturyContent.push({ text: `Przyczyna korekty: ${faData.przyczynaKorekty}`, margin: [0, 0, 0, 1] });
+    const daneFakturyKV = {
+      table: { widths: ['auto', '*'], body: faKvRows },
+      layout: { hLineWidth: () => 0, vLineWidth: () => 0, paddingLeft: () => 0, paddingRight: () => 4, paddingTop: () => 1, paddingBottom: () => 1 }
+    };
 
     docDefinition.content.push(pdfTwoBox(
-      [pdfSectionHeader('DANE FAKTURY'), ...daneFakturyContent],
+      [pdfSectionHeader('DANE FAKTURY'), daneFakturyKV],
       [pdfSectionHeader('PŁATNOŚĆ'), pdfRenderPaymentInfo(platnoscData)]
     ));
+
+    // Korygowane faktury — pełna szerokość, jedna na wiersz
+    if (faData.rodzaj.startsWith("KOR") && faData.daneKorygowane.length > 0) {
+      const korBody = faData.daneKorygowane.map(dk => {
+        const ksefCell = dk.nrKSeF
+          ? { text: dk.nrKSeF, fontSize: 7, color: '#555555' }
+          : dk.pozaKSeF
+            ? { text: '(poza KSeF)', fontSize: 7, color: '#888888', italics: true }
+            : { text: '' };
+        return [
+          { text: dk.nr, bold: true },
+          { text: `z dnia ${dk.data}`, color: '#555555' },
+          ksefCell
+        ];
+      });
+      docDefinition.content.push({
+        stack: [
+          pdfSectionHeader('KORYGOWANE FAKTURY'),
+          {
+            table: { widths: ['auto', 'auto', '*'], body: korBody },
+            layout: { hLineWidth: () => 0, vLineWidth: () => 0, paddingLeft: () => 0, paddingRight: () => 12, paddingTop: () => 1, paddingBottom: () => 1 }
+          }
+        ],
+        margin: [0, 0, 0, 4]
+      });
+    }
 
     // Tabela z wierszami
     const tableBody = pdfCreateTableBody(wierszeArray, faData.rodzaj);
@@ -1306,16 +1339,16 @@ function generatePdfWithPdfMake(action = 'download') {
         vLineColor: () => '#aaaaaa',
         paddingLeft: () => 4, paddingRight: () => 4, paddingTop: () => 3, paddingBottom: () => 3
       },
-      margin: [0, 5, 0, 5]
+      margin: [0, 0, 0, 4]
     });
 
     // Podsumowanie VAT - wyrównane do prawej
     docDefinition.content.push({
       columns: [
         { width: '*', text: '' },
-        { width: 'auto', stack: [pdfVatSummary(faData)] }
+        { width: '45%', stack: [pdfVatSummary(faData)] }
       ],
-      margin: [0, 0, 0, 5]
+      margin: [0, 0, 0, 4]
     });
 
     // Walidacja sum korekty (pojawia się tylko przy niezgodności)
@@ -1386,7 +1419,7 @@ if (unknownElements.length > 0) {
         {
           width: '*',
           stack: [
-            { text: 'Zeskanuj kod QR lub kliknij link, aby zweryfikować fakturę w systemie KSeF Ministerstwa Finansów.', fontSize: 8, margin: [0, 0, 0, 5] },
+            { text: 'Zeskanuj kod QR lub kliknij link, aby zweryfikować fakturę w systemie KSeF Ministerstwa Finansów.', fontSize: 8, margin: [0, 0, 0, 4] },
             { text: 'Hash dokumentu:', fontSize: 7, color: '#888888', margin: [0, 0, 0, 1] },
             { text: xmlHash, fontSize: 6.5, font: 'Roboto', margin: [0, 0, 0, 4] },
             { text: 'Link weryfikacyjny:', fontSize: 7, color: '#888888', margin: [0, 0, 0, 1] },

@@ -30,13 +30,13 @@ Nie wymaga instalacji ani serwera.
 4. Wczytaj plik `.xml` z fakturą KSeF
 
 Lub przez git:
+
 ```bash
 git clone https://github.com/jakubmirocha-cpu/ksefeusz.pl.git
 ```
 
 ## Struktura projektu
 
-```
 index.html          — strona główna
 privacy.html        — polityka prywatności
 css/
@@ -49,11 +49,11 @@ js/
   utils.js          — funkcje pomocnicze, wersja aplikacji
   renderer.js       — renderowanie HTML faktury
   main.js           — generowanie PDF, obsługa zdarzeń
+  upo.js	    - generowanie wizualizacji UPO
   lib/              — biblioteki zewnętrzne (pdfmake, qrcode, crypto-js)
 samples/            — przykładowe faktury FA(3)
 assets/             — grafiki (podgląd na stronie głównej)
 documentations/     — schemat XSD i dokumentacja FA(3) z Ministerstwa Finansów
-```
 
 ## Technologie
 
@@ -70,6 +70,7 @@ Copyright © 2026 Jakub Mirocha / KSeFeusz.pl
 Projekt udostępniany na licencji **GNU Affero General Public License v3.0 (AGPL-3.0)**.
 
 Oznacza to:
+
 - ✅ Możesz używać, kopiować i modyfikować kod
 - ✅ Możesz używać w celach komercyjnych (np. w swojej firmie do pracy z fakturami)
 - ✅ Możesz dystrybuować zmodyfikowane wersje

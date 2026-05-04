@@ -1,5 +1,5 @@
 // ============================================================================
-// upo.js - wersja 1.6.9 (wizualizator UPO KSeF)
+// upo.js - wersja 1.6.10 (wizualizator UPO KSeF)
 // ============================================================================
 
 const UPO_NS = "http://upo.schematy.mf.gov.pl/KSeF/v4-3";
