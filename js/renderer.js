@@ -1,5 +1,5 @@
 // ============================================================================
-// renderer.js - wersja 1.6.10 (renderowanie HTML faktury)
+// renderer.js - wersja 1.6.11 (renderowanie HTML faktury)
 // ============================================================================
 // Zakładamy, że core.js i utils.js są załadowane przed renderer.js
 
@@ -1379,6 +1379,103 @@ function addQRCode(containerId, nip, dataWystawienia, hash) {
 }
 
 // ============================================================================
+// PAYMENT CONTAINER (dane do przelewu)
+// ============================================================================
+
+function escAttr(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function formatNRB(nrb) {
+  const d = nrb.replace(/\s/g, '');
+  if (d.length === 26) return d.replace(/(\d{2})(\d{4})(\d{4})(\d{4})(\d{4})(\d{4})(\d{4})/, '$1 $2 $3 $4 $5 $6 $7');
+  return nrb;
+}
+
+function renderPaymentContainerHTML(p1Data, platnoscData, faData, qrId) {
+  if (!platnoscData || !platnoscData.rachunki || platnoscData.rachunki.length === 0) return null;
+  const forma = platnoscData.formaPlatnosci;
+  if (forma && forma !== "6") return null;
+  if (platnoscData.zaplacono) return null;
+
+  const amount = faData.vatSummary.p15 || "0";
+  if (parseFloat(amount) <= 0) return null;
+
+  const currency = faData.kodWaluty || "PLN";
+  const title = faData.nrFaktury || "";
+  const recipientName = p1Data?.nazwa || "";
+  const nip = p1Data?.nip || "";
+  const adres = p1Data?.adres || null;
+  const isPLN = currency === "PLN";
+
+  function copyRow(label, displayHtml, copyVal) {
+    return `<div class="payment-field-row">
+      <span class="payment-field-label">${label}</span>
+      <span class="payment-field-value">${displayHtml}</span>
+      <button class="payment-field-copy" data-copy="${escAttr(copyVal)}" onclick="copyPaymentField(this)">Kopiuj</button>
+    </div>`;
+  }
+
+  let accountsHtml = '';
+  platnoscData.rachunki.forEach((r, i) => {
+    const label = platnoscData.rachunki.length > 1 ? `Nr rachunku ${i + 1}` : 'Nr rachunku';
+    accountsHtml += copyRow(label, `<span class="payment-nrb">${escAttr(formatNRB(r.nrRB))}</span>`, r.nrRB.replace(/\s/g, ''));
+  });
+
+  const formattedAmountHtml = `${formatPrice(amount)}&nbsp;${currency}`;
+  const formattedAmountCopy = amount.replace('.', ',');
+
+  let adresHtml = '';
+  if (adres && (adres.linia1 || adres.linia2)) {
+    const adresDisplay = [adres.linia1, adres.linia2].filter(Boolean).map(l => escAttr(l)).join('<br>');
+    const adresCopy = [adres.linia1, adres.linia2].filter(Boolean).join('\n');
+    adresHtml = copyRow('Adres', adresDisplay, adresCopy);
+  }
+
+  const nipHtml = nip ? copyRow('NIP', escAttr(nip), nip) : '';
+
+  const qrSection = isPLN ? `
+    <div class="payment-qr-section">
+      <div id="${qrId}"></div>
+      <div class="payment-qr-label">Zeskanuj w aplikacji bankowej<br><small>standard ZBP</small></div>
+    </div>` : '';
+
+  return `<div class="payment-container">
+    <button class="payment-toggle-btn" onclick="togglePaymentBox(this)">
+      <i class="fa fa-university" aria-hidden="true"></i>
+      <span class="payment-toggle-text">Pokaż dane do przelewu</span>
+      <span class="payment-toggle-arrow">▾</span>
+    </button>
+    <div class="payment-box">
+      <div class="payment-fields">
+        ${copyRow('Odbiorca', escAttr(recipientName), recipientName)}
+        ${adresHtml}
+        ${nipHtml}
+        ${accountsHtml}
+        ${copyRow('Kwota', formattedAmountHtml, formattedAmountCopy)}
+        ${copyRow('Tytuł przelewu', escAttr(title), title)}
+      </div>
+      ${qrSection}
+    </div>
+  </div>`;
+}
+
+function addPaymentQR(qrId, amount, nrb, nip, recipientName, title) {
+  const el = document.getElementById(qrId);
+  if (!el) return;
+  const digits = nrb.replace(/\s/g, '');
+  const grosze = String(Math.round(parseFloat(amount) * 100)).padStart(6, '0');
+  const name = recipientName.substring(0, 20);
+  const tit = title.substring(0, 32);
+  // Format ZBP: NIP|KodKraju|NRB|Kwota|Odbiorca|Tytuł|||
+  const qrText = `${nip || ''}|PL|${digits}|${grosze}|${name}|${tit}|||`;
+  const canvas = document.createElement('canvas');
+  QRCode.toCanvas(canvas, qrText, { width: 160, margin: 2 }, (err) => {
+    if (!err) el.appendChild(canvas);
+  });
+}
+
+// ============================================================================
 // GŁÓWNA FUNKCJA RENDERUJĄCA (HTML)
 // ============================================================================
 
@@ -1643,6 +1740,18 @@ if (faData.rodzaj.startsWith("KOR") && faData.daneKorygowane.length > 0) {
 
   if (unknownElements.length === 0 && nipSprzedawcy && faData.dataWystawienia) {
     addQRCode(qrContainerId, nipSprzedawcy, faData.dataWystawienia, xmlHash);
+  }
+
+  // Payment container
+  const paymentQrId = 'pqr-' + Date.now();
+  const paymentHtml = renderPaymentContainerHTML(p1Data, platnoscData, faData, paymentQrId);
+  if (paymentHtml) {
+    const paymentEl = document.createElement('div');
+    paymentEl.innerHTML = paymentHtml;
+    document.getElementById("pages").appendChild(paymentEl.firstElementChild);
+    if ((faData.kodWaluty || 'PLN') === 'PLN') {
+      addPaymentQR(paymentQrId, faData.vatSummary.p15 || '0', platnoscData.rachunki[0].nrRB, p1Data?.nip || '', p1Data?.nazwa || '', faData.nrFaktury || '');
+    }
   }
 
   // UI

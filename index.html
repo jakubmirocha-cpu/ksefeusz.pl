@@ -22,8 +22,8 @@
 <meta name="twitter:image" content="https://ksefeusz.pl/assets/preview.png">
 
 <link rel="stylesheet" href="css/lib/font-awesome.min.css">
-<link rel="stylesheet" href="css/style.css?v=1.6.10">
-<link rel="stylesheet" href="css/invoice.css?v=1.6.10">
+<link rel="stylesheet" href="css/style.css?v=1.6.11">
+<link rel="stylesheet" href="css/invoice.css?v=1.6.11">
 
 
 <!-- Małe biblioteki potrzebne od razu -->
@@ -287,7 +287,7 @@
           <div class="benefit-card-icon"><i class="fas fa-user-tie"></i></div>
           <div>
             <h4>Dla właściciela firmy</h4>
-            <p>Dostajesz XML z KSeF i chcesz wiedzieć: ile, komu, za co. KSeFeusz daje czytelny podgląd w kilka sekund — bez zakładania konta w portalu i bez czekania na PDF od kontrahenta.</p>
+            <p>Dostajesz XML z KSeF i chcesz wiedzieć: ile, komu, za co. KSeFeusz daje czytelny podgląd w kilka sekund — bez zakładania konta w portalu i bez czekania na PDF od kontrahenta. Fakturę przelewową możesz opłacić od razu — pod wizualizacją znajdziesz dane do przelewu i kod QR gotowy do zeskanowania.</p>
             <div class="benefit-rows">
               <div class="benefit-row after"><span>Wczytaj plik XML</span><span>→ czytelna faktura</span></div>
               <div class="benefit-row diff"><span>Czas do podglądu</span><span>poniżej 3 sekund</span></div>
@@ -358,6 +358,13 @@
             <i class="fas fa-chevron-down faq-chev"></i>
           </button>
           <div class="faq-a">We wszystkich nowoczesnych przeglądarkach: Chrome, Firefox, Edge, Safari, Opera. Zalecamy aktualną wersję. Nie działamy na Internet Explorer — ale jeśli nadal z niego korzystasz, mamy nadzieję, że to przejściowy stan.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            <span>Czy mogę od razu zapłacić fakturę po jej wczytaniu?</span>
+            <i class="fas fa-chevron-down faq-chev"></i>
+          </button>
+          <div class="faq-a">Tak. Dla faktur przelewowych pod wizualizacją pojawia się przycisk <strong>„Pokaż dane do przelewu"</strong>. Po kliknięciu rozwijają się gotowe dane: odbiorca, adres, NIP, numer rachunku, kwota i tytuł — każde pole z przyciskiem „Kopiuj". Obok wyświetla się kod QR zgodny ze standardem ZBP, który większość aplikacji bankowych odczytuje bezpośrednio (wystarczy zeskanować telefon). Sekcja nie pojawi się gdy faktura jest już oznaczona jako opłacona lub kwota jest ujemna (korekty).</div>
         </div>
         <div class="faq-item">
           <button class="faq-q" onclick="toggleFaq(this)">
@@ -722,11 +729,11 @@
 <script src="js/lib/vfs_fonts.min.js"></script>
 
 <!-- Nasze skrypty -->
-<script src="js/core.js?v=1.6.10"></script>
-<script src="js/utils.js?v=1.6.10"></script>
-<script src="js/renderer.js?v=1.6.10"></script>
-<script src="js/main.js?v=1.6.10"></script>
-<script src="js/upo.js?v=1.6.10"></script>
+<script src="js/core.js?v=1.6.11"></script>
+<script src="js/utils.js?v=1.6.11"></script>
+<script src="js/renderer.js?v=1.6.11"></script>
+<script src="js/main.js?v=1.6.11"></script>
+<script src="js/upo.js?v=1.6.11"></script>
 
 <script>
 function toggleFaq(btn) {

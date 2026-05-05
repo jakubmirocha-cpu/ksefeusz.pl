@@ -1,8 +1,8 @@
 // ============================================================================
-// utils.js - wersja 1.6.10 (pomocnicze funkcje UI i nawigacji)
+// utils.js - wersja 1.6.11 (pomocnicze funkcje UI i nawigacji)
 // ============================================================================
-const APP_VERSION = '1.6.10';
-const BUILD_DATE = '2026-05-04';
+const APP_VERSION = '1.6.11';
+const BUILD_DATE = '2026-05-05';
 
 // ============================================================================
 // STAŁE GLOBALNE (UI)
@@ -200,6 +200,34 @@ function scrollToSection(sectionId) {
 
 function scrollToTop() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function togglePaymentBox(btn) {
+  const box = btn.nextElementSibling;
+  const isOpen = box.classList.toggle('open');
+  btn.classList.toggle('open', isOpen);
+  btn.querySelector('.payment-toggle-arrow').textContent = isOpen ? '▴' : '▾';
+  btn.querySelector('.payment-toggle-text').textContent = isOpen ? 'Ukryj dane do przelewu' : 'Pokaż dane do przelewu';
+}
+
+function copyPaymentField(btn) {
+  const text = btn.dataset.copy || '';
+  const finish = () => {
+    btn.textContent = 'Skopiowano';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Kopiuj'; btn.classList.remove('copied'); }, 1500);
+  };
+  if (!navigator.clipboard) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    finish();
+    return;
+  }
+  navigator.clipboard.writeText(text).then(finish);
 }
 
 // Wersja w stopce

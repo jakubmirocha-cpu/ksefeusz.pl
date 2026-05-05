@@ -1,4 +1,4 @@
-/* ===== KSeFeusz.pl - invoice.css - wersja 1.6.10 (2026-05-04) ===== */
+/* ===== KSeFeusz.pl - invoice.css - wersja 1.6.11 (2026-05-05) ===== */
 /* Style podglądu faktury HTML oraz drukowania */
 
 /* ===== KONTENER FAKTURY ===== */
@@ -354,6 +354,140 @@
   word-break: break-all;
   margin: 4px 0 0 0;
   color: #7b241c;
+}
+
+/* ===== PAYMENT CONTAINER (dane do przelewu) ===== */
+.payment-container {
+  width: 794px;
+  margin: 6px auto 10px;
+  background: #fff;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  box-sizing: border-box;
+  border-radius: 8px;
+  border: 1px solid #d5e8f8;
+  overflow: hidden;
+  font-size: 13px;
+}
+
+.payment-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: #2980b9;
+  border: none;
+  border-bottom: 1px solid transparent;
+  padding: 13px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: background 0.15s;
+  letter-spacing: 0.01em;
+}
+
+.payment-toggle-btn:hover {
+  background: #2471a3;
+}
+
+.payment-toggle-btn.open {
+  background: #1f618d;
+  border-bottom-color: #d5e8f8;
+}
+
+.payment-toggle-arrow {
+  margin-left: auto;
+  font-size: 16px;
+  opacity: 0.85;
+}
+
+.payment-box {
+  display: none;
+  padding: 14px 15px;
+  gap: 20px;
+}
+
+.payment-box.open {
+  display: flex;
+  align-items: flex-start;
+}
+
+.payment-fields {
+  flex: 1;
+}
+
+.payment-field-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 9px;
+  gap: 8px;
+}
+
+.payment-field-label {
+  font-size: 11px;
+  color: #7f8c8d;
+  min-width: 90px;
+}
+
+.payment-field-value {
+  flex: 1;
+  color: #2c3e50;
+  font-size: 13px;
+}
+
+.payment-nrb {
+  font-family: monospace;
+  letter-spacing: 0.5px;
+}
+
+.payment-field-copy {
+  background: #3498db;
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  padding: 3px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.payment-field-copy:hover {
+  background: #2980b9;
+}
+
+.payment-field-copy.copied {
+  background: #27ae60;
+}
+
+.payment-qr-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-left: 20px;
+  border-left: 1px solid #eaf4fd;
+  min-width: 175px;
+}
+
+.payment-qr-label {
+  margin-top: 6px;
+  font-size: 10px;
+  color: #7f8c8d;
+  text-align: center;
+  line-height: 1.5;
+}
+
+@media print {
+  .payment-container { display: none; }
+}
+
+@media (max-width: 768px) {
+  .payment-container { width: 100%; border-radius: 0; margin: 4px 0 8px; }
+  .payment-box.open { flex-direction: column; }
+  .payment-qr-section { border-left: none; border-top: 1px solid #eaf4fd; padding-left: 0; padding-top: 12px; margin-top: 4px; min-width: unset; }
 }
 
 .qr-container {

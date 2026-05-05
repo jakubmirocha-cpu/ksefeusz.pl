@@ -11,6 +11,7 @@ Darmowy, bezpieczny wizualizator faktur ustrukturyzowanych zgodnych ze schematem
 - **Pełna wizualizacja** — sprzedawca, nabywca, pozycje, korekty, VAT, płatności, adnotacje, warunki transakcji, QR kod weryfikacyjny i więcej
 - **Generowanie PDF** — kompaktowy, czytelny wydruk gotowy do archiwizacji
 - **Korekty** — widok par wierszy (przed/po) z wierszem różnic
+- **Dane do przelewu** — dla faktur przelewowych: gotowe dane do skopiowania (odbiorca, adres, NIP, rachunek, kwota, tytuł) oraz kod QR w standardzie ZBP do zeskanowania w aplikacji bankowej
 - **Widok uproszczony / pełny** — domyślnie ukrywa sekcje bez danych
 - **Przykładowe faktury** — trzy faktury z Ministerstwa Finansów do testów
 - **Bezpieczeństwo** — plik XML nigdy nie opuszcza przeglądarki użytkownika
