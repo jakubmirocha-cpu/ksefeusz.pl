@@ -1,4 +1,4 @@
-/* ===== KSeFeusz.pl - invoice.css - wersja 1.6.11 (2026-05-05) ===== */
+/* ===== KSeFeusz.pl - invoice.css - wersja 1.6.12 (2026-05-05) ===== */
 /* Style podglądu faktury HTML oraz drukowania */
 
 /* ===== KONTENER FAKTURY ===== */
@@ -462,6 +462,48 @@
 .payment-field-copy.copied {
   background: #27ae60;
 }
+
+.payment-bl-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-left: 98px;
+  margin-top: -4px;
+  margin-bottom: 9px;
+}
+
+.payment-bl-check {
+  background: #1abc9c;
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  padding: 3px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.payment-bl-check:hover {
+  background: #16a085;
+}
+
+.payment-bl-check:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.payment-bl-result {
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.payment-bl-result.loading { color: #7f8c8d; }
+.payment-bl-result.ok      { color: #27ae60; }
+.payment-bl-result.fail    { color: #e74c3c; }
+.payment-bl-result.error   { color: #e67e22; }
 
 .payment-qr-section {
   display: flex;

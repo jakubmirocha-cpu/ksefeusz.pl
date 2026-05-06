@@ -1,5 +1,5 @@
 // ============================================================================
-// renderer.js - wersja 1.6.11 (renderowanie HTML faktury)
+// renderer.js - wersja 1.6.12 (renderowanie HTML faktury)
 // ============================================================================
 // Zakładamy, że core.js i utils.js są załadowane przed renderer.js
 
@@ -1419,7 +1419,17 @@ function renderPaymentContainerHTML(p1Data, platnoscData, faData, qrId) {
   let accountsHtml = '';
   platnoscData.rachunki.forEach((r, i) => {
     const label = platnoscData.rachunki.length > 1 ? `Nr rachunku ${i + 1}` : 'Nr rachunku';
-    accountsHtml += copyRow(label, `<span class="payment-nrb">${escAttr(formatNRB(r.nrRB))}</span>`, r.nrRB.replace(/\s/g, ''));
+    const cleanNrb = r.nrRB.replace(/\s/g, '').replace(/^PL/i, '');
+    const blRow = nip ? `<div class="payment-bl-row">
+      <button class="payment-bl-check" onclick="checkWhiteList(this,'${escAttr(nip)}','${escAttr(cleanNrb)}')">Sprawdź białą listę</button>
+      <span class="payment-bl-result"></span>
+    </div>` : '';
+    accountsHtml += `<div class="payment-field-row">
+      <span class="payment-field-label">${label}</span>
+      <span class="payment-field-value"><span class="payment-nrb">${escAttr(formatNRB(r.nrRB))}</span></span>
+      <button class="payment-field-copy" data-copy="${escAttr(cleanNrb)}" onclick="copyPaymentField(this)">Kopiuj</button>
+    </div>
+    ${blRow}`;
   });
 
   const formattedAmountHtml = `${formatPrice(amount)}&nbsp;${currency}`;

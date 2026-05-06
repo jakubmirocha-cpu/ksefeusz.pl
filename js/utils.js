@@ -1,8 +1,8 @@
 // ============================================================================
-// utils.js - wersja 1.6.11 (pomocnicze funkcje UI i nawigacji)
+// utils.js - wersja 1.6.12 (pomocnicze funkcje UI i nawigacji)
 // ============================================================================
-const APP_VERSION = '1.6.11';
-const BUILD_DATE = '2026-05-05';
+const APP_VERSION = '1.6.12';
+const BUILD_DATE = '2026-05-06';
 
 // ============================================================================
 // STAŁE GLOBALNE (UI)
@@ -208,6 +208,40 @@ function togglePaymentBox(btn) {
   btn.classList.toggle('open', isOpen);
   btn.querySelector('.payment-toggle-arrow').textContent = isOpen ? '▴' : '▾';
   btn.querySelector('.payment-toggle-text').textContent = isOpen ? 'Ukryj dane do przelewu' : 'Pokaż dane do przelewu';
+}
+
+function checkWhiteList(btn, nip, nrb) {
+  const resultEl = btn.nextElementSibling;
+  btn.disabled = true;
+  resultEl.innerHTML = '<i class="fa fa-spinner fa-spin" aria-hidden="true"></i> sprawdzam...';
+  resultEl.className = 'payment-bl-result loading';
+
+  const today = new Date().toISOString().slice(0, 10);
+  const url = `https://wl-api.mf.gov.pl/api/check/nip/${encodeURIComponent(nip)}/bank-account/${encodeURIComponent(nrb)}?date=${today}`;
+
+  fetch(url)
+    .then(r => {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(data => {
+      const assigned = data?.result?.accountAssigned;
+      if (assigned === 'TAK') {
+        resultEl.innerHTML = '<i class="fa fa-check-circle" aria-hidden="true"></i> TAK — konto na białej liście';
+        resultEl.className = 'payment-bl-result ok';
+      } else if (assigned === 'NIE') {
+        resultEl.innerHTML = '<i class="fa fa-times-circle" aria-hidden="true"></i> NIE — brak na białej liście';
+        resultEl.className = 'payment-bl-result fail';
+      } else {
+        resultEl.innerHTML = '<i class="fa fa-exclamation-triangle" aria-hidden="true"></i> Nieznana odpowiedź';
+        resultEl.className = 'payment-bl-result error';
+      }
+    })
+    .catch(() => {
+      resultEl.innerHTML = '<i class="fa fa-exclamation-triangle" aria-hidden="true"></i> Błąd połączenia z API MF';
+      resultEl.className = 'payment-bl-result error';
+    })
+    .finally(() => { btn.disabled = false; });
 }
 
 function copyPaymentField(btn) {

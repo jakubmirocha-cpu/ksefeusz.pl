@@ -325,7 +325,7 @@
   <div class="meta">
     <span><i class="far fa-calendar"></i> Obowiązuje od: 1 kwietnia 2026</span>
     <span><i class="far fa-calendar-check"></i> Ostatnia aktualizacja: kwiecień 2026</span>
-    <span><i class="fas fa-code-branch"></i> Wersja aplikacji: 1.6.11</span>
+    <span><i class="fas fa-code-branch"></i> Wersja aplikacji: 1.6.12</span>
   </div>
 </div>
 
@@ -387,7 +387,20 @@
         <div class="lib"><b>CryptoJS</b><span>Skróty (hash) dokumentów</span></div>
         <div class="lib"><b>PDFMake</b><span>Generowanie plików PDF</span></div>
       </div>
-      <p class="muted">Wszystkie biblioteki działają lokalnie, bez łączności z zewnętrznymi serwerami CDN. Oznacza to brak przesyłania danych do podmiotów trzecich.</p>
+      <p class="muted">Wszystkie biblioteki działają lokalnie, bez łączności z zewnętrznymi serwerami CDN.</p>
+    </div>
+
+    <div class="section" id="biala-lista">
+      <h2><span class="h2-icon"><i class="fas fa-check-circle"></i></span>Weryfikacja na białej liście VAT</h2>
+      <p>W sekcji danych do przelewu dostępna jest opcjonalna funkcja <strong>„Sprawdź białą listę"</strong>. Jej użycie jest dobrowolne i wymaga kliknięcia przycisku przez użytkownika.</p>
+      <p>Po kliknięciu przeglądarka wysyła zapytanie bezpośrednio do publicznego API Ministerstwa Finansów (<strong>wl-api.mf.gov.pl</strong>), przekazując:</p>
+      <ul>
+        <li>NIP sprzedawcy z faktury,</li>
+        <li>numer rachunku bankowego z faktury,</li>
+        <li>bieżącą datę.</li>
+      </ul>
+      <p>Dane te są przesyłane wyłącznie do serwera Ministerstwa Finansów — nie trafiają na serwery KSeFeusz.pl ani do żadnych podmiotów trzecich. API jest publiczne i bezpłatne; nie wymaga rejestracji ani autoryzacji.</p>
+      <p class="muted">Funkcja nie uruchamia się automatycznie — tylko na wyraźne żądanie użytkownika.</p>
     </div>
 
     <div class="section" id="logi">
@@ -408,7 +421,7 @@
         <dt>Studio</dt>
         <dd><a href="https://vespero-studio.pl" target="_blank" rel="noopener">Vespero Studio</a></dd>
         <dt>Wersja</dt>
-        <dd>1.6.11 (kwiecień 2026)</dd>
+        <dd>1.6.12 (kwiecień 2026)</dd>
         <dt>Zgodność</dt>
         <dd><a href="https://ksef.podatki.gov.pl/informacje-ogolne-ksef-20/struktura-logiczna-fa-3/" target="_blank" rel="noopener">Schemat FA(3)</a></dd>
       </dl>
@@ -476,7 +489,7 @@
     </div>
   </div>
   <div class="footer-bottom">
-    <div>© 2026 Jakub Mirocha · <a href="https://vespero-studio.pl" target="_blank" rel="noopener" class="footer-source-link muted">Vespero Studio</a> · KSeFeusz.pl · v1.6.11 · <a href="LICENSE" target="_blank" rel="noopener" class="footer-source-link muted">AGPL v3</a></div>
+    <div>© 2026 Jakub Mirocha · <a href="https://vespero-studio.pl" target="_blank" rel="noopener" class="footer-source-link muted">Vespero Studio</a> · KSeFeusz.pl · v1.6.12 · <a href="LICENSE" target="_blank" rel="noopener" class="footer-source-link muted">AGPL v3</a></div>
     <div class="footer-badges">
       <span><i class="fas fa-shield-alt icon-success"></i> Bez ciasteczek</span>
       <a href="https://github.com/jakubmirocha-cpu/ksefeusz.pl" target="_blank" rel="noopener" class="footer-source-link"><i class="fab fa-github"></i> Open source</a>
