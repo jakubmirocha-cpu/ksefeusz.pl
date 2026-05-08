@@ -1,5 +1,5 @@
 // ============================================================================
-// renderer.js - wersja 1.6.12 (renderowanie HTML faktury)
+// renderer.js - wersja 1.6.13 (renderowanie HTML faktury)
 // ============================================================================
 // Zakładamy, że core.js i utils.js są załadowane przed renderer.js
 
@@ -472,7 +472,28 @@ function renderPaymentInfoHTML(p) {
   return html || "—";
 }
 
-function rowHTML(w, isBefore = false) {
+// Efektywna cena jednostkowa po rabacie = kwotaNetto / ilość. Zwraca liczbę
+// tylko wtedy gdy rzeczywiście jest rabat (cena × ilość ≠ kwotaNetto). Działa
+// dla obu źródeł rabatu: jawnego P_10 (Opust) i rabatu zaszytego w kwotaNetto.
+function rabatEffectivePrice(w) {
+  if (w.czyMarza) return null;
+  const il = parseFloat(w.ilosc) || 0;
+  const cN = parseFloat(w.cenaNetto) || 0;
+  const kwN = parseFloat(w.kwotaNetto) || 0;
+  const expected = cN * il;
+  if (il > 0 && expected > 0.01 && Math.abs(expected - kwN) > 0.01) {
+    return kwN / il;
+  }
+  return null;
+}
+
+// Czy któryś wiersz ma rabat? Decyduje, czy w tabeli pojawia się kolumna
+// "Cena po rabacie" (gdy żaden wiersz nie ma — kolumna w ogóle nie istnieje).
+function hasAnyRabat(wiersze) {
+  return wiersze.some(w => rabatEffectivePrice(w) !== null);
+}
+
+function rowHTML(w, isBefore = false, showRabatCol = false) {
   const net = w.kwotaNetto;
   const rateDisplay = w.stawkaVatDisplay;
   const vat = w.kwotaVat;
@@ -493,12 +514,22 @@ function rowHTML(w, isBefore = false) {
   if (w.pkob) dodatki.push(`PKOB: ${w.pkob}`);
   if (w.kwotaAkcyzy && w.kwotaAkcyzy !== "0") dodatki.push(`Akcyza: ${formatPrice(w.kwotaAkcyzy)}`);
   if (w.stawkaOSS) dodatki.push(`OSS: ${w.stawkaOSS}%`);
-  if (w.opusty && w.opusty !== "0") dodatki.push(`Opust: ${formatPrice(w.opusty)}`);
-  // Rabat/narzut zaszyty w wartości netto (gdy cena × ilość ≠ kwotaNetto)
+  // Rabat — dwa źródła, deduplikujemy:
+  //  1) jawne P_10 (w.opusty) — pokazujemy jako "Opust: X" tylko gdy NIE pojawi się
+  //     wyliczony "Rabat: X (Y%)" niżej (typowo P_10 jest wliczone w kwotaNetto i te dwa
+  //     wpisy by się duplikowały). Pokazuje się tylko w rzadkim przypadku gdy P_10
+  //     jest deklarowane bez wpływu na kwotaNetto.
+  //  2) Rabat/narzut zaszyty w wartości netto (gdy cena × ilość ≠ kwotaNetto) —
+  //     pokazuje wartość i procent, bardziej użyteczne.
   {
     const expectedN = (parseFloat(w.cenaNetto) || 0) * (parseFloat(w.ilosc) || 0);
     const actualN = parseFloat(w.kwotaNetto) || 0;
-    if (!w.czyMarza && expectedN > 0.01 && Math.abs(expectedN - actualN) > 0.01) {
+    const hasCalcRabat = !w.czyMarza && expectedN > 0.01 && Math.abs(expectedN - actualN) > 0.01;
+
+    if (w.opusty && w.opusty !== "0" && !hasCalcRabat) {
+      dodatki.push(`Opust: ${formatPrice(w.opusty)}`);
+    }
+    if (hasCalcRabat) {
       const diff = expectedN - actualN;
       const pct = Math.abs(diff / expectedN * 100);
       dodatki.push(diff > 0
@@ -509,7 +540,8 @@ function rowHTML(w, isBefore = false) {
   if (w.dataPozycji) dodatki.push(`Data: ${w.dataPozycji}`);
   if (w.kursWaluty && w.kursWaluty !== "0") dodatki.push(`Kurs: ${w.kursWaluty}`);
   if (w.zal15) dodatki.push(`Zał.15`);
-  if (isValidUUID(w.uuid)) dodatki.push(`UUID: ${w.uuid}`);
+  // UUID (w.uuid) celowo nie pokazujemy w UI — to dane techniczne używane
+  // wyłącznie do parowania wierszy w korektach (groupCorrectionRows).
 
   if (dodatki.length > 0) {
     pelnyOpis += ' <small>(' + dodatki.join(' | ') + ')</small>';
@@ -531,6 +563,16 @@ function rowHTML(w, isBefore = false) {
 
   let rowClass = isBefore ? 'before-row' : '';
 
+  // Komórka "Cena po rabacie": efektywna cena jednostkowa (kwotaNetto / ilość)
+  // — pokazujemy tylko gdy wiersz rzeczywiście ma rabat (rabatEffectivePrice ≠ null).
+  let rabatCell = '';
+  if (showRabatCol) {
+    const eff = rabatEffectivePrice(w);
+    rabatCell = eff !== null
+      ? `<td class="right">${formatPrice(eff)}</td>`
+      : '<td></td>';
+  }
+
   return `
 <tr class="${rowClass}">
   <td class="center">${w.nrWiersza || ''}</td>
@@ -540,6 +582,7 @@ function rowHTML(w, isBefore = false) {
   <td class="right">${fmtQty(w.ilosc)}</td>
   <td class="center">${w.jednostka || ''}</td>
   <td class="right">${cenaKomorka}</td>
+  ${rabatCell}
   <td class="right">${pokazNetto}</td>
   <td class="center">${rateDisplay}</td>
   <td class="right">${pokazVat}</td>
@@ -1627,13 +1670,14 @@ if (faData.rodzaj.startsWith("KOR") && faData.daneKorygowane.length > 0) {
   `;
 
   // Tabela z pozycjami
+  const showRabatCol = hasAnyRabat(wierszeArray);
   let tableRows = "";
   if (faData.rodzaj.startsWith("KOR")) {
     const groupedRows = groupCorrectionRows(wierszeArray);
     for (const item of groupedRows) {
       if (item.type === 'pair') {
-        tableRows += rowHTML(item.before, true);
-        tableRows += rowHTML(item.after, false);
+        tableRows += rowHTML(item.before, true, showRabatCol);
+        tableRows += rowHTML(item.after, false, showRabatCol);
 
         const diffNet = item.after.kwotaNetto - item.before.kwotaNetto;
         const diffVat = item.after.kwotaVat - item.before.kwotaVat;
@@ -1647,6 +1691,9 @@ if (faData.rodzaj.startsWith("KOR") && faData.daneKorygowane.length > 0) {
           const stawkaRoznicowa = (item.before.stawkaVat === item.after.stawkaVat)
             ? item.before.stawkaVatDisplay
             : '—';
+          // Pusta komórka w kolumnie "Cena po rabacie" — delta efektywnej ceny
+          // jednostkowej dla wiersza RÓŻNICA nie ma czytelnego sensu dla użytkownika.
+          const rabatEmpty = showRabatCol ? '<td></td>' : '';
           tableRows += `
 <tr class="diff-row">
   <td></td>
@@ -1655,6 +1702,7 @@ if (faData.rodzaj.startsWith("KOR") && faData.daneKorygowane.length > 0) {
   <td class="right">${diffQty !== 0 ? fmtQty(diffQty) : ''}</td>
   <td class="center">—</td>
   <td class="right">${diffPrice !== 0 ? formatPrice(diffPrice) : ''}</td>
+  ${rabatEmpty}
   <td class="right">${diffNet !== 0 ? formatPrice(diffNet) : ''}</td>
   <td class="center">${stawkaRoznicowa}</td>
   <td class="right">${diffVat !== 0 ? formatPrice(diffVat) : ''}</td>
@@ -1662,15 +1710,19 @@ if (faData.rodzaj.startsWith("KOR") && faData.daneKorygowane.length > 0) {
 </tr>`;
         }
       } else {
-        tableRows += rowHTML(item.row, item.isBefore);
+        tableRows += rowHTML(item.row, item.isBefore, showRabatCol);
       }
     }
   } else {
     for (let w of wierszeArray) {
-      tableRows += rowHTML(w, false);
+      tableRows += rowHTML(w, false, showRabatCol);
     }
   }
 
+  // Twardy <br> w nagłówkach — z auto-layout przeglądarka mierzy szerokość po
+  // najszerszej nieprzerywalnej sekwencji (analogicznie do \n w pdfmake).
+  // Bez tego "Cena po rabacie" rezerwuje znacznie więcej miejsca niż realna zawartość.
+  const rabatHeader = showRabatCol ? '<th class="right">Cena po<br>rabacie</th>' : '';
   containerContent += `
     <table>
       <tr>
@@ -1680,11 +1732,12 @@ if (faData.rodzaj.startsWith("KOR") && faData.daneKorygowane.length > 0) {
         <th>EAN/GTIN</th>
         <th class="right">Ilość</th>
         <th class="center">JM</th>
-        <th class="right">Cena</th>
-        <th class="right">Netto</th>
+        <th class="right">Cena<br>netto</th>
+        ${rabatHeader}
+        <th class="right">Wart.<br>netto</th>
         <th class="center">VAT%</th>
         <th class="right">VAT</th>
-        <th class="right">Brutto</th>
+        <th class="right">Wart.<br>brutto</th>
       </tr>
       ${tableRows}
     </table>

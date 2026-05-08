@@ -1,5 +1,5 @@
 // ============================================================================
-// main.js - wersja 1.6.12 (generowanie PDF i obsługa zdarzeń)
+// main.js - wersja 1.6.13 (generowanie PDF i obsługa zdarzeń)
 // ============================================================================
 // Zakładamy, że core.js, utils.js i renderer.js są załadowane przed main.js
 
@@ -801,16 +801,44 @@ function pdfTwoBox(leftContent, rightContent) {
   };
 }
 
-function pdfCreateTableBody(wiersze, rodzaj) {
-  const header = ['#', 'Opis / GTU', 'Indeks', 'GTIN', 'Ilość', 'JM', 'Cena', 'Netto', 'VAT%', 'VAT', 'Brutto'];
-  const body = [header.map(h => ({ text: h, style: 'tableHeader' }))];
+// Efektywna cena jednostkowa po rabacie = kwotaNetto / ilość. Zwraca liczbę tylko
+// gdy rzeczywiście jest rabat (cena × ilość ≠ kwotaNetto). Działa dla obu źródeł
+// rabatu (jawne P_10 oraz rabat zaszyty w kwotaNetto). Lustro renderer.js.
+function pdfRabatEffectivePrice(w) {
+  if (w.czyMarza) return null;
+  const il = parseFloat(w.ilosc) || 0;
+  const cN = parseFloat(w.cenaNetto) || 0;
+  const kwN = parseFloat(w.kwotaNetto) || 0;
+  const expected = cN * il;
+  if (il > 0 && expected > 0.01 && Math.abs(expected - kwN) > 0.01) {
+    return kwN / il;
+  }
+  return null;
+}
+
+// Czy któryś wiersz ma rabat? Decyduje, czy w tabeli pojawia się kolumna
+// "Cena po rabacie" (analogicznie do hasAnyRabat w renderer.js).
+function pdfHasAnyRabat(wiersze) {
+  return wiersze.some(w => pdfRabatEffectivePrice(w) !== null);
+}
+
+function pdfCreateTableBody(wiersze, rodzaj, showRabatCol) {
+  // Twardy \n w nagłówkach wielowyrazowych — pdfmake z 'auto' i miękkim wrapem
+  // rezerwuje dużo zapasu (mierzy całość przed łamaniem). Wymuszony break sprawia,
+  // że kolumna mierzy się po dłuższej z linii, nie po całym napisie.
+  const header = showRabatCol
+    ? ['#', 'Opis / GTU', 'Indeks', 'GTIN', 'Ilość', 'JM', 'Cena\nnetto', 'Cena po\nrabacie   ', 'Wart.\nnetto', 'VAT%', 'VAT', 'Wart.\nbrutto']
+    : ['#', 'Opis / GTU', 'Indeks', 'GTIN', 'Ilość', 'JM', 'Cena\nnetto', 'Wart.\nnetto', 'VAT%', 'VAT', 'Wart.\nbrutto'];
+  // fontSize: 7 nadpisuje styl 'tableHeader' (8) lokalnie — tylko dla tej tabeli,
+  // VAT summary i inne tabele zachowują domyślny rozmiar 8.
+  const body = [header.map(h => ({ text: h, style: 'tableHeader', fontSize: 7 }))];
 
   if (rodzaj.startsWith("KOR")) {
     const grouped = groupCorrectionRows(wiersze);
     for (const item of grouped) {
       if (item.type === 'pair') {
-        body.push(pdfRowArray(item.before, true));
-        body.push(pdfRowArray(item.after, false));
+        body.push(pdfRowArray(item.before, true, showRabatCol));
+        body.push(pdfRowArray(item.after, false, showRabatCol));
 
         const diffNet = item.after.kwotaNetto - item.before.kwotaNetto;
         const diffVat = item.after.kwotaVat - item.before.kwotaVat;
@@ -824,32 +852,37 @@ function pdfCreateTableBody(wiersze, rodzaj) {
           const stawkaRoznicowa = (item.before.stawkaVat === item.after.stawkaVat)
             ? item.before.stawkaVatDisplay
             : '—';
-          body.push([
+          // Pusta komórka w kolumnie "Cena po rabacie" dla wiersza RÓŻNICA — analogicznie do HTML.
+          const diffRow = [
             { text: '', alignment: 'center' },
             { text: 'RÓŻNICA', colSpan: 2 }, { text: '' },
             { text: '', alignment: 'center' },
             { text: diffQty !== 0 ? fmtQty(diffQty) : '', alignment: 'right' },
             { text: '—', alignment: 'center' },
-            { text: diffPrice !== 0 ? formatPrice(diffPrice, true) : '', alignment: 'right' },
+            { text: diffPrice !== 0 ? formatPrice(diffPrice, true) : '', alignment: 'right' }
+          ];
+          if (showRabatCol) diffRow.push({ text: '', alignment: 'right' });
+          diffRow.push(
             { text: diffNet !== 0 ? formatPrice(diffNet, true) : '', alignment: 'right' },
             { text: stawkaRoznicowa, alignment: 'center' },
             { text: diffVat !== 0 ? formatPrice(diffVat, true) : '', alignment: 'right' },
             { text: diffGross !== 0 ? formatPrice(diffGross, true) : '', alignment: 'right' }
-          ]);
+          );
+          body.push(diffRow);
         }
       } else {
-        body.push(pdfRowArray(item.row, item.isBefore));
+        body.push(pdfRowArray(item.row, item.isBefore, showRabatCol));
       }
     }
   } else {
-    for (let w of wiersze) body.push(pdfRowArray(w, false));
+    for (let w of wiersze) body.push(pdfRowArray(w, false, showRabatCol));
   }
   return body;
 }
 
-function pdfRowArray(w, isBefore) {
-  // Opis z dodatkami
-  let opisFragmenty = [{ text: w.opis || '', fontSize: 8 }];
+function pdfRowArray(w, isBefore, showRabatCol = false) {
+  // Opis z dodatkami. fontSize 7 (zmniejszony o 1 vs domyślne 8) — żeby zmieścić kolumnę "Cena po rabacie".
+  let opisFragmenty = [{ text: w.opis || '', fontSize: 7 }];
   let dodatki = [];
 
   if (w.gtu) dodatki.push(w.gtuDisplay);
@@ -859,12 +892,18 @@ function pdfRowArray(w, isBefore) {
   if (w.pkob) dodatki.push(`PKOB: ${w.pkob}`);
   if (w.kwotaAkcyzy && w.kwotaAkcyzy !== "0") dodatki.push(`Akcyza: ${formatPrice(w.kwotaAkcyzy, true)}`);
   if (w.stawkaOSS) dodatki.push(`OSS: ${w.stawkaOSS}%`);
-  if (w.opusty && w.opusty !== "0") dodatki.push(`Opust: ${formatPrice(w.opusty, true)}`);
-  // Rabat/narzut zaszyty w wartości netto (gdy cena × ilość ≠ kwotaNetto)
+  // Rabat — dwa źródła, deduplikujemy (lustro logiki w renderer.js):
+  //  1) jawne P_10 (Opust) — pokazujemy tylko gdy NIE pojawi się wyliczony "Rabat: X (Y%)"
+  //  2) Rabat/narzut zaszyty w wartości netto (gdy cena × ilość ≠ kwotaNetto)
   {
     const expectedN = (parseFloat(w.cenaNetto) || 0) * (parseFloat(w.ilosc) || 0);
     const actualN = parseFloat(w.kwotaNetto) || 0;
-    if (!w.czyMarza && expectedN > 0.01 && Math.abs(expectedN - actualN) > 0.01) {
+    const hasCalcRabat = !w.czyMarza && expectedN > 0.01 && Math.abs(expectedN - actualN) > 0.01;
+
+    if (w.opusty && w.opusty !== "0" && !hasCalcRabat) {
+      dodatki.push(`Opust: ${formatPrice(w.opusty, true)}`);
+    }
+    if (hasCalcRabat) {
       const diff = expectedN - actualN;
       const pct = Math.abs(diff / expectedN * 100);
       dodatki.push(diff > 0
@@ -875,7 +914,8 @@ function pdfRowArray(w, isBefore) {
   if (w.dataPozycji) dodatki.push(`Data: ${w.dataPozycji}`);
   if (w.kursWaluty && w.kursWaluty !== "0") dodatki.push(`Kurs: ${w.kursWaluty}`);
   if (w.zal15) dodatki.push(`Zał.15`);
-  if (isValidUUID(w.uuid)) dodatki.push(`UUID: ${w.uuid}`);
+  // UUID (w.uuid) celowo nie pokazujemy w UI — to dane techniczne używane
+  // wyłącznie do parowania wierszy w korektach (groupCorrectionRows).
 
   if (dodatki.length > 0) {
     opisFragmenty.push({ text: ' (' + dodatki.join(' | ') + ')', fontSize: 6, color: '#666666' });
@@ -901,26 +941,37 @@ function pdfRowArray(w, isBefore) {
   let nettoText, vatText;
 
   if (w.czyMarza) {
-    nettoText = { text: '—', alignment: 'right', fontSize: 8, color: '#666666' };
-    vatText = { text: '—', alignment: 'right', fontSize: 8, color: '#666666' };
+    nettoText = { text: '—', alignment: 'right', fontSize: 7, color: '#666666' };
+    vatText = { text: '—', alignment: 'right', fontSize: 7, color: '#666666' };
   } else {
     nettoText = { text: formatPrice(w.kwotaNetto, true), alignment: 'right', preserveWhiteSpace: true };
     vatText = { text: formatPrice(w.kwotaVat, true), alignment: 'right', preserveWhiteSpace: true };
   }
 
-  return [
+  // Komórka "Cena po rabacie": efektywna cena jednostkowa (kwotaNetto / ilość)
+  // — tylko gdy wiersz rzeczywiście ma rabat (pdfRabatEffectivePrice ≠ null).
+  const effPrice = pdfRabatEffectivePrice(w);
+  const rabatCell = (effPrice !== null)
+    ? { text: formatPrice(effPrice, true), alignment: 'right', preserveWhiteSpace: true }
+    : { text: '', alignment: 'right' };
+
+  const row = [
     { text: w.nrWiersza || '', alignment: 'center' },
     { text: opisFragmenty },
     { text: w.indeks || '—' },
     { text: w.gtin || '—' },
     { text: fmtQty(w.ilosc), alignment: 'right' },
     { text: w.jednostka || '', alignment: 'center' },
-    { text: cenaText, alignment: 'right', preserveWhiteSpace: true },  // tu już mamy poprawnie sformatowaną cenę
+    { text: cenaText, alignment: 'right', preserveWhiteSpace: true }
+  ];
+  if (showRabatCol) row.push(rabatCell);
+  row.push(
     nettoText,
     { text: w.stawkaVatDisplay, alignment: 'center' },
     vatText,
     { text: formatPrice(w.kwotaBrutto, true), alignment: 'right', preserveWhiteSpace: true }
-  ];
+  );
+  return row;
 }
 
 function pdfVatSummary(faData) {
@@ -1323,10 +1374,16 @@ function generatePdfWithPdfMake(action = 'download') {
       });
     }
 
-    // Tabela z wierszami
-    const tableBody = pdfCreateTableBody(wierszeArray, faData.rodzaj);
+    // Tabela z wierszami. fontSize: 7 propaguje do komórek bez własnego fontSize
+    // — czcionka mniejsza o 1 vs domyślne 8, żeby kolumna "Cena po rabacie" miała miejsce.
+    const showRabatCol = pdfHasAnyRabat(wierszeArray);
+    const tableBody = pdfCreateTableBody(wierszeArray, faData.rodzaj, showRabatCol);
+    const colWidths = showRabatCol
+      ? ['auto', '*', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto']
+      : ['auto', '*', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto'];
     docDefinition.content.push({
-      table: { headerRows: 1, widths: ['auto', '*', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto'], body: tableBody },
+      fontSize: 7,
+      table: { headerRows: 1, widths: colWidths, body: tableBody },
       layout: {
         fillColor: function(rowIndex, node, _columnIndex) {
           if (rowIndex === 0) return '#e8e8e8';
