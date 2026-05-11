@@ -1,5 +1,5 @@
 // ============================================================================
-// renderer.js - wersja 1.6.13 (renderowanie HTML faktury)
+// renderer.js - wersja 1.6.14 (renderowanie HTML faktury)
 // ============================================================================
 // Zakładamy, że core.js i utils.js są załadowane przed renderer.js
 
@@ -551,11 +551,9 @@ function rowHTML(w, isBefore = false, showRabatCol = false) {
     pelnyOpis += ' <small>(przed korektą)</small>';
   }
 
-  // Logika dla ceny
+  // Logika dla ceny — dla marży cenaNetto=0 (netto nie jest ujawniane), pokazujemy cenaBrutto
   let cenaKomorka;
-  const nettoZerowe = w.cenaNetto === 0 || Math.abs(w.cenaNetto) < 0.01;
-
-  if (w.cenaBrutto && w.cenaBrutto !== "0" && nettoZerowe) {
+  if (w.cenaBrutto && w.cenaBrutto !== "0" && (w.cenaNetto === 0 || Math.abs(w.cenaNetto) < 0.01)) {
     cenaKomorka = `${formatPrice(w.cenaBrutto)} <small>(brutto)</small>`;
   } else {
     cenaKomorka = formatPrice(w.cenaNetto);

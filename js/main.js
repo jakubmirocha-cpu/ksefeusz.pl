@@ -1,5 +1,5 @@
 // ============================================================================
-// main.js - wersja 1.6.13 (generowanie PDF i obsługa zdarzeń)
+// main.js - wersja 1.6.14 (generowanie PDF i obsługa zdarzeń)
 // ============================================================================
 // Zakładamy, że core.js, utils.js i renderer.js są załadowane przed main.js
 
@@ -827,7 +827,7 @@ function pdfCreateTableBody(wiersze, rodzaj, showRabatCol) {
   // rezerwuje dużo zapasu (mierzy całość przed łamaniem). Wymuszony break sprawia,
   // że kolumna mierzy się po dłuższej z linii, nie po całym napisie.
   const header = showRabatCol
-    ? ['#', 'Opis / GTU', 'Indeks', 'GTIN', 'Ilość', 'JM', 'Cena\nnetto', 'Cena po\nrabacie   ', 'Wart.\nnetto', 'VAT%', 'VAT', 'Wart.\nbrutto']
+    ? ['#', 'Opis / GTU', 'Indeks', 'GTIN', 'Ilość', 'JM', 'Cena\nnetto', 'Cena po\nrabacie', 'Wart.\nnetto', 'VAT%', 'VAT', 'Wart.\nbrutto']
     : ['#', 'Opis / GTU', 'Indeks', 'GTIN', 'Ilość', 'JM', 'Cena\nnetto', 'Wart.\nnetto', 'VAT%', 'VAT', 'Wart.\nbrutto'];
   // fontSize: 7 nadpisuje styl 'tableHeader' (8) lokalnie — tylko dla tej tabeli,
   // VAT summary i inne tabele zachowują domyślny rozmiar 8.
@@ -925,15 +925,11 @@ function pdfRowArray(w, isBefore, showRabatCol = false) {
     opisFragmenty.push({ text: ' (przed korektą)', fontSize: 6, color: '#555555', italics: true });
   }
 
-  // LOGIKA DLA CENY - używamy formatPrice z parametrem true dla PDF!
+  // LOGIKA DLA CENY — dla marży cenaNetto=0 (netto nie jest ujawniane), pokazujemy cenaBrutto
   let cenaText;
-  const nettoZerowe = w.cenaNetto === 0 || Math.abs(w.cenaNetto) < 0.01;
-
-  if (w.cenaBrutto && w.cenaBrutto !== "0" && nettoZerowe) {
-    // Faktura w cenach brutto (netto nieznane) - pokaż tylko cenę brutto z adnotacją
+  if (w.cenaBrutto && w.cenaBrutto !== "0" && (w.cenaNetto === 0 || Math.abs(w.cenaNetto) < 0.01)) {
     cenaText = `${formatPrice(w.cenaBrutto, true)} (brutto)`;
   } else {
-    // Wszystkie inne przypadki - pokazujemy tylko cenę netto
     cenaText = formatPrice(w.cenaNetto, true);
   }
 

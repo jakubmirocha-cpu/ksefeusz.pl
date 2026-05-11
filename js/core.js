@@ -1,5 +1,5 @@
 // ============================================================================
-// core.js - wersja 1.6.13 (rdzeń aplikacji)
+// core.js - wersja 1.6.14 (rdzeń aplikacji)
 // ============================================================================
 
 // ============================================================================
@@ -304,7 +304,7 @@ function parseFaWiersz(node, czyFakturaMarza = false) {
   const vatFromXml = safeParse(getText(node, "P_11Vat"));
   const grossFromXml = safeParse(getText(node, "P_11A"));
   
-  const cenaNetto = safeParse(getText(node, "P_9A"));
+  let cenaNetto = safeParse(getText(node, "P_9A"));
   const cenaBrutto = safeParse(getText(node, "P_9B"));
   const ilosc = safeParse(getText(node, "P_8B"));
   
@@ -369,6 +369,16 @@ function parseFaWiersz(node, czyFakturaMarza = false) {
     }
   }
   
+  // Wylicz cenę jednostkową netto jeśli faktura wystawiona w cenach brutto (P_9B bez P_9A).
+  // Nie dotyczy marży — tam cena netto jednostkowa nie jest ujawniana z definicji.
+  if (cenaBrutto > 0 && cenaNetto === 0 && !czyMarza) {
+    if (rateNum > 0) {
+      cenaNetto = Math.round(cenaBrutto / (1 + rateNum / 100) * 10000) / 10000;
+    } else {
+      cenaNetto = cenaBrutto; // stawka 0%, zw, np — netto = brutto
+    }
+  }
+
   // Dla stawek zwolnionych
   if (rate === 'zw' || rate === 'oo') {
     if (grossFromXml > 0 && kwotaNetto === 0) {
