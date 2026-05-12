@@ -1,5 +1,5 @@
 // ============================================================================
-// main.js - wersja 1.6.14 (generowanie PDF i obsługa zdarzeń)
+// main.js - wersja 1.6.15 (generowanie PDF i obsługa zdarzeń)
 // ============================================================================
 // Zakładamy, że core.js, utils.js i renderer.js są załadowane przed main.js
 
@@ -316,26 +316,49 @@ function pdfRenderZaliczkaCzesciowa(zaliczkiData) {
   return { stack: content, margin: [0, 0, 0, 4] };
 }
 
+function pdfKvTable(rows) {
+  return {
+    table: {
+      widths: ['auto', '*'],
+      body: rows.map(([label, value]) => [
+        { text: label, bold: true },
+        { text: value }
+      ])
+    },
+    layout: {
+      hLineWidth: () => 0,
+      vLineWidth: () => 0,
+      paddingLeft: () => 0,
+      paddingRight: (i) => i === 0 ? 10 : 0,
+      paddingTop: () => 1,
+      paddingBottom: () => 1
+    }
+  };
+}
+
 function pdfRenderWarunkiTransakcji(w) {
   if (!w) return null;
 
   let content = [pdfSectionHeader('WARUNKI TRANSAKCJI')];
   let hasContent = false;
+  const rows = [];
 
   if (w.umowy.length > 0) {
     let umowyList = w.umowy.map(u => (u.nr && u.data) ? `${u.nr} z ${u.data}` : (u.nr || u.data)).filter(Boolean);
-    if (umowyList.length > 0) { content.push({ text: `Umowy: ${umowyList.join('; ')}`, margin: [0, 0, 0, 1] }); hasContent = true; }
+    if (umowyList.length > 0) rows.push(['Umowy:', umowyList.join('; ')]);
   }
 
   if (w.zamowienia.length > 0) {
     let zamowieniaList = w.zamowienia.map(z => (z.nr && z.data) ? `${z.nr} z ${z.data}` : (z.nr || z.data)).filter(Boolean);
-    if (zamowieniaList.length > 0) { content.push({ text: `Zamówienia: ${zamowieniaList.join('; ')}`, margin: [0, 0, 0, 1] }); hasContent = true; }
+    if (zamowieniaList.length > 0) rows.push(['Zamówienia:', zamowieniaList.join('; ')]);
   }
 
-  if (w.partie.length > 0) { content.push({ text: `Partie towaru: ${w.partie.join(', ')}`, margin: [0, 0, 0, 1] }); hasContent = true; }
-  if (w.warunkiDostawy) { content.push({ text: `Incoterms: ${w.warunkiDostawy}`, margin: [0, 0, 0, 1] }); hasContent = true; }
-  if (w.kursUmowny && w.walutaUmowna) { content.push({ text: `Kurs umowny: 1 ${w.walutaUmowna} = ${w.kursUmowny} PLN`, margin: [0, 0, 0, 1] }); hasContent = true; }
-  if (w.podmiotPosredniczacy !== null) { content.push({ text: `Transakcja łańcuchowa: ${w.podmiotPosredniczacy ? 'Tak (podmiot pośredniczący)' : 'Nie'}`, margin: [0, 0, 0, 1] }); hasContent = true; }
+  if (w.partie.length > 0) rows.push(['Partie towaru:', w.partie.join(', ')]);
+  if (w.warunkiDostawy) rows.push(['Incoterms:', w.warunkiDostawy]);
+  if (w.kursUmowny && w.walutaUmowna) rows.push(['Kurs umowny:', `1 ${w.walutaUmowna} = ${w.kursUmowny} PLN`]);
+  if (w.podmiotPosredniczacy !== null) rows.push(['Transakcja łańcuchowa:', w.podmiotPosredniczacy ? 'Tak (podmiot pośredniczący)' : 'Nie']);
+
+  if (rows.length > 0) { content.push(pdfKvTable(rows)); hasContent = true; }
 
   if (w.transporty && w.transporty.length > 0) {
     for (let t of w.transporty) {
@@ -560,15 +583,8 @@ function pdfRenderDodatkoweInformacje(faData, p1Data) {
     // Opisy bez wiersza - grid jak dotychczas
     const opisyBezWiersza = faData.dodatkoweOpisy.filter(o => !o.nrWiersza);
     if (opisyBezWiersza.length > 0) {
-      content.push({ text: 'Informacje ogólne', margin: [0, 5, 0, 1], fontSize: 9, bold: true });
-      for (const o of opisyBezWiersza) {
-        content.push({
-          columns: [
-            { width: 'auto', text: `${o.klucz}:`, fontSize: 7, bold: true, margin: [0, 0, 4, 1] },
-            { width: '*', text: o.wartosc, fontSize: 7, margin: [0, 0, 0, 1] }
-          ]
-        });
-      }
+      content.push({ text: 'Informacje ogólne', margin: [0, 5, 0, 2], fontSize: 9, bold: true });
+      content.push(pdfKvTable(opisyBezWiersza.map(o => [`${o.klucz}:`, o.wartosc])));
     }
 
     // Opisy związane z wierszami - ZBIORCZA TABELA
@@ -718,16 +734,18 @@ function pdfRenderFooter(stopkaData) {
 
   if (stopkaData.informacje && stopkaData.informacje.length > 0) {
     for (let info of stopkaData.informacje) {
-      if (info.stopkaFaktury) content.push({ text: info.stopkaFaktury, margin: [0, 0, 0, 1] });
+      if (info.stopkaFaktury) content.push({ text: info.stopkaFaktury, margin: [0, 0, 0, 2] });
     }
   }
 
   if (stopkaData.rejestry && stopkaData.rejestry.length > 0) {
     for (let rej of stopkaData.rejestry) {
-      if (rej.pelnaNazwa) content.push({ text: `Pełna nazwa: ${rej.pelnaNazwa}`, margin: [0, 0, 0, 1] });
-      if (rej.krs) content.push({ text: `KRS: ${rej.krs}`, margin: [0, 0, 0, 1] });
-      if (rej.regon) content.push({ text: `REGON: ${rej.regon}`, margin: [0, 0, 0, 1] });
-      if (rej.bdo) content.push({ text: `BDO: ${rej.bdo}`, margin: [0, 0, 0, 1] });
+      const rows = [];
+      if (rej.pelnaNazwa) rows.push(['Pełna nazwa:', rej.pelnaNazwa]);
+      if (rej.krs) rows.push(['KRS:', rej.krs]);
+      if (rej.regon) rows.push(['REGON:', rej.regon]);
+      if (rej.bdo) rows.push(['BDO:', rej.bdo]);
+      if (rows.length > 0) content.push(pdfKvTable(rows));
     }
   }
 
@@ -1044,12 +1062,21 @@ function pdfCorrectionTotalsCheck(faData, wierszeArray) {
   if (!faData.rodzaj || !faData.rodzaj.startsWith("KOR")) return null;
   if (!wierszeArray || wierszeArray.length === 0) return null;
 
+  // Liczymy deltę tylko z par i wierszy-usunięć (StanPrzed bez pary).
+  // Wiersze "po" bez pary są pomijane — mogą to być pozycje kontekstowe
+  // (niezmienione pozycje z FV pierwotnej wklejone przez wystawcę dla przejrzystości).
+  const grouped = groupCorrectionRows(wierszeArray);
   let calcN = 0, calcV = 0, calcG = 0;
-  for (const w of wierszeArray) {
-    const sign = w.stanPrzed ? -1 : 1;
-    calcN += sign * (parseFloat(w.kwotaNetto) || 0);
-    calcV += sign * (parseFloat(w.kwotaVat) || 0);
-    calcG += sign * (parseFloat(w.kwotaBrutto) || 0);
+  for (const g of grouped) {
+    if (g.type === 'pair') {
+      calcN += (parseFloat(g.after.kwotaNetto) || 0) - (parseFloat(g.before.kwotaNetto) || 0);
+      calcV += (parseFloat(g.after.kwotaVat) || 0) - (parseFloat(g.before.kwotaVat) || 0);
+      calcG += (parseFloat(g.after.kwotaBrutto) || 0) - (parseFloat(g.before.kwotaBrutto) || 0);
+    } else if (g.isBefore) {
+      calcN -= parseFloat(g.row.kwotaNetto) || 0;
+      calcV -= parseFloat(g.row.kwotaVat) || 0;
+      calcG -= parseFloat(g.row.kwotaBrutto) || 0;
+    }
   }
 
   const v = faData.vatSummary || {};
@@ -1058,10 +1085,13 @@ function pdfCorrectionTotalsCheck(faData, wierszeArray) {
   const declV = sumKeys(['p14_1','p14_2','p14_3','p14_4','p14_5']);
   const declG = parseFloat(v.p15) || 0;
 
+  const TOL = 0.02;
+  // Korekta nagłówkowa (np. skonto): brak par ani usunięć → calcN/V/G = 0 — brak porównania
+  if (Math.abs(calcN) <= TOL && Math.abs(calcV) <= TOL && Math.abs(calcG) <= TOL) return null;
+
   const dN = calcN - declN;
   const dV = calcV - declV;
   const dG = calcG - declG;
-  const TOL = 0.02;
 
   if (Math.abs(dN) <= TOL && Math.abs(dV) <= TOL && Math.abs(dG) <= TOL) return null;
 

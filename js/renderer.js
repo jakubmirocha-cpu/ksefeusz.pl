@@ -1,5 +1,5 @@
 // ============================================================================
-// renderer.js - wersja 1.6.14 (renderowanie HTML faktury)
+// renderer.js - wersja 1.6.15 (renderowanie HTML faktury)
 // ============================================================================
 // Zakładamy, że core.js i utils.js są załadowane przed renderer.js
 
@@ -643,12 +643,21 @@ function correctionTotalsCheckHTML(faData, wierszeArray) {
   if (!faData.rodzaj || !faData.rodzaj.startsWith("KOR")) return "";
   if (!wierszeArray || wierszeArray.length === 0) return "";
 
+  // Liczymy deltę tylko z par i wierszy-usunięć (StanPrzed bez pary).
+  // Wiersze "po" bez pary są pomijane — mogą to być pozycje kontekstowe
+  // (niezmienione pozycje z FV pierwotnej wklejone przez wystawcę dla przejrzystości).
+  const grouped = groupCorrectionRows(wierszeArray);
   let calcN = 0, calcV = 0, calcG = 0;
-  for (const w of wierszeArray) {
-    const sign = w.stanPrzed ? -1 : 1;
-    calcN += sign * (parseFloat(w.kwotaNetto) || 0);
-    calcV += sign * (parseFloat(w.kwotaVat) || 0);
-    calcG += sign * (parseFloat(w.kwotaBrutto) || 0);
+  for (const g of grouped) {
+    if (g.type === 'pair') {
+      calcN += (parseFloat(g.after.kwotaNetto) || 0) - (parseFloat(g.before.kwotaNetto) || 0);
+      calcV += (parseFloat(g.after.kwotaVat) || 0) - (parseFloat(g.before.kwotaVat) || 0);
+      calcG += (parseFloat(g.after.kwotaBrutto) || 0) - (parseFloat(g.before.kwotaBrutto) || 0);
+    } else if (g.isBefore) {
+      calcN -= parseFloat(g.row.kwotaNetto) || 0;
+      calcV -= parseFloat(g.row.kwotaVat) || 0;
+      calcG -= parseFloat(g.row.kwotaBrutto) || 0;
+    }
   }
 
   const v = faData.vatSummary || {};
@@ -657,11 +666,14 @@ function correctionTotalsCheckHTML(faData, wierszeArray) {
   const declV = sumKeys(['p14_1','p14_2','p14_3','p14_4','p14_5']);
   const declG = parseFloat(v.p15) || 0;
 
+  const TOL = 0.02;
+  // Korekta nagłówkowa (np. skonto): brak par ani usunięć → calcN/V/G = 0 — brak porównania
+  if (Math.abs(calcN) <= TOL && Math.abs(calcV) <= TOL && Math.abs(calcG) <= TOL) return "";
+
   const dN = calcN - declN;
   const dV = calcV - declV;
   const dG = calcG - declG;
 
-  const TOL = 0.02;
   if (Math.abs(dN) <= TOL && Math.abs(dV) <= TOL && Math.abs(dG) <= TOL) return "";
 
   const row = (label, calc, decl, delta) =>
