@@ -1,5 +1,5 @@
 // ============================================================================
-// main.js - wersja 1.6.15 (generowanie PDF i obsługa zdarzeń)
+// main.js - wersja 1.6.16 (generowanie PDF i obsługa zdarzeń)
 // ============================================================================
 // Zakładamy, że core.js, utils.js i renderer.js są załadowane przed main.js
 
@@ -1200,6 +1200,30 @@ function pdfRenderZamowienie(zamowienieData) {
 }
 
 
+// Oczyszcza nazwę sprzedawcy do użycia w nazwie pliku PDF:
+// 1) ucina typowe formy prawne na końcu (sp. z o.o., S.A., S.C., sp.k., sp.j., sp.p., S.K.A., P.S.A. + warianty pełne)
+// 2) zamienia polskie znaki diakrytyczne na ASCII (Ł→L itp.)
+// 3) usuwa znaki niedozwolone w nazwach plików, spacje → _, redukuje wielokrotne _
+// 4) tnie do 35 znaków przy granicy wyrazu
+function sanitizeSellerName(nazwa) {
+  if (!nazwa) return '';
+  let n = nazwa.trim();
+  // Forma prawna może być na końcu LUB w środku nazwy (np. "ROYAL PLANT S.C. Tomasz Kowalski & Anna Nowak"
+  // — typowy zapis spółki cywilnej z imionami wspólników). Wszystko ZA formą prawną jest konsumowane.
+  const legalFormRe = /[\s,\-]+(?:s\.\s*k\.\s*a\.?|p\.\s*s\.\s*a\.?|sp\.\s*z\s*o\.?\s*o\.?|sp\.\s*k\.?|sp\.\s*j\.?|sp\.\s*p\.?|s\.\s*a\.?|s\.\s*c\.?|spółka\s+z\s+ograniczoną\s+odpowiedzialnością|spółka\s+akcyjna|spółka\s+cywilna|spółka\s+komandytowa|spółka\s+jawna|spółka\s+partnerska|spółka\s+komandytowo[-\s]akcyjna|prosta\s+spółka\s+akcyjna)(?:[\s.,].*)?$/i;
+  n = n.replace(legalFormRe, '');
+  const plMap = { 'ą':'a','ć':'c','ę':'e','ł':'l','ń':'n','ó':'o','ś':'s','ź':'z','ż':'z','Ą':'A','Ć':'C','Ę':'E','Ł':'L','Ń':'N','Ó':'O','Ś':'S','Ź':'Z','Ż':'Z' };
+  n = n.replace(/[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/g, ch => plMap[ch] || ch);
+  n = n.replace(/[^A-Za-z0-9._\-]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+  if (n.length > 35) {
+    const truncated = n.substring(0, 35);
+    const lastUnderscore = truncated.lastIndexOf('_');
+    n = lastUnderscore > 20 ? truncated.substring(0, lastUnderscore) : truncated;
+  }
+  return n;
+}
+
+
 function generatePdfWithPdfMake(action = 'download') {
   if (!currentXml || !currentXmlContent) {
     showError("Najpierw wczytaj plik XML");
@@ -1528,13 +1552,17 @@ if (unknownElements.length > 0) {
     const nrFakturyDoNazwy = faData.nrFaktury
       ? faData.nrFaktury.replace(/[/\\:*?"<>|]/g, '_').replace(/\s+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
       : currentFileName;
+    const sellerForFilename = sanitizeSellerName(p1Data?.nazwa);
+    const pdfFileName = sellerForFilename
+      ? `${nrFakturyDoNazwy}_${sellerForFilename}.pdf`
+      : `${nrFakturyDoNazwy}.pdf`;
     if (action === 'print') {
       pdfMake.createPdf(docDefinition).print();
       showSuccess("Wysłano do druku!");
     } else if (action === 'open') {
       pdfMake.createPdf(docDefinition).open();
     } else {
-      pdfMake.createPdf(docDefinition).download(`${nrFakturyDoNazwy}.pdf`);
+      pdfMake.createPdf(docDefinition).download(pdfFileName);
       showSuccess("PDF wygenerowany pomyślnie!");
     }
     setTimeout(() => document.getElementById("errorMessage").style.display = "none", 3000);
