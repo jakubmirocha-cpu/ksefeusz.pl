@@ -1,5 +1,5 @@
 // ============================================================================
-// renderer.js - wersja 1.6.16 (renderowanie HTML faktury)
+// renderer.js - wersja 1.6.17 (renderowanie HTML faktury)
 // ============================================================================
 // Zakładamy, że core.js i utils.js są załadowane przed renderer.js
 
@@ -173,10 +173,11 @@ function renderNaglowekHTML(faData, fileName, naglowekData) {
   return `
     <header>
       <div>
-        <h1 style="margin: 0 0 4px 0; font-size: 18px;">${tytulZNr}</h1>
-        <div style="font-size: 11px; color: #546e7a; display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
+        <h1 style="margin: 0 0 1px 0; font-size: 18px;">${tytulZNr}</h1>
+        <div style="font-size: 10px; color: #546e7a; margin-bottom: 1px;">Wizualizacja faktury ustrukturyzowanej XML</div>
+        <div style="font-size: 10px; color: #546e7a; display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
           ${ksefInfo}
-          <span style="background: #f5f5f5; padding: 2px 8px; border-radius: 12px;">${kodWaluty}</span>
+          <span style="background: #f5f5f5; padding: 2px 5px; border-radius: 12px;">${kodWaluty}</span>
           ${dodatkoweInfoHtml}
         </div>
       </div>
@@ -647,6 +648,10 @@ function correctionTotalsCheckHTML(faData, wierszeArray) {
   // Wiersze "po" bez pary są pomijane — mogą to być pozycje kontekstowe
   // (niezmienione pozycje z FV pierwotnej wklejone przez wystawcę dla przejrzystości).
   const grouped = groupCorrectionRows(wierszeArray);
+  // Bez par nie mamy bazy do liczenia delty — pojedyncze "przed" mogą być prawdziwym
+  // usunięciem albo osieroconym half pary, której "po" algorytm zgubił. Lepiej milczeć
+  // niż pokazać liczby ze zgadywanego porównania.
+  if (!grouped.some(g => g.type === 'pair')) return "";
   let calcN = 0, calcV = 0, calcG = 0;
   for (const g of grouped) {
     if (g.type === 'pair') {

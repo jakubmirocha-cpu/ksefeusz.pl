@@ -1,5 +1,5 @@
 // ============================================================================
-// main.js - wersja 1.6.16 (generowanie PDF i obsługa zdarzeń)
+// main.js - wersja 1.6.17 (generowanie PDF i obsługa zdarzeń)
 // ============================================================================
 // Zakładamy, że core.js, utils.js i renderer.js są załadowane przed main.js
 
@@ -1066,6 +1066,10 @@ function pdfCorrectionTotalsCheck(faData, wierszeArray) {
   // Wiersze "po" bez pary są pomijane — mogą to być pozycje kontekstowe
   // (niezmienione pozycje z FV pierwotnej wklejone przez wystawcę dla przejrzystości).
   const grouped = groupCorrectionRows(wierszeArray);
+  // Bez par nie mamy bazy do liczenia delty — pojedyncze "przed" mogą być prawdziwym
+  // usunięciem albo osieroconym half pary, której "po" algorytm zgubił. Lepiej milczeć
+  // niż pokazać liczby ze zgadywanego porównania.
+  if (!grouped.some(g => g.type === 'pair')) return null;
   let calcN = 0, calcV = 0, calcG = 0;
   for (const g of grouped) {
     if (g.type === 'pair') {
@@ -1287,7 +1291,7 @@ function generatePdfWithPdfMake(action = 'download') {
       header: function(currentPage, _pageCount) {
         if (currentPage === 1) return {};
         let naglowek = faData.rodzajDisplay;
-        if (faData.nrFaktury) naglowek += ` · ${faData.nrFaktury}`;
+        if (faData.nrFaktury) naglowek += ` nr ${faData.nrFaktury}`;
         return {
           columns: [
             { text: 'KSeFeusz.pl', fontSize: 7, color: '#bdc3c7', margin: [25, 12, 0, 0] },
@@ -1319,8 +1323,9 @@ function generatePdfWithPdfMake(action = 'download') {
           {
             border: [false, false, false, false],
             stack: [
-              { text: faData.rodzajDisplay.toUpperCase(), fontSize: 12, color: '#1a5276', bold: true, margin: [0, 0, 0, 1] },
-              { text: faData.nrFaktury || '(brak numeru)', fontSize: 14, bold: true, color: '#1a5276' }
+              { text: faData.rodzajDisplay.toUpperCase() + (faData.nrFaktury ? ' nr' : ''), fontSize: 12, color: '#1a5276', bold: true, margin: [0, 0, 0, 1] },
+              { text: faData.nrFaktury || '(brak numeru)', fontSize: 14, bold: true, color: '#1a5276' },
+              { text: 'Wizualizacja faktury ustrukturyzowanej XML', fontSize: 7, color: '#95a5a6', margin: [0, 2, 0, 0] }
             ]
           },
           {
@@ -1345,8 +1350,8 @@ function generatePdfWithPdfMake(action = 'download') {
       margin: [0, 0, 0, 2]
     });
     let metaItems = [];
-    if (isValidKSeF) metaItems.push(`KSeF: ${ksefNumber}`);
-    else if (ksefNumber) metaItems.push(`KSeF: ${ksefNumber} (błędna suma kontrolna)`);
+    if (isValidKSeF) metaItems.push(`Nr KSeF: ${ksefNumber}`);
+    else if (ksefNumber) metaItems.push(`Nr KSeF: ${ksefNumber} (błędna suma kontrolna)`);
     else metaItems.push('brak numeru KSeF w nazwie pliku');
     if (naglowekData?.systemInfo) metaItems.push(`System: ${naglowekData.systemInfo}`);
     if (naglowekData?.dataWytworzenia) metaItems.push(`Wytworzono: ${naglowekData.dataWytworzenia.replace('T', ' ').replace(/([+-]\d{2}:\d{2})$/, ' $1').replace(/Z$/, '')}`);
