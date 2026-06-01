@@ -1,4 +1,4 @@
-/* ===== KSeFeusz.pl - invoice.css - wersja 1.6.17 (2026-05-26) ===== */
+/* ===== KSeFeusz.pl - invoice.css - wersja 1.6.18 (2026-06-01) ===== */
 /* Style podglądu faktury HTML oraz drukowania */
 
 /* ===== KONTENER FAKTURY ===== */
@@ -66,7 +66,9 @@
 }
 
 .col {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0; /* bez tego flex item nie zejdzie poniżej szerokości treści (długi e-mail/nazwa) i rozjeżdża 50/50 */
+  overflow-wrap: anywhere; /* zawijaj długie nierozdzielne tokeny zamiast rozpychać kolumnę */
 }
 
 .invoice-container table {
@@ -817,8 +819,10 @@
   }
 
   .col {
-    flex: 1 !important;
+    flex: 1 1 0 !important;
     width: auto !important;
+    min-width: 0 !important; /* twarde 50/50 także na druku */
+    overflow-wrap: anywhere !important;
   }
 
   .vat-summary {

@@ -1,5 +1,5 @@
 // ============================================================================
-// main.js - wersja 1.6.17 (generowanie PDF i obsługa zdarzeń)
+// main.js - wersja 1.6.18 (generowanie PDF i obsługa zdarzeń)
 // ============================================================================
 // Zakładamy, że core.js, utils.js i renderer.js są załadowane przed main.js
 
@@ -800,9 +800,15 @@ function pdfBox(content, breakable) {
 function pdfTwoBox(leftContent, rightContent) {
   const left = Array.isArray(leftContent) ? leftContent : [leftContent];
   const right = Array.isArray(rightContent) ? rightContent : [rightContent];
+  // Twarde 50/50 niezależnie od długości treści. Samo '*' w pdfmake potrafi
+  // rozjechać kolumny, gdy jedna komórka ma szerszy/nierozdzielny tekst — wtedy
+  // pdfmake jej nie zwęża i druga dostaje mniej niż połowę. Stała równa szerokość
+  // wymusza podział. A4 portrait: 595.28pt − marginesy boczne (2×25) = 545.28pt;
+  // −1pt na linię działową, /2 ≈ 272.14pt na kolumnę.
+  const COL_W = (595.28 - 50 - 1) / 2;
   return {
     table: {
-      widths: ['*', '*'],
+      widths: [COL_W, COL_W],
       body: [[{ stack: left }, { stack: right }]]
     },
     layout: {
@@ -1147,6 +1153,57 @@ function pdfCorrectionTotalsCheck(faData, wierszeArray) {
   };
 }
 
+// Walidacja spójności nagłówka (ΣP_13 + ΣP_14 vs P_15). Logika wspólna z HTML
+// przez vatHeaderConsistencyCalc (renderer.js). Brak ⚠ — Roboto w pdfMake nie
+// ma U+26A0 (tofu); wyróżnienie kolorem + bold, jak w pdfCorrectionTotalsCheck.
+function pdfVatHeaderConsistencyCheck(faData) {
+  const mm = vatHeaderConsistencyCalc(faData);
+  if (!mm) return null;
+
+  const row = (label, value, bold) => ([
+    { text: label, fontSize: 8 },
+    { text: formatPrice(value, true), alignment: 'right', fontSize: 8, bold: !!bold, color: bold ? '#b9521a' : undefined }
+  ]);
+  const innerBody = [
+    row('Suma netto (P_13)', mm.net),
+    row('Suma VAT (P_14)', mm.vat),
+    row('Netto + VAT', mm.expected, true),
+    row('Brutto zadeklarowane (P_15)', mm.p15, true),
+    row('Różnica', mm.diff, true)
+  ];
+
+  const inner = {
+    stack: [
+      { text: 'Niezgodność sum w nagłówku faktury', bold: true, color: '#b9521a', fontSize: 10, margin: [0, 0, 0, 3] },
+      { text: 'Suma wartości netto i VAT z pól P_13 / P_14 nie zgadza się z zadeklarowaną kwotą brutto (P_15).', fontSize: 8, color: '#5b3a1a', margin: [0, 0, 0, 4] },
+      {
+        table: { widths: ['*', 'auto'], body: innerBody },
+        layout: {
+          hLineWidth: (i, node) => (i === 0 || i === node.table.body.length) ? 0.5 : 0.3,
+          vLineWidth: (i, node) => (i === 0 || i === node.table.widths.length) ? 0.5 : 0.3,
+          hLineColor: () => '#e67e22',
+          vLineColor: () => '#e67e22',
+          paddingLeft: () => 5, paddingRight: () => 5, paddingTop: () => 2, paddingBottom: () => 2
+        }
+      },
+      { text: 'KSeFeusz.pl prezentuje dane wyłącznie w formie wizualizacji oryginalnego pliku XML. W razie wątpliwości zweryfikuj dane źródłowe w pliku XML lub bezpośrednio w KSeF — wizualizator nie modyfikuje wartości z faktury.', fontSize: 7, italics: true, color: '#6b4a22', margin: [0, 5, 0, 0] }
+    ]
+  };
+
+  return {
+    table: { widths: ['*'], body: [[{ stack: [inner], fillColor: '#fff8e6' }]] },
+    layout: {
+      hLineWidth: () => 0.8,
+      vLineWidth: () => 0.8,
+      hLineColor: () => '#e67e22',
+      vLineColor: () => '#e67e22',
+      paddingLeft: () => 8, paddingRight: () => 8, paddingTop: () => 6, paddingBottom: () => 6
+    },
+    unbreakable: true,
+    margin: [0, 0, 0, 4]
+  };
+}
+
 function pdfRenderZamowienie(zamowienieData) {
   if (!zamowienieData || !zamowienieData.wiersze || zamowienieData.wiersze.length === 0) return null;
 
@@ -1360,7 +1417,7 @@ function generatePdfWithPdfMake(action = 'download') {
     // Sprzedawca i nabywca
     docDefinition.content.push(pdfTwoBox(
       pdfRenderPodmiot(p1Data, 'SPRZEDAWCA'),
-      p2kData ? pdfRenderPodmiotZKorekta(p2Data, p2kData) : pdfRenderPodmiot(p2Data, 'NABYWCA')
+      p2kData ? pdfRenderPodmiotZKorekta(p2kData, p2Data) : pdfRenderPodmiot(p2Data, 'NABYWCA')
     ));
 
     // Podmiot upoważniony
@@ -1462,6 +1519,10 @@ function generatePdfWithPdfMake(action = 'download') {
       ],
       margin: [0, 0, 0, 4]
     });
+
+    // Walidacja spójności nagłówka ΣP_13+ΣP_14 vs P_15 (tylko przy niezgodności)
+    const headerCheck = pdfVatHeaderConsistencyCheck(faData);
+    if (headerCheck) docDefinition.content.push(headerCheck);
 
     // Walidacja sum korekty (pojawia się tylko przy niezgodności)
     const correctionCheck = pdfCorrectionTotalsCheck(faData, wierszeArray);

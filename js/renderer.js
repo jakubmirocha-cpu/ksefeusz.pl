@@ -1,5 +1,5 @@
 // ============================================================================
-// renderer.js - wersja 1.6.17 (renderowanie HTML faktury)
+// renderer.js - wersja 1.6.18 (renderowanie HTML faktury)
 // ============================================================================
 // Zakładamy, że core.js i utils.js są załadowane przed renderer.js
 
@@ -696,6 +696,59 @@ function correctionTotalsCheckHTML(faData, wierszeArray) {
       <table>
         <tr><th></th><th class="right">Z wierszy</th><th class="right">Z podsumowania</th><th class="right">Różnica</th></tr>
         ${body}
+      </table>
+      <small>KSeFeusz.pl prezentuje dane wyłącznie w formie wizualizacji oryginalnego pliku XML. W razie wątpliwości zweryfikuj dane źródłowe w pliku XML lub bezpośrednio w KSeF — wizualizator nie modyfikuje wartości z faktury.</small>
+    </div>
+  `;
+}
+
+// Walidacja spójności nagłówka: czy suma netto (ΣP_13_X) + VAT (ΣP_14_X)
+// zgadza się z zadeklarowaną kwotą brutto P_15. Niezależna od korekt —
+// łapie błędne/oderwane P_15 na dowolnej fakturze. Zwraca obiekt z liczbami
+// albo null gdy spójne lub gdy P_15 z definicji ≠ ΣP_13+ΣP_14 (faktura
+// rozliczeniowa / z rozliczanymi zaliczkami). Tolerancja 0.02 zł.
+// Wspólna logika dla HTML (renderer.js) i PDF (main.js) — jedno źródło prawdy.
+function vatHeaderConsistencyCalc(faData) {
+  const v = faData.vatSummary || {};
+
+  // Faktura rozliczeniowa (art. 106f ust. 3): P_15 = kwota POZOSTAŁA do zapłaty
+  // (pomniejszona o zaliczki) → P_15 ≠ ΣP_13+ΣP_14 zgodnie z prawem. Milczymy.
+  if (faData.rodzaj === 'ROZ' || faData.rodzaj === 'KOR_ROZ') return null;
+  if (faData.zaliczkiCzesciowe && faData.zaliczkiCzesciowe.zaplaty && faData.zaliczkiCzesciowe.zaplaty.length > 0) return null;
+
+  const present = (k) => v[k] !== undefined && v[k] !== null && String(v[k]).trim() !== "";
+  const netKeys = ['p13_1','p13_2','p13_3','p13_4','p13_5','p13_6_1','p13_6_2','p13_6_3','p13_7','p13_8','p13_9','p13_10','p13_11'];
+  const vatKeys = ['p14_1','p14_2','p14_3','p14_4','p14_5'];
+
+  // Brak P_15 albo brak jakiegokolwiek pola netto/VAT → nie ma czego porównywać.
+  if (!present('p15')) return null;
+  if (!netKeys.some(present) && !vatKeys.some(present)) return null;
+
+  const sum = (keys) => keys.reduce((s, k) => s + (parseFloat(v[k]) || 0), 0);
+  const net = sum(netKeys);
+  const vat = sum(vatKeys);  // bez P_14_XW — VAT przeliczony (PLN) nie wchodzi do P_15
+  const expected = net + vat;
+  const p15 = parseFloat(v.p15) || 0;
+  const diff = expected - p15;
+
+  if (Math.abs(diff) <= 0.02) return null;
+  return { net, vat, expected, p15, diff };
+}
+
+function vatHeaderConsistencyCheckHTML(faData) {
+  const mm = vatHeaderConsistencyCalc(faData);
+  if (!mm) return "";
+
+  return `
+    <div class="correction-mismatch no-break">
+      <strong>⚠ Niezgodność sum w nagłówku faktury</strong>
+      <p>Suma wartości netto i VAT z pól P_13 / P_14 nie zgadza się z zadeklarowaną kwotą brutto (P_15):</p>
+      <table>
+        <tr><td>Suma netto (P_13)</td><td class="right">${formatPrice(mm.net)}</td></tr>
+        <tr><td>Suma VAT (P_14)</td><td class="right">${formatPrice(mm.vat)}</td></tr>
+        <tr><td>Netto&nbsp;+&nbsp;VAT</td><td class="right"><strong>${formatPrice(mm.expected)}</strong></td></tr>
+        <tr><td>Brutto zadeklarowane (P_15)</td><td class="right"><strong>${formatPrice(mm.p15)}</strong></td></tr>
+        <tr><td>Różnica</td><td class="right"><strong>${formatPrice(mm.diff)}</strong></td></tr>
       </table>
       <small>KSeFeusz.pl prezentuje dane wyłącznie w formie wizualizacji oryginalnego pliku XML. W razie wątpliwości zweryfikuj dane źródłowe w pliku XML lub bezpośrednio w KSeF — wizualizator nie modyfikuje wartości z faktury.</small>
     </div>
@@ -1614,11 +1667,11 @@ function render(xml, fileName, xmlContent) {
     containerContent += `<h2>NABYWCA</h2>`;
     containerContent += `<div style="margin-bottom:5px; background:#fef5e7; padding:5px;">`;
     containerContent += `<small style="color:#7f8c8d;">PRZED KOREKTĄ</small><br>`;
-    containerContent += renderPodmiotHTML(p2Data, "").replace('<div class="col">', '').replace('</div>', '');
+    containerContent += renderPodmiotHTML(p2kData, "").replace('<div class="col">', '').replace('</div>', '');
     containerContent += `</div>`;
     containerContent += `<div style="background:#e8f8f5; padding:5px;">`;
     containerContent += `<small style="color:#27ae60;">PO KOREKCIE</small><br>`;
-    containerContent += renderPodmiotHTML(p2kData, "").replace('<div class="col">', '').replace('</div>', '');
+    containerContent += renderPodmiotHTML(p2Data, "").replace('<div class="col">', '').replace('</div>', '');
     containerContent += `</div>`;
   } else {
     containerContent += renderPodmiotHTML(p2Data, "NABYWCA").replace('<div class="col">', '').replace('</div>', '');
@@ -1760,6 +1813,7 @@ if (faData.rodzaj.startsWith("KOR") && faData.daneKorygowane.length > 0) {
 
   // Podsumowanie i dodatkowe sekcje
   containerContent += vatSummaryHTML(faData);
+  containerContent += vatHeaderConsistencyCheckHTML(faData);
   containerContent += correctionTotalsCheckHTML(faData, wierszeArray);
   containerContent += renderRozliczenieHTML(rozliczenieData);
   containerContent += renderDodatkoweInformacjeHTML(faData, p1Data);
