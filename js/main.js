@@ -1,5 +1,5 @@
 // ============================================================================
-// main.js - wersja 1.6.18 (generowanie PDF i obsługa zdarzeń)
+// main.js - wersja 1.6.19 (generowanie PDF i obsługa zdarzeń)
 // ============================================================================
 // Zakładamy, że core.js, utils.js i renderer.js są załadowane przed main.js
 
@@ -846,7 +846,7 @@ function pdfHasAnyRabat(wiersze) {
   return wiersze.some(w => pdfRabatEffectivePrice(w) !== null);
 }
 
-function pdfCreateTableBody(wiersze, rodzaj, showRabatCol) {
+function pdfCreateTableBody(wiersze, rodzaj, showRabatCol, showDiffRows) {
   // Twardy \n w nagłówkach wielowyrazowych — pdfmake z 'auto' i miękkim wrapem
   // rezerwuje dużo zapasu (mierzy całość przed łamaniem). Wymuszony break sprawia,
   // że kolumna mierzy się po dłuższej z linii, nie po całym napisie.
@@ -870,7 +870,7 @@ function pdfCreateTableBody(wiersze, rodzaj, showRabatCol) {
         const diffQty = (parseFloat(item.after.ilosc) || 0) - (parseFloat(item.before.ilosc) || 0);
         const diffPrice = (parseFloat(item.after.cenaNetto) || 0) - (parseFloat(item.before.cenaNetto) || 0);
 
-        if (diffNet !== 0 || diffQty !== 0 || diffPrice !== 0 || diffVat !== 0 || diffGross !== 0) {
+        if (showDiffRows && (diffNet !== 0 || diffQty !== 0 || diffPrice !== 0 || diffVat !== 0 || diffGross !== 0)) {
           // Gdy stawka VAT się zmieniła (np. 8% → 23%), w wierszu RÓŻNICY pokazujemy
           // tylko deltę kwot (VAT, brutto). Stawka jako "—" — różnica stawek nie ma sensu liczbowego.
           const stawkaRoznicowa = (item.before.stawkaVat === item.after.stawkaVat)
@@ -1061,101 +1061,9 @@ function pdfVatSummary(faData) {
   };
 }
 
-// Walidacja dla faktur korygujących (PDF): czy delta z wierszy (po − przed)
-// zgadza się z wartościami zadeklarowanymi w P_13_X / P_14_X / P_15.
-// Tolerancja 0.02 zł. Zwraca pdfMake content (pomarańczowy box) lub null.
-function pdfCorrectionTotalsCheck(faData, wierszeArray) {
-  if (!faData.rodzaj || !faData.rodzaj.startsWith("KOR")) return null;
-  if (!wierszeArray || wierszeArray.length === 0) return null;
-
-  // Liczymy deltę tylko z par i wierszy-usunięć (StanPrzed bez pary).
-  // Wiersze "po" bez pary są pomijane — mogą to być pozycje kontekstowe
-  // (niezmienione pozycje z FV pierwotnej wklejone przez wystawcę dla przejrzystości).
-  const grouped = groupCorrectionRows(wierszeArray);
-  // Bez par nie mamy bazy do liczenia delty — pojedyncze "przed" mogą być prawdziwym
-  // usunięciem albo osieroconym half pary, której "po" algorytm zgubił. Lepiej milczeć
-  // niż pokazać liczby ze zgadywanego porównania.
-  if (!grouped.some(g => g.type === 'pair')) return null;
-  let calcN = 0, calcV = 0, calcG = 0;
-  for (const g of grouped) {
-    if (g.type === 'pair') {
-      calcN += (parseFloat(g.after.kwotaNetto) || 0) - (parseFloat(g.before.kwotaNetto) || 0);
-      calcV += (parseFloat(g.after.kwotaVat) || 0) - (parseFloat(g.before.kwotaVat) || 0);
-      calcG += (parseFloat(g.after.kwotaBrutto) || 0) - (parseFloat(g.before.kwotaBrutto) || 0);
-    } else if (g.isBefore) {
-      calcN -= parseFloat(g.row.kwotaNetto) || 0;
-      calcV -= parseFloat(g.row.kwotaVat) || 0;
-      calcG -= parseFloat(g.row.kwotaBrutto) || 0;
-    }
-  }
-
-  const v = faData.vatSummary || {};
-  const sumKeys = (keys) => keys.reduce((s, k) => s + (parseFloat(v[k]) || 0), 0);
-  const declN = sumKeys(['p13_1','p13_2','p13_3','p13_4','p13_5','p13_6_1','p13_6_2','p13_6_3','p13_7','p13_8','p13_9','p13_10','p13_11']);
-  const declV = sumKeys(['p14_1','p14_2','p14_3','p14_4','p14_5']);
-  const declG = parseFloat(v.p15) || 0;
-
-  const TOL = 0.02;
-  // Korekta nagłówkowa (np. skonto): brak par ani usunięć → calcN/V/G = 0 — brak porównania
-  if (Math.abs(calcN) <= TOL && Math.abs(calcV) <= TOL && Math.abs(calcG) <= TOL) return null;
-
-  const dN = calcN - declN;
-  const dV = calcV - declV;
-  const dG = calcG - declG;
-
-  if (Math.abs(dN) <= TOL && Math.abs(dV) <= TOL && Math.abs(dG) <= TOL) return null;
-
-  const innerBody = [[
-    { text: '', fillColor: '#fff2d9', fontSize: 7, bold: true },
-    { text: 'Z wierszy', fillColor: '#fff2d9', fontSize: 7, bold: true, alignment: 'right' },
-    { text: 'Z podsumowania', fillColor: '#fff2d9', fontSize: 7, bold: true, alignment: 'right' },
-    { text: 'Różnica', fillColor: '#fff2d9', fontSize: 7, bold: true, alignment: 'right' }
-  ]];
-  const addRow = (label, calc, decl, delta) => innerBody.push([
-    { text: label, fontSize: 8 },
-    { text: formatPrice(calc, true), alignment: 'right', fontSize: 8 },
-    { text: formatPrice(decl, true), alignment: 'right', fontSize: 8 },
-    { text: formatPrice(delta, true), alignment: 'right', bold: true, fontSize: 8, color: '#b9521a' }
-  ]);
-  if (Math.abs(dN) > TOL) addRow('Netto',  calcN, declN, dN);
-  if (Math.abs(dV) > TOL) addRow('VAT',    calcV, declV, dV);
-  if (Math.abs(dG) > TOL) addRow('Brutto', calcG, declG, dG);
-
-  const inner = {
-    stack: [
-      { text: 'Niezgodność sum korekty', bold: true, color: '#b9521a', fontSize: 10, margin: [0, 0, 0, 3] },
-      { text: 'Różnica wyliczona z wierszy (po − przed) nie zgadza się z deklaracją w polach P_13 / P_14 / P_15.', fontSize: 8, color: '#5b3a1a', margin: [0, 0, 0, 4] },
-      {
-        table: { widths: ['*', 'auto', 'auto', 'auto'], body: innerBody },
-        layout: {
-          hLineWidth: (i, node) => (i === 0 || i === node.table.body.length) ? 0.5 : 0.3,
-          vLineWidth: (i, node) => (i === 0 || i === node.table.widths.length) ? 0.5 : 0.3,
-          hLineColor: () => '#e67e22',
-          vLineColor: () => '#e67e22',
-          paddingLeft: () => 5, paddingRight: () => 5, paddingTop: () => 2, paddingBottom: () => 2
-        }
-      },
-      { text: 'KSeFeusz.pl prezentuje dane wyłącznie w formie wizualizacji oryginalnego pliku XML. W razie wątpliwości zweryfikuj dane źródłowe w pliku XML lub bezpośrednio w KSeF — wizualizator nie modyfikuje wartości z faktury.', fontSize: 7, italics: true, color: '#6b4a22', margin: [0, 5, 0, 0] }
-    ]
-  };
-
-  return {
-    table: { widths: ['*'], body: [[{ stack: [inner], fillColor: '#fff8e6' }]] },
-    layout: {
-      hLineWidth: () => 0.8,
-      vLineWidth: () => 0.8,
-      hLineColor: () => '#e67e22',
-      vLineColor: () => '#e67e22',
-      paddingLeft: () => 8, paddingRight: () => 8, paddingTop: () => 6, paddingBottom: () => 6
-    },
-    unbreakable: true,
-    margin: [0, 0, 0, 4]
-  };
-}
-
 // Walidacja spójności nagłówka (ΣP_13 + ΣP_14 vs P_15). Logika wspólna z HTML
 // przez vatHeaderConsistencyCalc (renderer.js). Brak ⚠ — Roboto w pdfMake nie
-// ma U+26A0 (tofu); wyróżnienie kolorem + bold, jak w pdfCorrectionTotalsCheck.
+// ma U+26A0 (tofu); wyróżnienie kolorem + bold.
 function pdfVatHeaderConsistencyCheck(faData) {
   const mm = vatHeaderConsistencyCalc(faData);
   if (!mm) return null;
@@ -1169,7 +1077,7 @@ function pdfVatHeaderConsistencyCheck(faData) {
     row('Suma VAT (P_14)', mm.vat),
     row('Netto + VAT', mm.expected, true),
     row('Brutto zadeklarowane (P_15)', mm.p15, true),
-    row('Różnica', mm.diff, true)
+    row('Rozbieżność', mm.diff, true)
   ];
 
   const inner = {
@@ -1489,11 +1397,15 @@ function generatePdfWithPdfMake(action = 'download') {
     // Tabela z wierszami. fontSize: 7 propaguje do komórek bez własnego fontSize
     // — czcionka mniejsza o 1 vs domyślne 8, żeby kolumna "Cena po rabacie" miała miejsce.
     const showRabatCol = pdfHasAnyRabat(wierszeArray);
-    const tableBody = pdfCreateTableBody(wierszeArray, faData.rodzaj, showRabatCol);
+    // Wiersze RÓŻNICA tylko gdy suma delt zgadza się z deklaracją P_13/P_14/P_15
+    // (correctionDiffRowsAllowed w renderer.js — wspólne źródło prawdy z HTML).
+    const showDiffRows = correctionDiffRowsAllowed(faData, wierszeArray);
+    const tableBody = pdfCreateTableBody(wierszeArray, faData.rodzaj, showRabatCol, showDiffRows);
     const colWidths = showRabatCol
       ? ['auto', '*', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto']
       : ['auto', '*', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto'];
-    docDefinition.content.push({
+    // Bez wierszy nie renderujemy tabeli — same nagłówki kolumn (analogicznie do HTML).
+    if (wierszeArray.length > 0) docDefinition.content.push({
       fontSize: 7,
       table: { headerRows: 1, widths: colWidths, body: tableBody },
       layout: {
@@ -1511,8 +1423,9 @@ function generatePdfWithPdfMake(action = 'download') {
       margin: [0, 0, 0, 4]
     });
 
-    // Podsumowanie VAT - wyrównane do prawej
-    docDefinition.content.push({
+    // Podsumowanie VAT - wyrównane do prawej. Bez danych (brak P_13/P_14, P_15 = 0)
+    // pomijamy — hasVatSummaryData w renderer.js, wspólne źródło prawdy z HTML.
+    if (hasVatSummaryData(faData)) docDefinition.content.push({
       columns: [
         { width: '*', text: '' },
         { width: '45%', stack: [pdfVatSummary(faData)] }
@@ -1523,10 +1436,6 @@ function generatePdfWithPdfMake(action = 'download') {
     // Walidacja spójności nagłówka ΣP_13+ΣP_14 vs P_15 (tylko przy niezgodności)
     const headerCheck = pdfVatHeaderConsistencyCheck(faData);
     if (headerCheck) docDefinition.content.push(headerCheck);
-
-    // Walidacja sum korekty (pojawia się tylko przy niezgodności)
-    const correctionCheck = pdfCorrectionTotalsCheck(faData, wierszeArray);
-    if (correctionCheck) docDefinition.content.push(correctionCheck);
 
     // Rozliczenie
     if (rozliczenieData) docDefinition.content.push(pdfBox(pdfRenderRozliczenie(rozliczenieData)));

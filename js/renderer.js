@@ -1,5 +1,5 @@
 // ============================================================================
-// renderer.js - wersja 1.6.18 (renderowanie HTML faktury)
+// renderer.js - wersja 1.6.19 (renderowanie HTML faktury)
 // ============================================================================
 // Zakładamy, że core.js i utils.js są załadowane przed renderer.js
 
@@ -589,7 +589,18 @@ function rowHTML(w, isBefore = false, showRabatCol = false) {
 </tr>`;
 }
 
+// Czy podsumowanie VAT ma jakiekolwiek dane. Faktura potrafi nie mieć żadnego
+// pola P_13/P_14 i P_15 = 0.00 (np. korekta samych danych nabywcy) — wtedy tabelka
+// byłaby pustym nagłówkiem + wierszem RAZEM z zerami. Nie renderujemy jej wcale.
+// Wspólna logika dla HTML (renderer.js) i PDF (main.js) — jedno źródło prawdy.
+function hasVatSummaryData(faData) {
+  const v = (faData && faData.vatSummary) || {};
+  return Object.keys(v).some(k => (parseFloat(v[k]) || 0) !== 0);
+}
+
 function vatSummaryHTML(faData) {
+  if (!hasVatSummaryData(faData)) return "";
+
   const v = faData.vatSummary;
 
   const fields = [
@@ -637,21 +648,24 @@ function vatSummaryHTML(faData) {
   return html;
 }
 
-// Walidacja dla faktur korygujących: czy delta z wierszy (po − przed)
-// zgadza się z wartościami zadeklarowanymi w P_13_X / P_14_X / P_15.
-// Tolerancja 0.02 zł (zaokrąglenia po stronie wystawcy).
-function correctionTotalsCheckHTML(faData, wierszeArray) {
-  if (!faData.rodzaj || !faData.rodzaj.startsWith("KOR")) return "";
-  if (!wierszeArray || wierszeArray.length === 0) return "";
+// Czy wolno pokazać wiersze RÓŻNICA w korekcie.
+// Wiersz RÓŻNICA to nasza nadbudowa nad danymi z XML, nie pole z faktury — pokazujemy go
+// tylko wtedy, gdy delta wyliczona z wierszy (po − przed) zgadza się z deklaracją
+// w polach P_13_X / P_14_X / P_15. Gdy sumy się rozjeżdżają, nie wiemy które wiersze
+// wystawca faktycznie skorygował — wtedy prezentujemy czystą wizualizację XML,
+// bez wierszy RÓŻNICA i bez komentarza. Tolerancja 0.02 zł (zaokrąglenia wystawcy).
+// Wspólna logika dla HTML (renderer.js) i PDF (main.js) — jedno źródło prawdy.
+function correctionDiffRowsAllowed(faData, wierszeArray) {
+  if (!faData || !faData.rodzaj || !faData.rodzaj.startsWith("KOR")) return true;
+  if (!wierszeArray || wierszeArray.length === 0) return true;
+
+  const grouped = groupCorrectionRows(wierszeArray);
+  // Bez par i tak nie ma z czego zbudować wiersza RÓŻNICA — nie ma co blokować.
+  if (!grouped.some(g => g.type === 'pair')) return true;
 
   // Liczymy deltę tylko z par i wierszy-usunięć (StanPrzed bez pary).
   // Wiersze "po" bez pary są pomijane — mogą to być pozycje kontekstowe
   // (niezmienione pozycje z FV pierwotnej wklejone przez wystawcę dla przejrzystości).
-  const grouped = groupCorrectionRows(wierszeArray);
-  // Bez par nie mamy bazy do liczenia delty — pojedyncze "przed" mogą być prawdziwym
-  // usunięciem albo osieroconym half pary, której "po" algorytm zgubił. Lepiej milczeć
-  // niż pokazać liczby ze zgadywanego porównania.
-  if (!grouped.some(g => g.type === 'pair')) return "";
   let calcN = 0, calcV = 0, calcG = 0;
   for (const g of grouped) {
     if (g.type === 'pair') {
@@ -665,41 +679,21 @@ function correctionTotalsCheckHTML(faData, wierszeArray) {
     }
   }
 
+  const TOL = 0.02;
+  // Korekta nagłówkowa (np. skonto): wiersze mają wartości zerowe, kwoty siedzą tylko
+  // w P_13/P_14/P_15 → brak bazy do porównania. Nie blokujemy — i tak nie powstaną
+  // niezerowe wiersze RÓŻNICA (warunek diffNet/diffVat/... !== 0 ich nie przepuści).
+  if (Math.abs(calcN) <= TOL && Math.abs(calcV) <= TOL && Math.abs(calcG) <= TOL) return true;
+
   const v = faData.vatSummary || {};
   const sumKeys = (keys) => keys.reduce((s, k) => s + (parseFloat(v[k]) || 0), 0);
   const declN = sumKeys(['p13_1','p13_2','p13_3','p13_4','p13_5','p13_6_1','p13_6_2','p13_6_3','p13_7','p13_8','p13_9','p13_10','p13_11']);
   const declV = sumKeys(['p14_1','p14_2','p14_3','p14_4','p14_5']);
   const declG = parseFloat(v.p15) || 0;
 
-  const TOL = 0.02;
-  // Korekta nagłówkowa (np. skonto): brak par ani usunięć → calcN/V/G = 0 — brak porównania
-  if (Math.abs(calcN) <= TOL && Math.abs(calcV) <= TOL && Math.abs(calcG) <= TOL) return "";
-
-  const dN = calcN - declN;
-  const dV = calcV - declV;
-  const dG = calcG - declG;
-
-  if (Math.abs(dN) <= TOL && Math.abs(dV) <= TOL && Math.abs(dG) <= TOL) return "";
-
-  const row = (label, calc, decl, delta) =>
-    `<tr><td>${label}</td><td class="right">${formatPrice(calc)}</td><td class="right">${formatPrice(decl)}</td><td class="right"><strong>${formatPrice(delta)}</strong></td></tr>`;
-
-  let body = "";
-  if (Math.abs(dN) > TOL) body += row('Netto',  calcN, declN, dN);
-  if (Math.abs(dV) > TOL) body += row('VAT',    calcV, declV, dV);
-  if (Math.abs(dG) > TOL) body += row('Brutto', calcG, declG, dG);
-
-  return `
-    <div class="correction-mismatch no-break">
-      <strong>⚠ Niezgodność sum korekty</strong>
-      <p>Różnica wyliczona z wierszy (po&nbsp;−&nbsp;przed) nie zgadza się z deklaracją w&nbsp;polach P_13/P_14/P_15:</p>
-      <table>
-        <tr><th></th><th class="right">Z wierszy</th><th class="right">Z podsumowania</th><th class="right">Różnica</th></tr>
-        ${body}
-      </table>
-      <small>KSeFeusz.pl prezentuje dane wyłącznie w formie wizualizacji oryginalnego pliku XML. W razie wątpliwości zweryfikuj dane źródłowe w pliku XML lub bezpośrednio w KSeF — wizualizator nie modyfikuje wartości z faktury.</small>
-    </div>
-  `;
+  return Math.abs(calcN - declN) <= TOL
+      && Math.abs(calcV - declV) <= TOL
+      && Math.abs(calcG - declG) <= TOL;
 }
 
 // Walidacja spójności nagłówka: czy suma netto (ΣP_13_X) + VAT (ΣP_14_X)
@@ -748,7 +742,7 @@ function vatHeaderConsistencyCheckHTML(faData) {
         <tr><td>Suma VAT (P_14)</td><td class="right">${formatPrice(mm.vat)}</td></tr>
         <tr><td>Netto&nbsp;+&nbsp;VAT</td><td class="right"><strong>${formatPrice(mm.expected)}</strong></td></tr>
         <tr><td>Brutto zadeklarowane (P_15)</td><td class="right"><strong>${formatPrice(mm.p15)}</strong></td></tr>
-        <tr><td>Różnica</td><td class="right"><strong>${formatPrice(mm.diff)}</strong></td></tr>
+        <tr><td>Rozbieżność</td><td class="right"><strong>${formatPrice(mm.diff)}</strong></td></tr>
       </table>
       <small>KSeFeusz.pl prezentuje dane wyłącznie w formie wizualizacji oryginalnego pliku XML. W razie wątpliwości zweryfikuj dane źródłowe w pliku XML lub bezpośrednio w KSeF — wizualizator nie modyfikuje wartości z faktury.</small>
     </div>
@@ -1742,6 +1736,8 @@ if (faData.rodzaj.startsWith("KOR") && faData.daneKorygowane.length > 0) {
   let tableRows = "";
   if (faData.rodzaj.startsWith("KOR")) {
     const groupedRows = groupCorrectionRows(wierszeArray);
+    // Wiersze RÓŻNICA tylko gdy suma delt zgadza się z deklaracją P_13/P_14/P_15.
+    const showDiffRows = correctionDiffRowsAllowed(faData, wierszeArray);
     for (const item of groupedRows) {
       if (item.type === 'pair') {
         tableRows += rowHTML(item.before, true, showRabatCol);
@@ -1753,7 +1749,7 @@ if (faData.rodzaj.startsWith("KOR") && faData.daneKorygowane.length > 0) {
         const diffQty = (parseFloat(item.after.ilosc) || 0) - (parseFloat(item.before.ilosc) || 0);
         const diffPrice = (parseFloat(item.after.cenaNetto) || 0) - (parseFloat(item.before.cenaNetto) || 0);
 
-        if (diffNet !== 0 || diffQty !== 0 || diffPrice !== 0 || diffVat !== 0 || diffGross !== 0) {
+        if (showDiffRows && (diffNet !== 0 || diffQty !== 0 || diffPrice !== 0 || diffVat !== 0 || diffGross !== 0)) {
           // Gdy stawka VAT się zmieniła (np. 8% → 23%), w wierszu RÓŻNICY pokazujemy
           // tylko deltę kwot (VAT, brutto). Stawka jako "—" — różnica stawek nie ma sensu liczbowego.
           const stawkaRoznicowa = (item.before.stawkaVat === item.after.stawkaVat)
@@ -1791,7 +1787,9 @@ if (faData.rodzaj.startsWith("KOR") && faData.daneKorygowane.length > 0) {
   // najszerszej nieprzerywalnej sekwencji (analogicznie do \n w pdfmake).
   // Bez tego "Cena po rabacie" rezerwuje znacznie więcej miejsca niż realna zawartość.
   const rabatHeader = showRabatCol ? '<th class="right">Cena po<br>rabacie</th>' : '';
-  containerContent += `
+  // Faktura bez FaWiersz (np. korekta samych danych nabywcy) — same nagłówki kolumn
+  // bez ani jednego wiersza to szum, nie informacja. Pomijamy całą tabelę.
+  if (wierszeArray.length > 0) containerContent += `
     <table>
       <tr>
         <th>#</th>
@@ -1814,7 +1812,6 @@ if (faData.rodzaj.startsWith("KOR") && faData.daneKorygowane.length > 0) {
   // Podsumowanie i dodatkowe sekcje
   containerContent += vatSummaryHTML(faData);
   containerContent += vatHeaderConsistencyCheckHTML(faData);
-  containerContent += correctionTotalsCheckHTML(faData, wierszeArray);
   containerContent += renderRozliczenieHTML(rozliczenieData);
   containerContent += renderDodatkoweInformacjeHTML(faData, p1Data);
   containerContent += renderZaliczkaCzesciowaHTML(faData.zaliczkiCzesciowe);
