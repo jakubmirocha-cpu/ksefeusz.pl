@@ -1,5 +1,5 @@
 // ============================================================================
-// main.js - wersja 1.8.2 (generowanie PDF i obsługa zdarzeń)
+// main.js - wersja 1.8.3 (generowanie PDF i obsługa zdarzeń)
 // ============================================================================
 // Zakładamy, że core.js, utils.js i renderer.js są załadowane przed main.js
 
@@ -2119,12 +2119,14 @@ function pdfRenderRRPaymentInfo(pl) {
   if (pl.platnoscInna && pl.opisPlatnosci) rows.push(['Forma:', pl.opisPlatnosci]);
   else if (pl.formaPlatnosciDisplay) rows.push(['Forma:', pl.formaPlatnosciDisplay]);
 
+  // formatNRB (renderer.js) grupuje po cztery cyfry — numer przepisuje się do
+  // przelewu ręcznie, więc czytelność ma tu realne znaczenie.
   for (const r of pl.rachunkiRolnika) {
-    rows.push(['Rachunek rolnika:', r.nrRB + (r.nazwaBanku ? ` (${r.nazwaBanku})` : '')]);
+    rows.push(['Rachunek rolnika:', formatNRB(r.nrRB) + (r.nazwaBanku ? ` (${r.nazwaBanku})` : '')]);
     if (r.swift) rows.push(['SWIFT:', r.swift]);
   }
   for (const r of pl.rachunkiNabywcy) {
-    rows.push(['Rachunek nabywcy:', r.nrRB + (r.nazwaBanku ? ` (${r.nazwaBanku})` : '')]);
+    rows.push(['Rachunek nabywcy:', formatNRB(r.nrRB) + (r.nazwaBanku ? ` (${r.nazwaBanku})` : '')]);
   }
   if (pl.ipksef) rows.push(['IPKSeF:', pl.ipksef]);
 
@@ -2425,10 +2427,23 @@ function generateRRPdfWithPdfMake(action = 'download') {
         };
       },
       footer: function(currentPage, pageCount) {
-        return {
+        const pasek = {
           columns: [
             { text: 'ksefeusz.pl', fontSize: 7, color: '#bdc3c7', margin: [25, 5, 0, 0] },
             { text: `Strona ${currentPage} z ${pageCount}`, alignment: 'right', margin: [0, 5, 25, 0], fontSize: 7, color: '#515858' }
+          ]
+        };
+        if (currentPage !== pageCount) return pasek;
+        // Podpis aplikacji tylko na ostatniej stronie i w STOPCE, nie w treści:
+        // jako blok treści potrafił sam wypchnąć drugą stronę, na której nie było
+        // już nic poza nim.
+        return {
+          stack: [
+            {
+              text: `Wygenerowano przez KSeFeusz.pl · Darmowy wizualizator faktur ustrukturyzowanych KSeF · Wersja ${APP_VERSION}`,
+              fontSize: 6, color: '#a9b0b3', alignment: 'center', margin: [25, 2, 25, 0]
+            },
+            pasek
           ]
         };
       },
@@ -2632,15 +2647,6 @@ function generateRRPdfWithPdfMake(action = 'download') {
         }
       ]));
     }
-
-    docDefinition.content.push({
-      canvas: [{ type: 'line', x1: 0, y1: 0, x2: 545, y2: 0, lineWidth: 0.5, lineColor: '#ecf0f1' }],
-      margin: [0, 8, 0, 4]
-    });
-    docDefinition.content.push({
-      text: `Wygenerowano przez KSeFeusz.pl · Darmowy wizualizator faktur ustrukturyzowanych KSeF · Wersja ${APP_VERSION}`,
-      fontSize: 7, color: '#5e6264', alignment: 'center'
-    });
 
     // Nazwa pliku: {P_4C}_{nazwaRolnika}.pdf — konsekwentnie "druga strona
     // transakcji", tak jak w FA(3) plik nosi nazwę sprzedawcy.

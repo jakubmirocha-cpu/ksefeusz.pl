@@ -1,5 +1,5 @@
 // ============================================================================
-// core.js - wersja 1.8.2 (rdzeń aplikacji)
+// core.js - wersja 1.8.3 (rdzeń aplikacji)
 // ============================================================================
 
 // ============================================================================
@@ -145,9 +145,14 @@ function formatPrice(value, forPdf = false) {
 }
 	
 
+// Ilość w formacie polskim: separatorem dziesiętnym jest PRZECINEK, tak jak
+// w kwotach obok (formatPrice). toFixed() zwraca kropkę, więc "3.500" czytało się
+// w polskim dokumencie jak trzy i pół tysiąca. Liczby całkowite zostają bez części
+// dziesiętnej. Dotyczy obu schematów — w FA(3) błąd nie rzucał się w oczy wyłącznie
+// dlatego, że nasze próbki mają ilości całkowite.
 function fmtQty(v) {
   const n = parseFloat(v || 0);
-  return Number.isInteger(n) ? n.toString() : n.toFixed(3);
+  return Number.isInteger(n) ? n.toString() : n.toFixed(3).replace('.', ',');
 }
 
 function isValidUUID(uuid) {
