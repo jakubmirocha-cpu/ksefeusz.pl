@@ -9,38 +9,38 @@ xmlns="http://crd.gov.pl/wzor/2026/03/06/14189/">
 	</Naglowek>
 	<Podmiot1>
 		<DaneIdentyfikacyjne>
-			<NIP>7743210980</NIP>
-			<Nazwa>Gospodarstwo Rolne Marek Zieliński</Nazwa>
+			<NIP>1111111111</NIP>
+			<Nazwa>Gospodarstwo Rolne Jan Kowalski</Nazwa>
 		</DaneIdentyfikacyjne>
 		<Adres>
 			<KodKraju>PL</KodKraju>
-			<AdresL1>Dębowa Wola 17</AdresL1>
-			<AdresL2>62-020 Swarzędz</AdresL2>
+			<AdresL1>ul. Polna 1</AdresL1>
+			<AdresL2>00-001 Warszawa</AdresL2>
 		</Adres>
 		<DaneKontaktowe>
-			<Email>marek.zielinski@example.pl</Email>
-			<Telefon>601234567</Telefon>
+			<Email>jan.kowalski@example.pl</Email>
+			<Telefon>912345678</Telefon>
 		</DaneKontaktowe>
 		<NrKontrahenta>ROL/0042</NrKontrahenta>
 	</Podmiot1>
 	<Podmiot2>
 		<DaneIdentyfikacyjne>
-			<NIP>7792233449</NIP>
-			<Nazwa>Skup Płodów Rolnych AGROPOL sp. z o.o.</Nazwa>
+			<NIP>2222222222</NIP>
+			<Nazwa>Skup Płodów Rolnych AGR</Nazwa>
 		</DaneIdentyfikacyjne>
 		<Adres>
 			<KodKraju>PL</KodKraju>
-			<AdresL1>ul. Przemysłowa 44</AdresL1>
-			<AdresL2>61-001 Poznań</AdresL2>
+			<AdresL1>ul. Wiejska 8</AdresL1>
+			<AdresL2>01-001 Warszawa</AdresL2>
 		</Adres>
 		<DaneKontaktowe>
-			<Email>skup@agropol.example.pl</Email>
-			<Telefon>618887766</Telefon>
+			<Email>skup@agro.example.pl</Email>
+			<Telefon>987654321</Telefon>
 		</DaneKontaktowe>
 	</Podmiot2>
 	<FakturaRR>
 		<KodWaluty>PLN</KodWaluty>
-		<P_1M>Poznań</P_1M>
+		<P_1M>Warszawa</P_1M>
 		<P_4B>2026-03-20</P_4B>
 		<P_4C>KOR-RR/2026/03/04</P_4C>
 		<P_11_1>-950.00</P_11_1>
@@ -54,7 +54,7 @@ xmlns="http://crd.gov.pl/wzor/2026/03/06/14189/">
 			<DataWystFaKorygowanej>2026-03-10</DataWystFaKorygowanej>
 			<NrFaKorygowanej>RR/2026/03/17</NrFaKorygowanej>
 			<NrKSeF>1</NrKSeF>
-			<NrKSeFFaKorygowanej>7792233449-20260310-0A1B2C-0A1B2C-3F</NrKSeFFaKorygowanej>
+			<NrKSeFFaKorygowanej>2222222222-20260310-0A1B2C-0A1B2C-3F</NrKSeFFaKorygowanej>
 		</DaneFaKorygowanej>
 		<DokumentZaplaty>
 			<NrDokumentu>PRZ/2026/03/0088</NrDokumentu>

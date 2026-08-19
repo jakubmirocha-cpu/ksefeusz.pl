@@ -1,5 +1,5 @@
 // ============================================================================
-// renderer.js - wersja 1.8.1 (renderowanie HTML faktury)
+// renderer.js - wersja 1.8.2 (renderowanie HTML faktury)
 // ============================================================================
 // Zakładamy, że core.js i utils.js są załadowane przed renderer.js
 
@@ -2220,7 +2220,7 @@ function renderRRDokument(xml, fileName, xmlContent) {
 
   // Podmioty — nagłówki z kwalifikatorem roli
   c += `<div class="section two-cols">`;
-  c += rrPodmiotSekcjaHTML(p1Data, rrData.podmiot1K, 'ROLNIK RYCZAŁTOWY (DOSTAWCA)');
+  c += rrPodmiotSekcjaHTML(p1Data, rrData.podmiot1K, 'SPRZEDAWCA (ROLNIK RYCZAŁTOWY)');
   c += rrPodmiotSekcjaHTML(p2Data, rrData.podmiot2K, 'NABYWCA (WYSTAWCA FAKTURY)');
   c += `</div>`;
 

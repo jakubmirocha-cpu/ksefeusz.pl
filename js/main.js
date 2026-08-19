@@ -1,5 +1,5 @@
 // ============================================================================
-// main.js - wersja 1.8.1 (generowanie PDF i obsługa zdarzeń)
+// main.js - wersja 1.8.2 (generowanie PDF i obsługa zdarzeń)
 // ============================================================================
 // Zakładamy, że core.js, utils.js i renderer.js są załadowane przed main.js
 
@@ -2486,8 +2486,8 @@ function generateRRPdfWithPdfMake(action = 'download') {
     // Podmioty — nagłówki z kwalifikatorem roli
     docDefinition.content.push(pdfTwoBox(
       rrData.podmiot1K
-        ? pdfRenderRRPodmiotZKorekta(rrData.podmiot1K, p1Data, 'ROLNIK RYCZAŁTOWY (DOSTAWCA)')
-        : pdfRenderRRPodmiot(p1Data, 'ROLNIK RYCZAŁTOWY (DOSTAWCA)'),
+        ? pdfRenderRRPodmiotZKorekta(rrData.podmiot1K, p1Data, 'SPRZEDAWCA (ROLNIK RYCZAŁTOWY)')
+        : pdfRenderRRPodmiot(p1Data, 'SPRZEDAWCA (ROLNIK RYCZAŁTOWY)'),
       rrData.podmiot2K
         ? pdfRenderRRPodmiotZKorekta(rrData.podmiot2K, p2Data, 'NABYWCA (WYSTAWCA FAKTURY)')
         : pdfRenderRRPodmiot(p2Data, 'NABYWCA (WYSTAWCA FAKTURY)')
