@@ -1659,16 +1659,11 @@ function renderAny(xml, typ, fileName, xmlContent) {
 // wyłącznie krajowy i renderRR/generateRRPdf wymuszają polski. Chowamy go,
 // zamiast zostawiać kontrolkę, która nic nie robi.
 function applyLangVisibility(typ) {
-  const ukryj = (typ === 'FA_RR');
   const grupa = document.querySelector('#panel-faktura .lang-group');
-  if (grupa) grupa.style.display = ukryj ? 'none' : '';
-  if (ukryj) {
-    setInvoiceLang('pl');
-    ['invoiceLang', 'invoiceLangPdf', 'invoiceLangBatch'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.value = 'pl';
-    });
-  }
+  if (grupa) grupa.style.display = (typ === 'FA_RR') ? 'none' : '';
+  // Świadomie NIE przestawiamy tu języka ani wartości selektów: wybór użytkownika
+  // ma przetrwać obejrzenie faktury RR. Polski wymuszają renderRR i
+  // generateRRPdfWithPdfMake — lokalnie, na czas jednego dokumentu.
 }
 
 // ============================================================================
@@ -2375,11 +2370,13 @@ function generateRRPdfWithPdfMake(action = 'download') {
 
   const pdfBtn = document.getElementById("pdfBtn");
   const originalText = pdfBtn ? pdfBtn.innerHTML : '';
+  // Wymuszenie polskiego jest lokalne dla tego jednego dokumentu — przywracamy
+  // język w finally. Patrz komentarz przy renderRR() w renderer.js.
+  const poprzedniJezyk = currentLang;
 
   try {
     if (pdfBtn) { pdfBtn.innerHTML = "⏳ Generowanie PDF..."; pdfBtn.disabled = true; }
 
-    // Faktura VAT RR jest dokumentem wyłącznie krajowym — patrz renderRR().
     setInvoiceLang('pl');
     setDocNs(NS_FA_RR);
 
@@ -2668,6 +2665,7 @@ function generateRRPdfWithPdfMake(action = 'download') {
     console.error('Błąd generowania PDF (FA_RR):', error);
     showError('❌ Nie udało się wygenerować PDF');
   } finally {
+    setInvoiceLang(poprzedniJezyk);
     if (pdfBtn) { pdfBtn.innerHTML = originalText; pdfBtn.disabled = false; }
   }
 }

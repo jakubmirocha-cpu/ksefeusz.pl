@@ -2152,15 +2152,26 @@ function rrPodmiotSekcjaHTML(podmiot, podmiotK, tytul) {
 // ============================================================================
 // GŁÓWNA FUNKCJA RENDERUJĄCA FA_RR (HTML)
 // ============================================================================
+// Faktura VAT RR jest dokumentem wyłącznie krajowym, więc renderujemy ją zawsze
+// po polsku — inaczej przy wybranym języku obcym powstałby dokument-hybryda
+// (współdzielone helpery wołają t()). Wymuszenie MUSI być lokalne dla tego jednego
+// dokumentu: currentLang jest globalny, a trwałe przestawienie go na 'pl' zabierało
+// użytkownikowi wybrany język przy kolejnych fakturach — najboleśniej w batchu,
+// gdzie jedna faktura RR w kolejce wywracała na polski wszystkie następne FA(3).
 function renderRR(xml, fileName, xmlContent) {
+  const poprzedniJezyk = currentLang;
+  setInvoiceLang('pl');
+  try {
+    renderRRDokument(xml, fileName, xmlContent);
+  } finally {
+    setInvoiceLang(poprzedniJezyk);
+  }
+}
+
+function renderRRDokument(xml, fileName, xmlContent) {
   const root = xml.documentElement;
   if (root.namespaceURI !== NS_FA_RR) { showError("Plik XML ma nieprawidłową przestrzeń nazw"); return; }
   setDocNs(NS_FA_RR);
-
-  // Faktura VAT RR jest dokumentem wyłącznie krajowym — wymuszamy polski,
-  // żeby przy wcześniej wybranym języku obcym nie powstał dokument-hybryda
-  // (współdzielone helpery wołają t()).
-  setInvoiceLang('pl');
 
   document.getElementById("pages").innerHTML = "";
   document.getElementById("currentFile").textContent = fileName;
