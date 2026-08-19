@@ -292,6 +292,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .sample-badge.vat { background: var(--accent-soft); color: var(--accent); }
 .sample-badge.kor { background: var(--warning-soft); color: var(--warning); }
 .sample-badge.zal { background: var(--success-soft); color: var(--success); }
+.sample-badge.rr  { background: #eef4e6; color: #5b7f2a; }
 .sample-row-info h5 { font-size: 14px; font-weight: 600; margin-bottom: 2px; color: var(--brand-ink); }
 .sample-row-info p { font-size: 12.5px; color: var(--text-muted); }
 .sample-row-btn {

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>KSeFeusz.pl — darmowy wizualizator faktur KSeF</title>
-<meta name="description" content="Darmowy wizualizator faktur ustrukturyzowanych KSeF (format FA(3), XML). Wczytaj plik XML — otrzymasz czytelny podgląd faktury i możliwość eksportu do PDF. Działa w przeglądarce, bez rejestracji, bez serwera. Plik XML nie opuszcza Twojego komputera.">
+<meta name="description" content="Darmowy wizualizator faktur ustrukturyzowanych KSeF (FA(3) i faktury VAT RR, XML). Wczytaj plik XML — otrzymasz czytelny podgląd faktury i możliwość eksportu do PDF. Działa w przeglądarce, bez rejestracji, bez serwera. Plik XML nie opuszcza Twojego komputera.">
 <meta name="keywords" content="KSeF, faktura ustrukturyzowana, wizualizator KSeF, FA(3), XML do PDF, podgląd faktury KSeF, faktura korygująca, darmowy, online, bez rejestracji">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="canonical" href="https://ksefeusz.pl/">
@@ -196,6 +196,15 @@
         <a href="samples/FA3_faktura_zaliczkowa.xml" download class="sample-row-btn ghost"><i class="fas fa-download"></i> Pobierz</a>
         <button class="sample-row-btn primary" onclick="loadSampleFile('samples/FA3_faktura_zaliczkowa.xml', 'FA3_faktura_zaliczkowa')"><i class="fas fa-play"></i> Pokaż</button>
       </div>
+      <div class="sample-row">
+        <div class="sample-badge rr">RR</div>
+        <div class="sample-row-info">
+          <h5>Faktura VAT RR</h5>
+          <p>RR/2026/03/17 · Skup od rolnika ryczałtowego · 19 720,50 zł · zwrot 6,5% i 7%</p>
+        </div>
+        <a href="samples/FA_RR_przyklad.xml" download class="sample-row-btn ghost"><i class="fas fa-download"></i> Pobierz</a>
+        <button class="sample-row-btn primary" onclick="loadSampleFile('samples/FA_RR_przyklad.xml', 'FA_RR_przyklad')"><i class="fas fa-play"></i> Pokaż</button>
+      </div>
       <div class="samples-upo-promo">
         <div class="samples-upo-icon"><i class="fas fa-stamp"></i></div>
         <div class="samples-upo-text">
@@ -319,7 +328,14 @@
             <span>Jakie formaty faktur KSeF są obsługiwane?</span>
             <i class="fas fa-chevron-down faq-chev"></i>
           </button>
-          <div class="faq-a">Obsługujemy schemat FA(3) — aktualny wzór Ministerstwa Finansów. Wszystkie typy faktur: VAT, korygujące, zaliczkowe, końcowe, faktury do paragonu. Faktury z załącznikami również są renderowane.</div>
+          <div class="faq-a">Obsługujemy schemat FA(3) — aktualny wzór Ministerstwa Finansów — oraz FA_RR(1), czyli faktury VAT RR wystawiane rolnikom ryczałtowym. W FA(3) renderujemy wszystkie typy faktur: VAT, korygujące, zaliczkowe, końcowe, faktury do paragonu; faktury z załącznikami również. Typ dokumentu rozpoznajemy automatycznie po wczytaniu pliku — nie trzeba nic wybierać. Osobna zakładka obsługuje pliki UPO.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            <span>Czy KSeFeusz obsługuje faktury VAT RR?</span>
+            <i class="fas fa-chevron-down faq-chev"></i>
+          </button>
+          <div class="faq-a">Tak. Faktura VAT RR (schemat FA_RR) dokumentuje nabycie produktów rolnych lub usług rolniczych od rolnika ryczałtowego. Jej specyfika polega na tym, że zgodnie z art. 116 ustawy o VAT wystawia ją <strong>nabywca</strong>, a nie dostawca — dlatego w wizualizacji sekcje podmiotów są wprost podpisane „Rolnik ryczałtowy (dostawca)” i „Nabywca (wystawca faktury)”. Pokazujemy zryczałtowany zwrot podatku (6,5% lub 7%) w podziale na pozycje, należność ogółem wraz z kwotą słownie, dokumenty zapłaty oraz — dla korekt — wiersze różnicy. Dane do przelewu prowadzą na rachunek rolnika, bo to on jest odbiorcą płatności. Wizualizacja faktur VAT RR jest dostępna wyłącznie po polsku: to konstrukcja polskiej ustawy o VAT, która poza polskim systemem nie występuje.</div>
         </div>
         <div class="faq-item">
           <button class="faq-q" onclick="toggleFaq(this)">
@@ -532,7 +548,7 @@
         <option value="fr">Français</option>
         <option value="uk">Українська</option>
       </select>
-      <span class="lang-bar-hint">Wybierz przed wczytaniem pliku. Tłumaczone są etykiety szablonu — treść faktury zostaje w języku oryginału.</span>
+      <span class="lang-bar-hint">Wybierz przed wczytaniem pliku. Tłumaczone są etykiety szablonu — treść faktury zostaje w języku oryginału. Faktury VAT RR generują się zawsze po polsku.</span>
     </div>
     <div id="pdfUploadArea" class="upload-area" onclick="document.getElementById('fileInputPdf').click()">
       <i class="fas fa-file-pdf" style="color:var(--danger);"></i>
@@ -583,7 +599,7 @@
         <option value="fr">Français</option>
         <option value="uk">Українська</option>
       </select>
-      <span class="lang-bar-hint">Dotyczy wszystkich faktur z kolejki. Tłumaczone są etykiety szablonu — treść faktur zostaje w języku oryginału.</span>
+      <span class="lang-bar-hint">Dotyczy wszystkich faktur z kolejki. Tłumaczone są etykiety szablonu — treść faktur zostaje w języku oryginału. Faktury VAT RR generują się zawsze po polsku.</span>
     </div>
 
     <!-- Informacja dla użytkowników mobilnych -->

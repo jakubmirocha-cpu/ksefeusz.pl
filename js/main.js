@@ -1594,6 +1594,10 @@ function changeInvoiceLang(code) {
 
   if (!currentXml || !currentXmlContent) return;
 
+  // Faktura VAT RR jest wyłącznie po polsku (renderRR wymusza pl). Re-render
+  // przy zmianie języka nic by nie zmienił, a przełącznik i tak jest wtedy ukryty.
+  if (detectDocType(currentXml) === "FA_RR") return;
+
   // Re-render TYLKO gdy faktura jest faktycznie wyświetlona. render() kończy się
   // switchTab('faktura'), więc bez tego warunku zmiana języka w panelu "Eksport PDF"
   // (gdzie plik bywa już wczytany) wyrzuciłaby użytkownika do wizualizatora.
@@ -1617,6 +1621,57 @@ function changeInvoiceLang(code) {
 }
 
 // ============================================================================
+// ROUTER WCZYTYWANIA DOKUMENTU
+// ============================================================================
+// Cztery wejścia (wizualizator, panel PDF, batch, przykłady) miały wcześniej
+// skopiowaną walidację namespace. Teraz każde woła loadInvoiceXml() i dostaje
+// rozpoznany typ; detectDocType ustawia przy okazji globalne `ns`, więc dalsze
+// parsowanie działa dla obu schematów.
+function loadInvoiceXml(xmlContent) {
+  if (!xmlContent.trim().startsWith('<')) {
+    throw new Error("Plik nie jest dokumentem XML. Upewnij się, że wczytujesz plik .xml pobrany z KSeF.");
+  }
+  const xml = new DOMParser().parseFromString(xmlContent, "application/xml");
+  if (xml.getElementsByTagName("parsererror").length > 0) {
+    throw new Error("Plik XML jest uszkodzony lub niepoprawnie sformatowany.");
+  }
+
+  const typ = detectDocType(xml);
+  if (typ === 'UPO') {
+    throw new Error('To jest plik UPO, nie faktura. Użyj zakładki "Wizualizator UPO".');
+  }
+  if (typ !== 'FA3' && typ !== 'FA_RR') {
+    throw new Error(unsupportedDocMessage(xml));
+  }
+  if (!xml.getElementsByTagNameNS(ns, "Faktura")[0]) {
+    throw new Error("Brak elementu <Faktura> w dokumencie. Plik może być niekompletny.");
+  }
+  return { xml, typ };
+}
+
+// Renderuje wczytany dokument właściwym torem.
+function renderAny(xml, typ, fileName, xmlContent) {
+  if (typ === 'FA_RR') renderRR(xml, fileName, xmlContent);
+  else render(xml, fileName, xmlContent);
+}
+
+// Przełącznik języka nie ma zastosowania do faktur VAT RR — dokument jest
+// wyłącznie krajowy i renderRR/generateRRPdf wymuszają polski. Chowamy go,
+// zamiast zostawiać kontrolkę, która nic nie robi.
+function applyLangVisibility(typ) {
+  const ukryj = (typ === 'FA_RR');
+  const grupa = document.querySelector('#panel-faktura .lang-group');
+  if (grupa) grupa.style.display = ukryj ? 'none' : '';
+  if (ukryj) {
+    setInvoiceLang('pl');
+    ['invoiceLang', 'invoiceLangPdf', 'invoiceLangBatch'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = 'pl';
+    });
+  }
+}
+
+// ============================================================================
 // PRZYKŁADOWE FAKTURY
 // ============================================================================
 function loadSampleFile(url, name) {
@@ -1628,16 +1683,10 @@ function loadSampleFile(url, name) {
       return r.text();
     })
     .then(xmlContent => {
-      if (!xmlContent.trim().startsWith('<')) throw new Error('Plik nie jest dokumentem XML.');
-      const parser = new DOMParser();
-      const xml = parser.parseFromString(xmlContent, "application/xml");
-      if (xml.getElementsByTagName("parsererror").length > 0) throw new Error('Plik XML jest uszkodzony.');
-      const rootNs = xml.documentElement.namespaceURI || '';
-      if (rootNs !== ns) throw new Error('Nieobsługiwana przestrzeń nazw faktury.');
-      const faktura = xml.getElementsByTagNameNS(ns, "Faktura")[0];
-      if (!faktura) throw new Error('Brak elementu <Faktura> w dokumencie.');
+      const { xml, typ } = loadInvoiceXml(xmlContent);
       currentXml = xml;
       currentXmlContent = xmlContent;
+      applyLangVisibility(typ);
 
       if (window.innerWidth <= 768) {
         switchTab('pdf');
@@ -1650,7 +1699,7 @@ function loadSampleFile(url, name) {
       } else {
         switchTab('faktura');
         window.scrollTo({ top: 0, behavior: 'smooth' });
-        render(xml, currentFileName, xmlContent);
+        renderAny(xml, typ, currentFileName, xmlContent);
       }
     })
     .catch(err => {
@@ -1660,7 +1709,7 @@ function loadSampleFile(url, name) {
 }
 
 function downloadSamplePdf() {
-  generatePdfWithPdfMake('download');
+  generateAnyPdf('download');
   clearPdfTab();
 }
 
@@ -1678,43 +1727,13 @@ document.getElementById("fileInput").addEventListener("change", function() {
   r.onload = function(e) {
     try {
       const xmlContent = e.target.result;
-
-      if (!xmlContent.trim().startsWith('<')) {
-        throw new Error("Plik nie jest dokumentem XML. Upewnij się, że wczytujesz plik .xml pobrany z KSeF.");
-      }
-
-      const parser = new DOMParser();
-      const xml = parser.parseFromString(xmlContent, "application/xml");
-
-      if (xml.getElementsByTagName("parsererror").length > 0) {
-        throw new Error("Plik XML jest uszkodzony lub niepoprawnie sformatowany.");
-      }
-
-      const rootNs = xml.documentElement.namespaceURI || '';
-      const knownSchemas = {
-        'http://crd.gov.pl/wzor/2023/06/29/11089/': 'FA(2)',
-        'http://crd.gov.pl/wzor/2022/01/17/11089/': 'FA(1)',
-      };
-      if (rootNs !== ns) {
-        const schemaName = knownSchemas[rootNs];
-        if (schemaName) {
-          throw new Error(`Plik jest fakturą ${schemaName}. KSeFeusz obsługuje tylko schemat FA(3).`);
-        }
-        if (xml.getElementsByTagName("Faktura")[0]) {
-          throw new Error("Nieobsługiwana przestrzeń nazw faktury. Oczekiwano schematu FA(3).");
-        }
-        throw new Error("Plik XML nie jest fakturą KSeF. Wczytaj plik XML pobrany z systemu KSeF.");
-      }
-
-      const faktura = xml.getElementsByTagNameNS(ns, "Faktura")[0];
-      if (!faktura) {
-        throw new Error("Brak elementu <Faktura> w dokumencie. Plik może być niekompletny.");
-      }
+      const { xml, typ } = loadInvoiceXml(xmlContent);
 
       currentXml = xml;
       currentXmlContent = xmlContent;
+      applyLangVisibility(typ);
 
-      render(xml, currentFileName, xmlContent);
+      renderAny(xml, typ, currentFileName, xmlContent);
 
     } catch (err) {
       hideLoading();
@@ -1727,7 +1746,7 @@ document.getElementById("fileInput").addEventListener("change", function() {
   r.readAsText(f);
 });
 
-document.getElementById("pdfBtn").addEventListener("click", generatePdfWithPdfMake);
+document.getElementById("pdfBtn").addEventListener("click", () => generateAnyPdf('download'));
 
 document.getElementById("fileInputPdf").addEventListener("change", function() {
   const f = this.files[0];
@@ -1745,37 +1764,12 @@ document.getElementById("fileInputPdf").addEventListener("change", function() {
   r.onload = function(e) {
     try {
       const xmlContent = e.target.result;
-
-      if (!xmlContent.trim().startsWith('<')) {
-        throw new Error("Plik nie jest dokumentem XML. Upewnij się, że wczytujesz plik .xml pobrany z KSeF.");
-      }
-
-      const parser = new DOMParser();
-      const xml = parser.parseFromString(xmlContent, "application/xml");
-
-      if (xml.getElementsByTagName("parsererror").length > 0) {
-        throw new Error("Plik XML jest uszkodzony lub niepoprawnie sformatowany.");
-      }
-
-      const rootNs = xml.documentElement.namespaceURI || '';
-      const knownSchemas = {
-        'http://crd.gov.pl/wzor/2023/06/29/11089/': 'FA(2)',
-        'http://crd.gov.pl/wzor/2022/01/17/11089/': 'FA(1)',
-      };
-      if (rootNs !== ns) {
-        const schemaName = knownSchemas[rootNs];
-        if (schemaName) throw new Error(`Plik jest fakturą ${schemaName}. KSeFeusz obsługuje tylko schemat FA(3).`);
-        if (xml.getElementsByTagName("Faktura")[0]) throw new Error("Nieobsługiwana przestrzeń nazw faktury. Oczekiwano schematu FA(3).");
-        throw new Error("Plik XML nie jest fakturą KSeF. Wczytaj plik XML pobrany z systemu KSeF.");
-      }
-
-      const faktura = xml.getElementsByTagNameNS(ns, "Faktura")[0];
-      if (!faktura) throw new Error("Brak elementu <Faktura> w dokumencie. Plik może być niekompletny.");
+      const { xml } = loadInvoiceXml(xmlContent);
 
       currentXml = xml;
       currentXmlContent = xmlContent;
 
-      generatePdfWithPdfMake();
+      generateAnyPdf();
 
       statusMsg.textContent = '✅ PDF pobrany. Możesz wczytać kolejną fakturę.';
       setTimeout(() => clearPdfTab(), 3000);
@@ -1796,42 +1790,40 @@ document.getElementById("fileInputPdf").addEventListener("change", function() {
 
 let batchQueue = []; // { xml, xmlContent, fileName, nrFaktury, rodzajDisplay, dostawca, kwotaBrutto, kodWaluty, done }
 
+// Kolejka może mieszać FA(3) i FA_RR — typ rozpoznajemy per plik i zapamiętujemy
+// w wpisie, żeby generateBatchPdf/printBatchPdf trafiły we właściwy tor.
 function parseBatchFile(xmlContent, fileName) {
-  const parser = new DOMParser();
-  const xml = parser.parseFromString(xmlContent, "application/xml");
-
-  if (xml.getElementsByTagName("parsererror").length > 0)
-    throw new Error("Plik XML jest uszkodzony lub niepoprawnie sformatowany.");
-
-  const rootNs = xml.documentElement.namespaceURI || '';
-  const knownSchemas = {
-    'http://crd.gov.pl/wzor/2023/06/29/11089/': 'FA(2)',
-    'http://crd.gov.pl/wzor/2022/01/17/11089/': 'FA(1)',
-  };
-  if (rootNs !== ns) {
-    const schemaName = knownSchemas[rootNs];
-    if (schemaName) throw new Error(`Plik jest fakturą ${schemaName}. KSeFeusz obsługuje tylko schemat FA(3).`);
-    throw new Error("Plik XML nie jest fakturą KSeF.");
-  }
-
+  const { xml, typ } = loadInvoiceXml(xmlContent);
   const fakturaNode = xml.getElementsByTagNameNS(ns, "Faktura")[0];
-  if (!fakturaNode) throw new Error("Brak elementu <Faktura> w dokumencie.");
+  const podmiot1 = parsePodmiot(fakturaNode.getElementsByTagNameNS(ns, "Podmiot1")[0], 'podmiot1');
 
-  const faNode = fakturaNode.getElementsByTagNameNS(ns, "Fa")[0];
-  const faData = parseFa(faNode);
-
-  const podmiot1Node = fakturaNode.getElementsByTagNameNS(ns, "Podmiot1")[0];
-  const podmiot1 = parsePodmiot(podmiot1Node, 'podmiot1');
+  let nrFaktury, rodzajDisplay, kwota, kodWaluty;
+  if (typ === 'FA_RR') {
+    const rrData = parseFakturaRR(fakturaNode.getElementsByTagNameNS(ns, "FakturaRR")[0]);
+    nrFaktury = rrData.nrFaktury || "—";
+    rodzajDisplay = rrData.rodzajDisplay || "FAKTURA VAT RR";
+    // Odpowiednik P_15: należność ogółem wraz z kwotą zwrotu
+    kwota = rrData.naleznoscOgolem || "—";
+    kodWaluty = rrData.kodWaluty || "PLN";
+  } else {
+    const faData = parseFa(fakturaNode.getElementsByTagNameNS(ns, "Fa")[0]);
+    nrFaktury = faData.nrFaktury || "—";
+    rodzajDisplay = faData.rodzajDisplay || "FAKTURA";
+    kwota = faData.vatSummary ? (faData.vatSummary.p15 || "—") : "—";
+    kodWaluty = faData.kodWaluty || "PLN";
+  }
 
   return {
     xml,
     xmlContent,
+    typ,
     fileName: fileName.replace(/\.xml$/i, ""),
-    nrFaktury: faData.nrFaktury || "—",
-    rodzajDisplay: faData.rodzajDisplay || "FAKTURA",
+    nrFaktury: nrFaktury,
+    rodzajDisplay: rodzajDisplay,
+    // W FA_RR "dostawcą" jest rolnik ryczałtowy — to nadal Podmiot1
     dostawca: podmiot1 ? (podmiot1.nazwa || "—") : "—",
-    kwotaBrutto: faData.vatSummary ? (faData.vatSummary.p15 || "—") : "—",
-    kodWaluty: faData.kodWaluty || "PLN",
+    kwotaBrutto: kwota,
+    kodWaluty: kodWaluty,
     done: false
   };
 }
@@ -1883,7 +1875,8 @@ function generateBatchPdf(index) {
   currentXml = entry.xml;
   currentXmlContent = entry.xmlContent;
   currentFileName = entry.fileName;
-  generatePdfWithPdfMake('download');
+  // entry.typ decyduje o torze — kolejka może mieszać FA(3) i FA_RR
+  generateAnyPdf('download');
   batchQueue[index].done = true;
   renderBatchTable();
 }
@@ -1894,7 +1887,7 @@ function printBatchPdf(index) {
   currentXml = entry.xml;
   currentXmlContent = entry.xmlContent;
   currentFileName = entry.fileName;
-  generatePdfWithPdfMake('print');
+  generateAnyPdf('print');
   batchQueue[index].printed = true;
   renderBatchTable();
 }
