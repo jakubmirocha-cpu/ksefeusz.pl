@@ -1,5 +1,5 @@
 // ============================================================================
-// renderer.js - wersja 1.6.19 (renderowanie HTML faktury)
+// renderer.js - wersja 1.7.0 (renderowanie HTML faktury)
 // ============================================================================
 // Zakładamy, że core.js i utils.js są załadowane przed renderer.js
 
@@ -9,7 +9,7 @@
 
 function nipHtml(nip) {
   if (!isValidNIP(nip)) {
-    return `${nip} <span style="color:#e74c3c;font-size:0.9em" title="Nieprawidłowa suma kontrolna NIP — sprawdź czy numer jest poprawny">⚠</span>`;
+    return `${nip} <span style="color:#e74c3c;font-size:0.9em" title="${t('Nieprawidłowa suma kontrolna NIP — sprawdź czy numer jest poprawny')}">⚠</span>`;
   }
   return nip;
 }
@@ -154,27 +154,27 @@ function renderNaglowekHTML(faData, fileName, naglowekData) {
   const kodWaluty = faData.kodWaluty;
 
   let tytulZNr = title;
-  if (nrF) tytulZNr += ` nr ${nrF}`;
+  if (nrF) tytulZNr += ` ${t('nr')} ${nrF}`;
 
   const ksefNumber = extractKSeFNumberFromFilename(fileName);
   const isValid = ksefNumber && isValidKSeFNumber(ksefNumber);
 
   let ksefInfo = isValid
-    ? `<span>Nr KSeF: ${ksefNumber}</span>`
+    ? `<span>${t('Nr KSeF')}: ${ksefNumber}</span>`
     : ksefNumber
-      ? `<span>Nr KSeF: ${ksefNumber} <span style="color:#e74c3c" title="Suma kontrolna CRC-8 jest nieprawidłowa — numer może być uszkodzony">⚠ błędna suma kontrolna</span></span>`
-      : `<span>brak numeru KSeF w nazwie pliku</span>`;
+      ? `<span>${t('Nr KSeF')}: ${ksefNumber} <span style="color:#e74c3c" title="${t('Suma kontrolna CRC-8 jest nieprawidłowa — numer może być uszkodzony')}">⚠ ${t('błędna suma kontrolna')}</span></span>`
+      : `<span>${t('brak numeru KSeF w nazwie pliku')}</span>`;
 
   let dodatkoweInfo = [];
-  if (naglowekData?.dataWytworzenia) dodatkoweInfo.push(`Wytworzono: ${naglowekData.dataWytworzenia.replace('T', ' ').replace(/([+-]\d{2}:\d{2})$/, ' $1').replace(/Z$/, '')}`);
-  if (naglowekData?.systemInfo) dodatkoweInfo.push(`System: ${naglowekData.systemInfo}`);
+  if (naglowekData?.dataWytworzenia) dodatkoweInfo.push(`${t('Wytworzono')}: ${naglowekData.dataWytworzenia.replace('T', ' ').replace(/([+-]\d{2}:\d{2})$/, ' $1').replace(/Z$/, '')}`);
+  if (naglowekData?.systemInfo) dodatkoweInfo.push(`${t('System')}: ${naglowekData.systemInfo}`);
   let dodatkoweInfoHtml = dodatkoweInfo.length > 0 ? ` | ${dodatkoweInfo.join(' | ')}` : '';
 
   return `
     <header>
       <div>
         <h1 style="margin: 0 0 1px 0; font-size: 18px;">${tytulZNr}</h1>
-        <div style="font-size: 10px; color: #546e7a; margin-bottom: 1px;">Wizualizacja faktury ustrukturyzowanej XML</div>
+        <div style="font-size: 10px; color: #546e7a; margin-bottom: 1px;">${t('Wizualizacja faktury ustrukturyzowanej XML')}</div>
         <div style="font-size: 10px; color: #546e7a; display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
           ${ksefInfo}
           <span style="background: #f5f5f5; padding: 2px 5px; border-radius: 12px;">${kodWaluty}</span>
@@ -210,23 +210,23 @@ function renderPodmiotHTML(podmiot, tytul) {
   if (podmiot.adresKoresp) {
     let adresKorespTekst = `${podmiot.adresKoresp.kodKraju || ''} ${podmiot.adresKoresp.linia1}`;
     if (podmiot.adresKoresp.linia2) adresKorespTekst += `, ${podmiot.adresKoresp.linia2}`;
-    html += `<div style="margin-top: 3px;"><strong>Adres koresp.:</strong> ${adresKorespTekst.trim()}</div>`;
+    html += `<div style="margin-top: 3px;"><strong>${t('Adres koresp.')}:</strong> ${adresKorespTekst.trim()}</div>`;
   }
 
   // Grid z dodatkowymi danymi
   let gridItems = [];
   if (podmiot.nrEORI) gridItems.push({html: `<span><strong>EORI:</strong> ${podmiot.nrEORI}</span>`});
   if (podmiot.adres?.gln) gridItems.push({html: `<span><strong>GLN:</strong> ${podmiot.adres.gln}</span>`});
-  if (podmiot.nrKlienta) gridItems.push({html: `<span><strong>Nr klienta:</strong> ${podmiot.nrKlienta}</span>`});
-  if (podmiot.idNabywcy) gridItems.push({html: `<span><strong>ID nabywcy:</strong> ${podmiot.idNabywcy}</span>`});
-  if (podmiot.idWew) gridItems.push({html: `<span><strong>ID wewn.:</strong> ${podmiot.idWew}</span>`});
-  if (podmiot.kodUE && podmiot.nrVatUE) gridItems.push({html: `<span><strong>VAT UE:</strong> ${podmiot.kodUE} ${podmiot.nrVatUE}</span>`});
-  if (podmiot.kodKrajuId && podmiot.nrID) gridItems.push({html: `<span><strong>ID zagraniczny:</strong> ${podmiot.kodKrajuId} ${podmiot.nrID}</span>`});
-  if (podmiot.brakID) gridItems.push({html: `<span><em>bez identyfikatora podatkowego</em></span>`});
-  if (podmiot.jst) gridItems.push({html: `<span>JST: <strong>${podmiot.jst === "1" ? "jednostka podrzędna" : "nie"}</strong></span>`, hide: podmiot.jst !== "1"});
-  if (podmiot.gv) gridItems.push({html: `<span>GV: <strong>${podmiot.gv === "1" ? "członek grupy VAT" : "nie"}</strong></span>`, hide: podmiot.gv !== "1"});
-  if (podmiot.status) gridItems.push({html: `<span><strong>Status:</strong> ${taxpayerStatusMap[podmiot.status] || podmiot.status}</span>`});
-  if (podmiot.udzial) gridItems.push({html: `<span><strong>Udział:</strong> ${parseFloat(podmiot.udzial).toFixed(2)}%</span>`});
+  if (podmiot.nrKlienta) gridItems.push({html: `<span><strong>${t('Nr klienta')}:</strong> ${podmiot.nrKlienta}</span>`});
+  if (podmiot.idNabywcy) gridItems.push({html: `<span><strong>${t('ID nabywcy')}:</strong> ${podmiot.idNabywcy}</span>`});
+  if (podmiot.idWew) gridItems.push({html: `<span><strong>${t('ID wewn.')}:</strong> ${podmiot.idWew}</span>`});
+  if (podmiot.kodUE && podmiot.nrVatUE) gridItems.push({html: `<span><strong>${t('VAT UE')}:</strong> ${podmiot.kodUE} ${podmiot.nrVatUE}</span>`});
+  if (podmiot.kodKrajuId && podmiot.nrID) gridItems.push({html: `<span><strong>${t('ID zagraniczny')}:</strong> ${podmiot.kodKrajuId} ${podmiot.nrID}</span>`});
+  if (podmiot.brakID) gridItems.push({html: `<span><em>${t('bez identyfikatora podatkowego')}</em></span>`});
+  if (podmiot.jst) gridItems.push({html: `<span>JST: <strong>${podmiot.jst === "1" ? t('jednostka podrzędna') : t('nie')}</strong></span>`, hide: podmiot.jst !== "1"});
+  if (podmiot.gv) gridItems.push({html: `<span>GV: <strong>${podmiot.gv === "1" ? t('członek grupy VAT') : t('nie')}</strong></span>`, hide: podmiot.gv !== "1"});
+  if (podmiot.status) gridItems.push({html: `<span><strong>${t('Status')}:</strong> ${t(taxpayerStatusMap[podmiot.status]) || podmiot.status}</span>`});
+  if (podmiot.udzial) gridItems.push({html: `<span><strong>${t('Udział')}:</strong> ${parseFloat(podmiot.udzial).toFixed(2)}%</span>`});
 
   if (gridItems.length > 0) {
     html += '<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; margin-top: 1px; font-size: 9px;">';
@@ -255,25 +255,25 @@ function renderPodmiotHTML(podmiot, tytul) {
 function renderPodmiotUpowaznionyHTML(puData) {
   if (!puData) return '';
 
-  let html = `<div class="col" style="margin-top: 5px;"><h2>PODMIOT UPOWAŻNIONY</h2>`;
-  html += `<div><strong>Nazwa:</strong> ${puData.nazwa}</div>`;
+  let html = `<div class="col" style="margin-top: 5px;"><h2>${tUpper('Podmiot upoważniony')}</h2>`;
+  html += `<div><strong>${t('Nazwa')}:</strong> ${puData.nazwa}</div>`;
   html += `<div><strong>NIP:</strong> ${nipHtml(puData.nip)}</div>`;
   if (puData.nrEORI) html += `<div><strong>EORI:</strong> ${puData.nrEORI}</div>`;
 
   if (puData.adres) {
     let adresTekst = `${puData.adres.kodKraju || ''} ${puData.adres.linia1}`;
     if (puData.adres.linia2) adresTekst += `, ${puData.adres.linia2}`;
-    html += `<div><strong>Adres:</strong> ${adresTekst.trim()}</div>`;
+    html += `<div><strong>${t('Adres')}:</strong> ${adresTekst.trim()}</div>`;
   }
 
   if (puData.adresKoresp) {
     let adresKorespTekst = `${puData.adresKoresp.kodKraju || ''} ${puData.adresKoresp.linia1}`;
     if (puData.adresKoresp.linia2) adresKorespTekst += `, ${puData.adresKoresp.linia2}`;
-    html += `<div><strong>Adres koresp.:</strong> ${adresKorespTekst.trim()}</div>`;
+    html += `<div><strong>${t('Adres koresp.')}:</strong> ${adresKorespTekst.trim()}</div>`;
   }
 
   const roleMapPU = { "1": "Organ egzekucyjny", "2": "Komornik sądowy", "3": "Przedstawiciel podatkowy" };
-  if (puData.rola) html += `<div><strong>Rola:</strong> ${roleMapPU[puData.rola] || puData.rola}</div>`;
+  if (puData.rola) html += `<div><strong>${t('Rola')}:</strong> ${t(roleMapPU[puData.rola]) || puData.rola}</div>`;
 
   if (puData.kontakty && puData.kontakty.length > 0) {
     for (const kontakt of puData.kontakty) {
@@ -289,15 +289,15 @@ function renderPodmiotUpowaznionyHTML(puData) {
 function renderPodmiot3HTML(p3Data) {
   if (!p3Data) return '';
 
-  let html = `<div class="col"><h2>PODMIOT TRZECI ${p3Data.rolaInna ? '(inny)' : ''}</h2>`;
+  let html = `<div class="col"><h2>${tUpper('Podmiot trzeci')} ${p3Data.rolaInna ? t('(inny)') : ''}</h2>`;
 
   if (p3Data.nazwa) html += `<strong>${p3Data.nazwa}</strong><br>`;
 
   if (p3Data.nip) html += `<div><strong>NIP:</strong> ${p3Data.prefiks ? p3Data.prefiks + ' ' : ''}${nipHtml(p3Data.nip)}</div>`;
-  if (p3Data.idWew) html += `<div><strong>ID wewn.:</strong> ${p3Data.idWew}</div>`;
-  if (p3Data.kodUE && p3Data.nrVatUE) html += `<div><strong>VAT UE:</strong> ${p3Data.kodUE} ${p3Data.nrVatUE}</div>`;
-  if (p3Data.kodKrajuId && p3Data.nrID) html += `<div><strong>ID zagraniczny:</strong> ${p3Data.kodKrajuId} ${p3Data.nrID}</div>`;
-  if (p3Data.brakID) html += `<div><em>bez identyfikatora podatkowego</em></div>`;
+  if (p3Data.idWew) html += `<div><strong>${t('ID wewn.')}:</strong> ${p3Data.idWew}</div>`;
+  if (p3Data.kodUE && p3Data.nrVatUE) html += `<div><strong>${t('VAT UE')}:</strong> ${p3Data.kodUE} ${p3Data.nrVatUE}</div>`;
+  if (p3Data.kodKrajuId && p3Data.nrID) html += `<div><strong>${t('ID zagraniczny')}:</strong> ${p3Data.kodKrajuId} ${p3Data.nrID}</div>`;
+  if (p3Data.brakID) html += `<div><em>${t('bez identyfikatora podatkowego')}</em></div>`;
 
   if (p3Data.adres) {
     let adresTekst = `${p3Data.adres.kodKraju || ''} ${p3Data.adres.linia1}`;
@@ -308,17 +308,17 @@ function renderPodmiot3HTML(p3Data) {
   if (p3Data.adresKoresp) {
     let adresKorespTekst = `${p3Data.adresKoresp.kodKraju || ''} ${p3Data.adresKoresp.linia1}`;
     if (p3Data.adresKoresp.linia2) adresKorespTekst += `, ${p3Data.adresKoresp.linia2}`;
-    html += `<div style="margin-top: 3px;"><strong>Adres koresp.:</strong> ${adresKorespTekst.trim()}</div>`;
+    html += `<div style="margin-top: 3px;"><strong>${t('Adres koresp.')}:</strong> ${adresKorespTekst.trim()}</div>`;
   }
 
-  html += `<div style="margin-top: 3px;"><strong>Rola:</strong> ${roleMap[p3Data.rola] || p3Data.opisRoli || p3Data.rola || '—'}</div>`;
+  html += `<div style="margin-top: 3px;"><strong>${t('Rola')}:</strong> ${t(roleMap[p3Data.rola]) || p3Data.opisRoli || p3Data.rola || '—'}</div>`;
 
   let gridItems = [];
   if (p3Data.nrEORI) gridItems.push(`<span><strong>EORI:</strong> ${p3Data.nrEORI}</span>`);
   if (p3Data.adres?.gln) gridItems.push(`<span><strong>GLN:</strong> ${p3Data.adres.gln}</span>`);
-  if (p3Data.nrKlienta) gridItems.push(`<span><strong>Nr klienta:</strong> ${p3Data.nrKlienta}</span>`);
-  if (p3Data.idNabywcy) gridItems.push(`<span><strong>ID nabywcy:</strong> ${p3Data.idNabywcy}</span>`);
-  if (p3Data.udzial) gridItems.push(`<span><strong>Udział:</strong> ${parseFloat(p3Data.udzial).toFixed(2)}%</span>`);
+  if (p3Data.nrKlienta) gridItems.push(`<span><strong>${t('Nr klienta')}:</strong> ${p3Data.nrKlienta}</span>`);
+  if (p3Data.idNabywcy) gridItems.push(`<span><strong>${t('ID nabywcy')}:</strong> ${p3Data.idNabywcy}</span>`);
+  if (p3Data.udzial) gridItems.push(`<span><strong>${t('Udział')}:</strong> ${parseFloat(p3Data.udzial).toFixed(2)}%</span>`);
 
   if (gridItems.length > 0) {
     html += '<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; margin-top: 1px; font-size: 9px;">';
@@ -344,10 +344,10 @@ function renderPodmiot3HTML(p3Data) {
 function renderPodmiot1KHTML(p1kData) {
   if (!p1kData) return "";
 
-  let html = '<div class="additional-info"><h2>Dane sprzedawcy przed korektą</h2>';
+  let html = `<div class="additional-info"><h2>${t('Dane sprzedawcy przed korektą')}</h2>`;
   html += '<div class="info-item" style="background: #fef5e7; grid-column: span 3;">';
 
-  if (p1kData.nazwa) html += `<div><strong>Nazwa:</strong> ${p1kData.nazwa}</div>`;
+  if (p1kData.nazwa) html += `<div><strong>${t('Nazwa')}:</strong> ${p1kData.nazwa}</div>`;
   if (p1kData.nip) {
     const nipDisplay = p1kData.prefiks ? `${p1kData.prefiks} ${nipHtml(p1kData.nip)}` : nipHtml(p1kData.nip);
     html += `<div><strong>NIP:</strong> ${nipDisplay}</div>`;
@@ -356,7 +356,7 @@ function renderPodmiot1KHTML(p1kData) {
   if (p1kData.adres) {
     let adresTekst = `${p1kData.adres.kodKraju || ''} ${p1kData.adres.linia1}`;
     if (p1kData.adres.linia2) adresTekst += `, ${p1kData.adres.linia2}`;
-    html += `<div><strong>Adres:</strong> ${adresTekst.trim()}</div>`;
+    html += `<div><strong>${t('Adres')}:</strong> ${adresTekst.trim()}</div>`;
     if (p1kData.adres.gln) html += `<div><small>GLN: ${p1kData.adres.gln}</small></div>`;
   }
 
@@ -367,24 +367,24 @@ function renderPodmiot1KHTML(p1kData) {
 function renderPodmiot2KFullHTML(p2kFullArray) {
   if (!p2kFullArray || p2kFullArray.length === 0) return "";
 
-  let html = '<div class="additional-info"><h2>Dane nabywców przed korektą</h2>';
+  let html = `<div class="additional-info"><h2>${t('Dane nabywców przed korektą')}</h2>`;
 
   for (let p2k of p2kFullArray) {
     html += '<div class="info-item" style="background: #fef5e7; grid-column: span 3; margin-bottom: 5px;">';
-    html += `<span class="info-label">Nabywca przed korektą</span>`;
+    html += `<span class="info-label">${t('Nabywca przed korektą')}</span>`;
 
-    if (p2k.nazwa) html += `<div><strong>Nazwa:</strong> ${p2k.nazwa}</div>`;
+    if (p2k.nazwa) html += `<div><strong>${t('Nazwa')}:</strong> ${p2k.nazwa}</div>`;
 
     if (p2k.nip) html += `<div><strong>NIP:</strong> ${nipHtml(p2k.nip)}</div>`;
-    if (p2k.kodUE && p2k.nrVatUE) html += `<div><strong>VAT UE:</strong> ${p2k.kodUE} ${p2k.nrVatUE}</div>`;
-    if (p2k.kodKrajuId && p2k.nrID) html += `<div><strong>ID zagraniczny:</strong> ${p2k.kodKrajuId} ${p2k.nrID}</div>`;
-    if (p2k.brakID) html += `<div><em>bez identyfikatora podatkowego</em></div>`;
+    if (p2k.kodUE && p2k.nrVatUE) html += `<div><strong>${t('VAT UE')}:</strong> ${p2k.kodUE} ${p2k.nrVatUE}</div>`;
+    if (p2k.kodKrajuId && p2k.nrID) html += `<div><strong>${t('ID zagraniczny')}:</strong> ${p2k.kodKrajuId} ${p2k.nrID}</div>`;
+    if (p2k.brakID) html += `<div><em>${t('bez identyfikatora podatkowego')}</em></div>`;
     if (p2k.idNabywcy) html += `<div><small>ID nabywcy: ${p2k.idNabywcy}</small></div>`;
 
     if (p2k.adres) {
       let adresTekst = `${p2k.adres.kodKraju || ''} ${p2k.adres.linia1}`;
       if (p2k.adres.linia2) adresTekst += `, ${p2k.adres.linia2}`;
-      html += `<div><strong>Adres:</strong> ${adresTekst.trim()}</div>`;
+      html += `<div><strong>${t('Adres')}:</strong> ${adresTekst.trim()}</div>`;
       if (p2k.adres.gln) html += `<div><small>GLN: ${p2k.adres.gln}</small></div>`;
     }
 
@@ -401,28 +401,28 @@ function renderPaymentInfoHTML(p) {
   let html = "";
 
   // Podstawowe dane
-  if (p.formaPlatnosci) html += `<div><strong>Forma:</strong> ${paymentMap[p.formaPlatnosci] || p.formaPlatnosci}</div>`;
-  if (p.platnoscInna && p.opisPlatnosci) html += `<div><strong>Inna forma:</strong> ${p.opisPlatnosci}</div>`;
+  if (p.formaPlatnosci) html += `<div><strong>${t('Forma')}:</strong> ${t(paymentMap[p.formaPlatnosci]) || p.formaPlatnosci}</div>`;
+  if (p.platnoscInna && p.opisPlatnosci) html += `<div><strong>${t('Inna forma')}:</strong> ${p.opisPlatnosci}</div>`;
 
   // Termin
-  if (p.terminData) html += `<div><strong>Termin:</strong> ${p.terminData}</div>`;
+  if (p.terminData) html += `<div><strong>${t('Termin')}:</strong> ${p.terminData}</div>`;
   if (p.terminOpis) {
     const { ilosc, jednostka, zdarzenie } = p.terminOpis;
     if (ilosc && jednostka && zdarzenie) {
-      html += `<div><strong>Termin:</strong> ${ilosc} ${jednostka} od ${zdarzenie}</div>`;
+      html += `<div><strong>${t('Termin')}:</strong> ${ilosc} ${jednostka} ${t('od')} ${zdarzenie}</div>`;
     } else if (ilosc && jednostka) {
-      html += `<div><strong>Termin:</strong> ${ilosc} ${jednostka}</div>`;
+      html += `<div><strong>${t('Termin')}:</strong> ${ilosc} ${jednostka}</div>`;
     }
   }
 
   // Rachunki
   for (const rach of p.rachunki) {
     if (rach.nrRB) {
-      let rachunekInfo = `<div style="margin-top: 5px;"><strong>Rachunek:</strong> ${formatujRachunek(rach.nrRB)}`;
+      let rachunekInfo = `<div style="margin-top: 5px;"><strong>${t('Rachunek')}:</strong> ${formatujRachunek(rach.nrRB)}`;
       if (rach.swift) rachunekInfo += ` (SWIFT: ${rach.swift})`;
 
       const typyMap = { "1": "rach. własny (wierzytelności)", "2": "rach. własny (pobranie)", "3": "rach. własny (gospodarka)" };
-      if (rach.typWlasny) rachunekInfo += `<br><small>${typyMap[rach.typWlasny] || 'rachunek własny'}</small>`;
+      if (rach.typWlasny) rachunekInfo += `<br><small>${t(typyMap[rach.typWlasny]) || t('rachunek własny')}</small>`;
       if (rach.nazwaBanku) rachunekInfo += `<br>${rach.nazwaBanku}`;
       if (rach.opis) rachunekInfo += `<br><small>${rach.opis}</small>`;
       rachunekInfo += `</div>`;
@@ -432,10 +432,10 @@ function renderPaymentInfoHTML(p) {
 
   for (const rach of p.rachunkiFaktora) {
     if (rach.nrRB) {
-      let rachunekInfo = `<div style="margin-top: 5px;"><strong>Rachunek faktora:</strong> ${formatujRachunek(rach.nrRB)}`;
+      let rachunekInfo = `<div style="margin-top: 5px;"><strong>${t('Rachunek faktora')}:</strong> ${formatujRachunek(rach.nrRB)}`;
       if (rach.swift) rachunekInfo += ` (SWIFT: ${rach.swift})`;
       const typyMap = { "1": "rach. własny (wierzytelności)", "2": "rach. własny (pobranie)", "3": "rach. własny (gospodarka)" };
-      if (rach.typWlasny) rachunekInfo += `<br><small>${typyMap[rach.typWlasny] || 'rachunek własny'}</small>`;
+      if (rach.typWlasny) rachunekInfo += `<br><small>${t(typyMap[rach.typWlasny]) || t('rachunek własny')}</small>`;
       if (rach.nazwaBanku) rachunekInfo += `<br>${rach.nazwaBanku}`;
       rachunekInfo += `</div>`;
       html += rachunekInfo;
@@ -443,19 +443,19 @@ function renderPaymentInfoHTML(p) {
   }
 
   // Zapłacono
-  if (p.zaplacono) html += `<div><strong>Zapłacono:</strong> Tak, dnia ${p.dataZaplaty}</div>`;
+  if (p.zaplacono) html += `<div><strong>${t('Zapłacono')}:</strong> ${t('Tak, dnia')} ${p.dataZaplaty}</div>`;
 
   // Zapłaty częściowe
   if (p.znacznikZaplatyCzesciowej || p.zaplatyCzesciowe.length > 0) {
-    let zaplatyText = `<div><strong>Zapłaty częściowe:</strong> `;
-    if (p.znacznikZaplatyCzesciowej === "1") zaplatyText += `(częściowa) `;
-    if (p.znacznikZaplatyCzesciowej === "2") zaplatyText += `(wieloczęściowa) `;
+    let zaplatyText = `<div><strong>${t('Zapłaty częściowe')}:</strong> `;
+    if (p.znacznikZaplatyCzesciowej === "1") zaplatyText += `${t('(częściowa)')} `;
+    if (p.znacznikZaplatyCzesciowej === "2") zaplatyText += `${t('(wieloczęściowa)')} `;
     zaplatyText += `</div>`;
     html += zaplatyText;
 
     for (const z of p.zaplatyCzesciowe) {
-      html += `<div style="margin-left: 10px;"><small>- ${formatPrice(z.kwota)} z ${z.data}`;
-      if (z.forma) html += ` (${paymentMap[z.forma] || z.forma})`;
+      html += `<div style="margin-left: 10px;"><small>- ${formatPrice(z.kwota)} ${t('z')} ${z.data}`;
+      if (z.forma) html += ` (${t(paymentMap[z.forma]) || z.forma})`;
       if (z.platnoscInna && z.opisPlatnosci) html += ` - ${z.opisPlatnosci}`;
       html += `</small></div>`;
     }
@@ -463,11 +463,11 @@ function renderPaymentInfoHTML(p) {
 
   // Skonto
   if (p.skonto) {
-    html += `<div><strong>Skonto:</strong> ${p.skonto.warunki || ''} ${p.skonto.wysokosc ? '(' + p.skonto.wysokosc + ')' : ''}</div>`;
+    html += `<div><strong>${t('Skonto')}:</strong> ${p.skonto.warunki || ''} ${p.skonto.wysokosc ? '(' + p.skonto.wysokosc + ')' : ''}</div>`;
   }
 
   // Link i IPKSeF
-  if (p.linkDoPlatnosci) html += `<div><strong>Link do płatności:</strong> <a href="${p.linkDoPlatnosci}" target="_blank" style="color: #3498db;">płatność online</a></div>`;
+  if (p.linkDoPlatnosci) html += `<div><strong>${t('Link do płatności')}:</strong> <a href="${p.linkDoPlatnosci}" target="_blank" style="color: #3498db;">${t('płatność online')}</a></div>`;
   if (p.ipksef) html += `<div><strong>IPKSeF:</strong> ${p.ipksef}</div>`;
 
   return html || "—";
@@ -513,7 +513,7 @@ function rowHTML(w, isBefore = false, showRabatCol = false) {
   if (w.pkwiu) dodatki.push(`PKWiU: ${w.pkwiu}`);
   if (w.cn) dodatki.push(`CN: ${w.cn}`);
   if (w.pkob) dodatki.push(`PKOB: ${w.pkob}`);
-  if (w.kwotaAkcyzy && w.kwotaAkcyzy !== "0") dodatki.push(`Akcyza: ${formatPrice(w.kwotaAkcyzy)}`);
+  if (w.kwotaAkcyzy && w.kwotaAkcyzy !== "0") dodatki.push(`${t('Akcyza')}: ${formatPrice(w.kwotaAkcyzy)}`);
   if (w.stawkaOSS) dodatki.push(`OSS: ${w.stawkaOSS}%`);
   // Rabat — dwa źródła, deduplikujemy:
   //  1) jawne P_10 (w.opusty) — pokazujemy jako "Opust: X" tylko gdy NIE pojawi się
@@ -528,19 +528,19 @@ function rowHTML(w, isBefore = false, showRabatCol = false) {
     const hasCalcRabat = !w.czyMarza && expectedN > 0.01 && Math.abs(expectedN - actualN) > 0.01;
 
     if (w.opusty && w.opusty !== "0" && !hasCalcRabat) {
-      dodatki.push(`Opust: ${formatPrice(w.opusty)}`);
+      dodatki.push(`${t('Opust')}: ${formatPrice(w.opusty)}`);
     }
     if (hasCalcRabat) {
       const diff = expectedN - actualN;
       const pct = Math.abs(diff / expectedN * 100);
       dodatki.push(diff > 0
-        ? `Rabat: ${formatPrice(diff)} (${pct.toFixed(1)}%)`
-        : `Narzut: ${formatPrice(-diff)} (${pct.toFixed(1)}%)`);
+        ? `${t('Rabat')}: ${formatPrice(diff)} (${pct.toFixed(1)}%)`
+        : `${t('Narzut')}: ${formatPrice(-diff)} (${pct.toFixed(1)}%)`);
     }
   }
-  if (w.dataPozycji) dodatki.push(`Data: ${w.dataPozycji}`);
-  if (w.kursWaluty && w.kursWaluty !== "0") dodatki.push(`Kurs: ${w.kursWaluty}`);
-  if (w.zal15) dodatki.push(`Zał.15`);
+  if (w.dataPozycji) dodatki.push(`${t('Data')}: ${w.dataPozycji}`);
+  if (w.kursWaluty && w.kursWaluty !== "0") dodatki.push(`${t('Kurs')}: ${w.kursWaluty}`);
+  if (w.zal15) dodatki.push(t('Zał.15'));
   // UUID (w.uuid) celowo nie pokazujemy w UI — to dane techniczne używane
   // wyłącznie do parowania wierszy w korektach (groupCorrectionRows).
 
@@ -549,13 +549,13 @@ function rowHTML(w, isBefore = false, showRabatCol = false) {
   }
 
   if (isBefore) {
-    pelnyOpis += ' <small>(przed korektą)</small>';
+    pelnyOpis += ` <small>${t('(przed korektą)')}</small>`;
   }
 
   // Logika dla ceny — dla marży cenaNetto=0 (netto nie jest ujawniane), pokazujemy cenaBrutto
   let cenaKomorka;
   if (w.cenaBrutto && w.cenaBrutto !== "0" && (w.cenaNetto === 0 || Math.abs(w.cenaNetto) < 0.01)) {
-    cenaKomorka = `${formatPrice(w.cenaBrutto)} <small>(brutto)</small>`;
+    cenaKomorka = `${formatPrice(w.cenaBrutto)} <small>${t('(brutto)')}</small>`;
   } else {
     cenaKomorka = formatPrice(w.cenaNetto);
   }
@@ -607,24 +607,24 @@ function vatSummaryHTML(faData) {
     { n: v.p13_1, v: v.p14_1, w: v.p14_1w, l: "23% / 22%" },
     { n: v.p13_2, v: v.p14_2, w: v.p14_2w, l: "8% / 7%" },
     { n: v.p13_3, v: v.p14_3, w: v.p14_3w, l: "5%" },
-    { n: v.p13_4, v: v.p14_4, w: v.p14_4w, l: "ryczałt taxi" },
+    { n: v.p13_4, v: v.p14_4, w: v.p14_4w, l: t("ryczałt taxi") },
     { n: v.p13_5, v: v.p14_5, l: "OSS" },
-    { n: v.p13_6_1, l: "0% (kraj)" },
-    { n: v.p13_6_2, l: "0% (WDT)" },
-    { n: v.p13_6_3, l: "0% (eksport)" },
-    { n: v.p13_7, l: "zwolnione" },
-    { n: v.p13_8, l: "niepodlegające" },
-    { n: v.p13_9, l: "art. 100" },
-    { n: v.p13_10, l: "odwrotne obciążenie" },
-    { n: v.p13_11, l: "marża" }
+    { n: v.p13_6_1, l: t("0% (kraj)") },
+    { n: v.p13_6_2, l: t("0% (WDT)") },
+    { n: v.p13_6_3, l: t("0% (eksport)") },
+    { n: v.p13_7, l: t("zwolnione") },
+    { n: v.p13_8, l: t("niepodlegające") },
+    { n: v.p13_9, l: t("art. 100") },
+    { n: v.p13_10, l: t("odwrotne obciążenie") },
+    { n: v.p13_11, l: t("marża") }
   ];
 
   let tn = 0, tv = 0;
   let czyKolumnaW = fields.some(f => f.w && parseFloat(f.w || 0) !== 0);
 
-  let html = `<table class="vat-summary no-break""><tr><th>Kategoria</th><th class="right">Netto</th><th class="right">VAT</th>`;
-  if (czyKolumnaW) html += `<th class="right">VAT(przel.)</th>`;
-  html += `<th class="right">Brutto</th></tr>`;
+  let html = `<table class="vat-summary no-break""><tr><th>${t('Kategoria')}</th><th class="right">${t('Netto')}</th><th class="right">${t('VAT')}</th>`;
+  if (czyKolumnaW) html += `<th class="right">${t('VAT(przel.)')}</th>`;
+  html += `<th class="right">${t('Brutto')}</th></tr>`;
 
   fields.forEach(f => {
     const n = parseFloat(f.n || 0);
@@ -641,7 +641,7 @@ function vatSummaryHTML(faData) {
   });
 
   const p15 = parseFloat(v.p15 || 0);
-  html += `<tr><th>RAZEM</th><th class="right">${formatPrice(tn)}</th><th class="right">${formatPrice(tv)}</th>`;
+  html += `<tr><th>${t('RAZEM')}</th><th class="right">${formatPrice(tn)}</th><th class="right">${formatPrice(tv)}</th>`;
   if (czyKolumnaW) html += `<th class="right">—</th>`;
   html += `<th class="right">${formatPrice(p15)}</th></tr></table>`;
 
@@ -735,16 +735,16 @@ function vatHeaderConsistencyCheckHTML(faData) {
 
   return `
     <div class="correction-mismatch no-break">
-      <strong>⚠ Niezgodność sum w nagłówku faktury</strong>
-      <p>Suma wartości netto i VAT z pól P_13 / P_14 nie zgadza się z zadeklarowaną kwotą brutto (P_15):</p>
+      <strong>⚠ ${t('Niezgodność sum w nagłówku faktury')}</strong>
+      <p>${t('Suma wartości netto i VAT z pól P_13 / P_14 nie zgadza się z zadeklarowaną kwotą brutto (P_15)')}:</p>
       <table>
-        <tr><td>Suma netto (P_13)</td><td class="right">${formatPrice(mm.net)}</td></tr>
-        <tr><td>Suma VAT (P_14)</td><td class="right">${formatPrice(mm.vat)}</td></tr>
-        <tr><td>Netto&nbsp;+&nbsp;VAT</td><td class="right"><strong>${formatPrice(mm.expected)}</strong></td></tr>
-        <tr><td>Brutto zadeklarowane (P_15)</td><td class="right"><strong>${formatPrice(mm.p15)}</strong></td></tr>
-        <tr><td>Rozbieżność</td><td class="right"><strong>${formatPrice(mm.diff)}</strong></td></tr>
+        <tr><td>${t('Suma netto (P_13)')}</td><td class="right">${formatPrice(mm.net)}</td></tr>
+        <tr><td>${t('Suma VAT (P_14)')}</td><td class="right">${formatPrice(mm.vat)}</td></tr>
+        <tr><td>${t('Netto + VAT').replace(/ /g, '&nbsp;')}</td><td class="right"><strong>${formatPrice(mm.expected)}</strong></td></tr>
+        <tr><td>${t('Brutto zadeklarowane (P_15)')}</td><td class="right"><strong>${formatPrice(mm.p15)}</strong></td></tr>
+        <tr><td>${t('Rozbieżność')}</td><td class="right"><strong>${formatPrice(mm.diff)}</strong></td></tr>
       </table>
-      <small>KSeFeusz.pl prezentuje dane wyłącznie w formie wizualizacji oryginalnego pliku XML. W razie wątpliwości zweryfikuj dane źródłowe w pliku XML lub bezpośrednio w KSeF — wizualizator nie modyfikuje wartości z faktury.</small>
+      <small>${t('KSeFeusz.pl prezentuje dane wyłącznie w formie wizualizacji oryginalnego pliku XML. W razie wątpliwości zweryfikuj dane źródłowe w pliku XML lub bezpośrednio w KSeF — wizualizator nie modyfikuje wartości z faktury.')}</small>
     </div>
   `;
 }
@@ -752,14 +752,14 @@ function vatHeaderConsistencyCheckHTML(faData) {
 function renderRozliczenieHTML(r) {
   if (!r) return "";
 
-  let html = '<div class="additional-info no-break"><h2>Rozliczenie</h2><div class="info-grid">';
+  let html = `<div class="additional-info no-break"><h2>${t('Rozliczenie')}</h2><div class="info-grid">`;
   let hasContent = false;
 
   // Obciążenia
   for (let obc of r.obciazenia) {
     if (obc.kwota && obc.powod) {
       html += `<div class="info-item">
-        <span class="info-label">Obciążenie</span>
+        <span class="info-label">${t('Obciążenie')}</span>
         <strong>${formatPrice(obc.kwota)}</strong><br>
         <small>${obc.powod}</small>
       </div>`;
@@ -769,7 +769,7 @@ function renderRozliczenieHTML(r) {
 
   if (r.sumaObciazen) {
     html += `<div class="info-item">
-      <span class="info-label">Suma obciążeń</span>
+      <span class="info-label">${t('Suma obciążeń')}</span>
       <strong>${formatPrice(r.sumaObciazen)}</strong>
     </div>`;
     hasContent = true;
@@ -779,7 +779,7 @@ function renderRozliczenieHTML(r) {
   for (let odl of r.odliczenia) {
     if (odl.kwota && odl.powod) {
       html += `<div class="info-item">
-        <span class="info-label">Odliczenie</span>
+        <span class="info-label">${t('Odliczenie')}</span>
         <strong>${formatPrice(odl.kwota)}</strong><br>
         <small>${odl.powod}</small>
       </div>`;
@@ -789,7 +789,7 @@ function renderRozliczenieHTML(r) {
 
   if (r.sumaOdliczen) {
     html += `<div class="info-item">
-      <span class="info-label">Suma odliczeń</span>
+      <span class="info-label">${t('Suma odliczeń')}</span>
       <strong>${formatPrice(r.sumaOdliczen)}</strong>
     </div>`;
     hasContent = true;
@@ -797,7 +797,7 @@ function renderRozliczenieHTML(r) {
 
   if (r.doZaplaty) {
     html += `<div class="info-item" style="background: #e8f8f5;">
-      <span class="info-label">Do zapłaty</span>
+      <span class="info-label">${t('Do zapłaty')}</span>
       <strong>${formatPrice(r.doZaplaty)}</strong>
     </div>`;
     hasContent = true;
@@ -805,7 +805,7 @@ function renderRozliczenieHTML(r) {
 
   if (r.doRozliczenia) {
     html += `<div class="info-item" style="background: #fef5e7;">
-      <span class="info-label">Do rozliczenia</span>
+      <span class="info-label">${t('Do rozliczenia')}</span>
       <strong>${formatPrice(r.doRozliczenia)}</strong>
     </div>`;
     hasContent = true;
@@ -819,14 +819,14 @@ function renderRozliczenieHTML(r) {
 function renderZaliczkaCzesciowaHTML(zaliczkiData) {
   if (!zaliczkiData || !zaliczkiData.zaplaty || zaliczkiData.zaplaty.length === 0) return "";
 
-  let html = '<div class="additional-info"><h2>Zaliczki częściowe</h2><div class="info-grid">';
+  let html = `<div class="additional-info"><h2>${t('Zaliczki częściowe')}</h2><div class="info-grid">`;
 
   for (let z of zaliczkiData.zaplaty) {
     html += `<div class="info-item" style="grid-column: span 3;">`;
-    html += `<span class="info-label">Zaliczka</span>`;
-    if (z.dataOtrzymania) html += `<div><strong>Data otrzymania:</strong> ${z.dataOtrzymania}</div>`;
-    if (z.kwota) html += `<div><strong>Kwota:</strong> ${formatPrice(z.kwota)}</div>`;
-    if (z.kursWaluty) html += `<div><strong>Kurs waluty:</strong> ${z.kursWaluty}</div>`;
+    html += `<span class="info-label">${t('Zaliczka')}</span>`;
+    if (z.dataOtrzymania) html += `<div><strong>${t('Data otrzymania')}:</strong> ${z.dataOtrzymania}</div>`;
+    if (z.kwota) html += `<div><strong>${t('Kwota')}:</strong> ${formatPrice(z.kwota)}</div>`;
+    if (z.kursWaluty) html += `<div><strong>${t('Kurs waluty')}:</strong> ${z.kursWaluty}</div>`;
     html += `</div>`;
   }
 
@@ -837,49 +837,49 @@ function renderZaliczkaCzesciowaHTML(zaliczkiData) {
 function renderWarunkiTransakcjiHTML(w) {
   if (!w) return '';
 
-  let html = '<div class="additional-info"><h2>Warunki transakcji</h2><div class="info-grid">';
+  let html = `<div class="additional-info"><h2>${t('Warunki transakcji')}</h2><div class="info-grid">`;
   let hasContent = false;
 
   // Umowy
   if (w.umowy && w.umowy.length > 0) {
-    const umowyList = w.umowy.map(u => (u.nr && u.data) ? `${u.nr} z ${u.data}` : (u.nr || u.data)).filter(Boolean);
+    const umowyList = w.umowy.map(u => (u.nr && u.data) ? `${u.nr} ${t('z dnia')} ${u.data}` : (u.nr || u.data)).filter(Boolean);
     if (umowyList.length > 0) {
-      html += `<div class="info-item"><span class="info-label">Umowy:</span> ${umowyList.join('; ')}</div>`;
+      html += `<div class="info-item"><span class="info-label">${t('Umowy')}:</span> ${umowyList.join('; ')}</div>`;
       hasContent = true;
     }
   }
 
   // Zamówienia
   if (w.zamowienia && w.zamowienia.length > 0) {
-    const zamowieniaList = w.zamowienia.map(z => (z.nr && z.data) ? `${z.nr} z ${z.data}` : (z.nr || z.data)).filter(Boolean);
+    const zamowieniaList = w.zamowienia.map(z => (z.nr && z.data) ? `${z.nr} ${t('z dnia')} ${z.data}` : (z.nr || z.data)).filter(Boolean);
     if (zamowieniaList.length > 0) {
-      html += `<div class="info-item"><span class="info-label">Zamówienia:</span> ${zamowieniaList.join('; ')}</div>`;
+      html += `<div class="info-item"><span class="info-label">${t('Zamówienia')}:</span> ${zamowieniaList.join('; ')}</div>`;
       hasContent = true;
     }
   }
 
   // Partie towaru
   if (w.partie && w.partie.length > 0) {
-    html += `<div class="info-item"><span class="info-label">Partie towaru:</span> ${w.partie.join(', ')}</div>`;
+    html += `<div class="info-item"><span class="info-label">${t('Partie towaru')}:</span> ${w.partie.join(', ')}</div>`;
     hasContent = true;
   }
 
   // Warunki dostawy (Incoterms)
   if (w.warunkiDostawy) {
-    html += `<div class="info-item"><span class="info-label">Incoterms:</span> ${w.warunkiDostawy}</div>`;
+    html += `<div class="info-item"><span class="info-label">${t('Incoterms')}:</span> ${w.warunkiDostawy}</div>`;
     hasContent = true;
   }
 
   // Kurs umowny
   if (w.kursUmowny && w.walutaUmowna) {
-    html += `<div class="info-item"><span class="info-label">Kurs umowny:</span> 1 ${w.walutaUmowna} = ${w.kursUmowny} PLN</div>`;
+    html += `<div class="info-item"><span class="info-label">${t('Kurs umowny')}:</span> 1 ${w.walutaUmowna} = ${w.kursUmowny} PLN</div>`;
     hasContent = true;
   }
 
   // Podmiot pośredniczący (transakcja łańcuchowa)
   if (w.podmiotPosredniczacy !== null) {
     const positive = w.podmiotPosredniczacy;
-    html += `<div class="info-item${positive ? '' : ' hide-in-simplified'}"><span class="info-label">Transakcja łańcuchowa:</span> ${positive ? 'Tak (podmiot pośredniczący)' : 'Nie'}</div>`;
+    html += `<div class="info-item${positive ? '' : ' hide-in-simplified'}"><span class="info-label">${t('Transakcja łańcuchowa')}:</span> ${positive ? t('Tak (podmiot pośredniczący)') : t('Nie')}</div>`;
     hasContent = true;
   }
 
@@ -890,80 +890,80 @@ function renderWarunkiTransakcjiHTML(w) {
   if (maTransport) {
     hasContent = true;
     html += '<div style="margin-top: 5px;">';
-    for (let t of w.transporty) {
+    for (let tr of w.transporty) {
       html += '<div class="info-item" style="grid-column: span 3; margin-bottom: 5px;">';
-      html += `<span class="info-label">Transport</span>`;
+      html += `<span class="info-label">${t('Transport')}</span>`;
 
       // Rodzaj transportu
-      if (t.rodzaj) {
+      if (tr.rodzaj) {
         const rodzajMap = { "1": "Morski", "2": "Kolejowy", "3": "Drogowy", "4": "Lotniczy", "5": "Przesyłka pocztowa", "7": "Stałe instalacje przesyłowe", "8": "Żegluga śródlądowa" };
-        html += `<div><strong>Rodzaj:</strong> ${rodzajMap[t.rodzaj] || t.rodzaj}</div>`;
-      } else if (t.transportInny && t.opisInnegoTransportu) {
-        html += `<div><strong>Rodzaj:</strong> ${t.opisInnegoTransportu} (inny)</div>`;
+        html += `<div><strong>${t('Rodzaj')}:</strong> ${t(rodzajMap[tr.rodzaj]) || tr.rodzaj}</div>`;
+      } else if (tr.transportInny && tr.opisInnegoTransportu) {
+        html += `<div><strong>${t('Rodzaj')}:</strong> ${tr.opisInnegoTransportu} ${t('(inny)')}</div>`;
       }
 
 		  // Przewoźnik - rozszerzona wersja
-	if (t.przewoznik) {
-	  html += `<div><strong>Przewoźnik:</strong> `;
-	  if (t.przewoznik.nazwa) html += t.przewoznik.nazwa;
+	if (tr.przewoznik) {
+	  html += `<div><strong>${t('Przewoźnik')}:</strong> `;
+	  if (tr.przewoznik.nazwa) html += tr.przewoznik.nazwa;
 	  html += `</div>`;
 
-	  if (t.przewoznik.nip) html += `<div><small>NIP: ${nipHtml(t.przewoznik.nip)}</small></div>`;
-	  if (t.przewoznik.kodUE && t.przewoznik.nrVatUE) html += `<div><small>VAT UE: ${t.przewoznik.kodUE} ${t.przewoznik.nrVatUE}</small></div>`;
-	  if (t.przewoznik.kodKrajuId && t.przewoznik.nrID) html += `<div><small>ID zagraniczny: ${t.przewoznik.kodKrajuId} ${t.przewoznik.nrID}</small></div>`;
-	  if (t.przewoznik.brakID) html += `<div><small>bez identyfikatora podatkowego</small></div>`;
+	  if (tr.przewoznik.nip) html += `<div><small>NIP: ${nipHtml(tr.przewoznik.nip)}</small></div>`;
+	  if (tr.przewoznik.kodUE && tr.przewoznik.nrVatUE) html += `<div><small>${t('VAT UE')}: ${tr.przewoznik.kodUE} ${tr.przewoznik.nrVatUE}</small></div>`;
+	  if (tr.przewoznik.kodKrajuId && tr.przewoznik.nrID) html += `<div><small>${t('ID zagraniczny')}: ${tr.przewoznik.kodKrajuId} ${tr.przewoznik.nrID}</small></div>`;
+	  if (tr.przewoznik.brakID) html += `<div><small>${t('bez identyfikatora podatkowego')}</small></div>`;
 
-	  if (t.przewoznik.adres) {
-		let adresTekst = `${t.przewoznik.adres.kodKraju || ''} ${t.przewoznik.adres.linia1}`;
-		if (t.przewoznik.adres.linia2) adresTekst += `, ${t.przewoznik.adres.linia2}`;
-		html += `<div><small>Adres: ${adresTekst.trim()}</small></div>`;
-		if (t.przewoznik.adres.gln) html += `<div><small>GLN: ${t.przewoznik.adres.gln}</small></div>`;
+	  if (tr.przewoznik.adres) {
+		let adresTekst = `${tr.przewoznik.adres.kodKraju || ''} ${tr.przewoznik.adres.linia1}`;
+		if (tr.przewoznik.adres.linia2) adresTekst += `, ${tr.przewoznik.adres.linia2}`;
+		html += `<div><small>${t('Adres')}: ${adresTekst.trim()}</small></div>`;
+		if (tr.przewoznik.adres.gln) html += `<div><small>GLN: ${tr.przewoznik.adres.gln}</small></div>`;
 	  }
 	}
 
       // Numer zlecenia
-      if (t.nrZlecenia) html += `<div><strong>Zlecenie:</strong> ${t.nrZlecenia}</div>`;
+      if (tr.nrZlecenia) html += `<div><strong>${t('Zlecenie')}:</strong> ${tr.nrZlecenia}</div>`;
 
       // Ładunek
-      if (t.ladunek) {
+      if (tr.ladunek) {
         const ladunekMap = { "1": "Bańka", "2": "Beczka", "3": "Butla", "4": "Karton", "5": "Kanister", "6": "Klatka", "7": "Kontener", "8": "Kosz/koszyk", "9": "Łubianka", "10": "Opakowanie zbiorcze", "11": "Paczka", "12": "Pakiet", "13": "Paleta", "14": "Pojemnik", "15": "Pojemnik do ładunków masowych stałych", "16": "Pojemnik do ładunków masowych w postaci płynnej", "17": "Pudełko", "18": "Puszka", "19": "Skrzynia", "20": "Worek" };
-        html += `<div><strong>Ładunek:</strong> ${ladunekMap[t.ladunek] || t.ladunek}`;
-        if (t.jednostkaOpakowania) html += ` (${t.jednostkaOpakowania})`;
+        html += `<div><strong>${t('Ładunek')}:</strong> ${t(ladunekMap[tr.ladunek]) || tr.ladunek}`;
+        if (tr.jednostkaOpakowania) html += ` (${tr.jednostkaOpakowania})`;
         html += `</div>`;
-      } else if (t.ladunekInny && t.opisInnegoLadunku) {
-        html += `<div><strong>Ładunek:</strong> ${t.opisInnegoLadunku} (inny)`;
-        if (t.jednostkaOpakowania) html += ` (${t.jednostkaOpakowania})`;
+      } else if (tr.ladunekInny && tr.opisInnegoLadunku) {
+        html += `<div><strong>${t('Ładunek')}:</strong> ${tr.opisInnegoLadunku} ${t('(inny)')}`;
+        if (tr.jednostkaOpakowania) html += ` (${tr.jednostkaOpakowania})`;
         html += `</div>`;
       }
 
       // Daty transportu
-      if (t.dataRozp || t.dataZak) {
+      if (tr.dataRozp || tr.dataZak) {
         let daty = [];
-        if (t.dataRozp) daty.push(`od: ${t.dataRozp}`);
-        if (t.dataZak) daty.push(`do: ${t.dataZak}`);
-        html += `<div><strong>Termin:</strong> ${daty.join(' ')}</div>`;
+        if (tr.dataRozp) daty.push(`${t('od:')} ${tr.dataRozp}`);
+        if (tr.dataZak) daty.push(`${t('do:')} ${tr.dataZak}`);
+        html += `<div><strong>${t('Termin')}:</strong> ${daty.join(' ')}</div>`;
       }
 
       // Miejsca
-      if (t.wysylkaZ) {
-        let miejsce = `${t.wysylkaZ.kodKraju || ''} ${t.wysylkaZ.linia1}`;
-        if (t.wysylkaZ.linia2) miejsce += `, ${t.wysylkaZ.linia2}`;
-        html += `<div><strong>Wysyłka z:</strong> ${miejsce.trim()}</div>`;
+      if (tr.wysylkaZ) {
+        let miejsce = `${tr.wysylkaZ.kodKraju || ''} ${tr.wysylkaZ.linia1}`;
+        if (tr.wysylkaZ.linia2) miejsce += `, ${tr.wysylkaZ.linia2}`;
+        html += `<div><strong>${t('Wysyłka z')}:</strong> ${miejsce.trim()}</div>`;
       }
 
-      if (t.wysylkaDo) {
-        let miejsce = `${t.wysylkaDo.kodKraju || ''} ${t.wysylkaDo.linia1}`;
-        if (t.wysylkaDo.linia2) miejsce += `, ${t.wysylkaDo.linia2}`;
-        html += `<div><strong>Wysyłka do:</strong> ${miejsce.trim()}</div>`;
+      if (tr.wysylkaDo) {
+        let miejsce = `${tr.wysylkaDo.kodKraju || ''} ${tr.wysylkaDo.linia1}`;
+        if (tr.wysylkaDo.linia2) miejsce += `, ${tr.wysylkaDo.linia2}`;
+        html += `<div><strong>${t('Wysyłka do')}:</strong> ${miejsce.trim()}</div>`;
       }
 
-      if (t.wysylkaPrzez && t.wysylkaPrzez.length > 0) {
-        const przezList = t.wysylkaPrzez.map((p, idx) => {
+      if (tr.wysylkaPrzez && tr.wysylkaPrzez.length > 0) {
+        const przezList = tr.wysylkaPrzez.map((p, idx) => {
           let miejsce = `${p.kodKraju || ''} ${p.linia1 || ''}`.trim();
           if (p.linia2) miejsce += `, ${p.linia2}`;
           return `${idx + 1}. ${miejsce}`;
         }).join('; ');
-        html += `<div><strong>Wysyłka przez:</strong> ${przezList}</div>`;
+        html += `<div><strong>${t('Wysyłka przez')}:</strong> ${przezList}</div>`;
       }
 
       html += `</div>`;
@@ -987,31 +987,31 @@ function renderAdnotacjeHTML(a) {
   if (a.p16) {
     const pos = a.p16 === "1";
     if (pos) hasPositive = true;
-    innerHtml += `<div class="info-item">Metoda kasowa: <span class="info-label">${pos ? "Tak" : "Nie"}</span></div>`;
+    innerHtml += `<div class="info-item">${t('Metoda kasowa')}: <span class="info-label">${pos ? t('Tak') : t('Nie')}</span></div>`;
     hasContent = true;
   }
   if (a.p17) {
     const pos = a.p17 === "1";
     if (pos) hasPositive = true;
-    innerHtml += `<div class="info-item">Samofakturowanie: <span class="info-label">${pos ? "Tak" : "Nie"}</span></div>`;
+    innerHtml += `<div class="info-item">${t('Samofakturowanie')}: <span class="info-label">${pos ? t('Tak') : t('Nie')}</span></div>`;
     hasContent = true;
   }
   if (a.p18) {
     const pos = a.p18 === "1";
     if (pos) hasPositive = true;
-    innerHtml += `<div class="info-item">Odwrotne obciążenie: <span class="info-label">${pos ? "Tak" : "Nie"}</span></div>`;
+    innerHtml += `<div class="info-item">${t('Odwrotne obciążenie')}: <span class="info-label">${pos ? t('Tak') : t('Nie')}</span></div>`;
     hasContent = true;
   }
   if (a.p18a) {
     const pos = a.p18a === "1";
     if (pos) hasPositive = true;
-    innerHtml += `<div class="info-item">Split payment: <span class="info-label">${pos ? "Tak" : "Nie"}</span></div>`;
+    innerHtml += `<div class="info-item">${t('Split payment')}: <span class="info-label">${pos ? t('Tak') : t('Nie')}</span></div>`;
     hasContent = true;
   }
   if (a.p23) {
     const pos = a.p23 === "1";
     if (pos) hasPositive = true;
-    innerHtml += `<div class="info-item">Procedura uproszczona WE: <span class="info-label">${pos ? "Tak" : "Nie"}</span></div>`;
+    innerHtml += `<div class="info-item">${t('Procedura uproszczona WE')}: <span class="info-label">${pos ? t('Tak') : t('Nie')}</span></div>`;
     hasContent = true;
   }
 
@@ -1020,10 +1020,10 @@ function renderAdnotacjeHTML(a) {
     if (a.zwolnienie.p19) {
       hasPositive = true;
       let podstawa = a.zwolnienie.p19a || a.zwolnienie.p19b || a.zwolnienie.p19c;
-      innerHtml += `<div class="info-item">Zwolnienie: <span class="info-label">Tak (${podstawa || 'brak podstawy'})</span></div>`;
+      innerHtml += `<div class="info-item">${t('Zwolnienie')}: <span class="info-label">${t('Tak')} (${podstawa || t('brak podstawy')})</span></div>`;
       hasContent = true;
     } else if (a.zwolnienie.p19n) {
-      innerHtml += `<div class="info-item">Zwolnienie: <span class="info-label">Nie dotyczy</span></div>`;
+      innerHtml += `<div class="info-item">${t('Zwolnienie')}: <span class="info-label">${t('Nie dotyczy')}</span></div>`;
       hasContent = true;
     }
   }
@@ -1033,21 +1033,21 @@ function renderAdnotacjeHTML(a) {
     if (a.proceduraMarzy.wystepuje) {
       hasPositive = true;
       let typy = [];
-      if (a.proceduraMarzy.biuraPodrozy) typy.push("biura podróży");
-      if (a.proceduraMarzy.towaryUzywane) typy.push("towary używane");
-      if (a.proceduraMarzy.dzielaSztuki) typy.push("dzieła sztuki");
-      if (a.proceduraMarzy.antyki) typy.push("kolekcjonerskie/antyki");
-      innerHtml += `<div class="info-item">Procedura marży: <span class="info-label">Tak (${typy.join(', ')})</span></div>`;
+      if (a.proceduraMarzy.biuraPodrozy) typy.push(t("biura podróży"));
+      if (a.proceduraMarzy.towaryUzywane) typy.push(t("towary używane"));
+      if (a.proceduraMarzy.dzielaSztuki) typy.push(t("dzieła sztuki"));
+      if (a.proceduraMarzy.antyki) typy.push(t("kolekcjonerskie/antyki"));
+      innerHtml += `<div class="info-item">${t('Procedura marży')}: <span class="info-label">${t('Tak')} (${typy.join(', ')})</span></div>`;
       hasContent = true;
     } else if (a.proceduraMarzy.brak) {
-      innerHtml += `<div class="info-item">Procedura marży: <span class="info-label">Nie</span></div>`;
+      innerHtml += `<div class="info-item">${t('Procedura marży')}: <span class="info-label">${t('Nie')}</span></div>`;
       hasContent = true;
     }
   }
 
   if (!hasContent) return '';
   const simplifiedClass = hasPositive ? '' : ' hide-in-simplified';
-  return `<div class="additional-info${simplifiedClass}"><h2>Adnotacje</h2><div class="info-grid">${innerHtml}</div></div>`;
+  return `<div class="additional-info${simplifiedClass}"><h2>${t('Adnotacje')}</h2><div class="info-grid">${innerHtml}</div></div>`;
 }
 
 function renderNoweSrodkiHTML(a) {
@@ -1056,43 +1056,43 @@ function renderNoweSrodkiHTML(a) {
   const nst = a.noweSrodkiTransportu;
 
   if (nst.p22n) {
-    return '<div class="additional-info hide-in-simplified"><h2>Nowe środki transportu</h2><div class="info-grid"><div class="info-item" style="grid-column: span 3;">Wewnątrzwspólnotowa dostawa nowych środków transportu: <span class="info-label">Nie dotyczy</span></div></div></div>';
+    return `<div class="additional-info hide-in-simplified"><h2>${t('Nowe środki transportu')}</h2><div class="info-grid"><div class="info-item" style="grid-column: span 3;">${t('Wewnątrzwspólnotowa dostawa nowych środków transportu')}: <span class="info-label">${t('Nie dotyczy')}</span></div></div></div>`;
   }
 
-  let html = '<div class="additional-info"><h2>Nowe środki transportu</h2><div class="info-grid">';
+  let html = `<div class="additional-info"><h2>${t('Nowe środki transportu')}</h2><div class="info-grid">`;
 
   if (nst.p42_5 !== undefined) {
-    html += `<div class="info-item"><span class="info-label">Art. 42 ust. 5</span> ${nst.p42_5 ? "Tak" : "Nie"}</div>`;
+    html += `<div class="info-item"><span class="info-label">${t('Art. 42 ust. 5')}</span> ${nst.p42_5 ? t('Tak') : t('Nie')}</div>`;
   }
 
   for (let pojazd of nst.pojazdy) {
     html += `<div class="info-item" style="grid-column: span 3;">`;
-    html += `<span class="info-label">Nowy środek transportu</span>`;
-    if (pojazd.dataDopuszczenia) html += `<div><strong>Data dopuszczenia:</strong> ${pojazd.dataDopuszczenia}</div>`;
-    if (pojazd.nrWiersza) html += `<div><strong>Nr wiersza:</strong> ${pojazd.nrWiersza}</div>`;
+    html += `<span class="info-label">${t('Nowy środek transportu')}</span>`;
+    if (pojazd.dataDopuszczenia) html += `<div><strong>${t('Data dopuszczenia')}:</strong> ${pojazd.dataDopuszczenia}</div>`;
+    if (pojazd.nrWiersza) html += `<div><strong>${t('Nr wiersza')}:</strong> ${pojazd.nrWiersza}</div>`;
 
     let dane = [];
     if (pojazd.marka) dane.push(pojazd.marka);
     if (pojazd.model) dane.push(pojazd.model);
     if (pojazd.kolor) dane.push(`(${pojazd.kolor})`);
     if (pojazd.nrRej) dane.push(`[${pojazd.nrRej}]`);
-    if (pojazd.rokProd) dane.push(`rocznik ${pojazd.rokProd}`);
-    if (dane.length > 0) html += `<div><strong>Dane:</strong> ${dane.join(' ')}</div>`;
+    if (pojazd.rokProd) dane.push(`${t('rocznik')} ${pojazd.rokProd}`);
+    if (dane.length > 0) html += `<div><strong>${t('Dane')}:</strong> ${dane.join(' ')}</div>`;
 
-    if (pojazd.przebieg) html += `<div><strong>Przebieg:</strong> ${pojazd.przebieg} km</div>`;
+    if (pojazd.przebieg) html += `<div><strong>${t('Przebieg')}:</strong> ${pojazd.przebieg} km</div>`;
     if (pojazd.vin || pojazd.nadwozie || pojazd.podwozie || pojazd.rama) {
       let numery = [];
       if (pojazd.vin) numery.push(`VIN: ${pojazd.vin}`);
-      if (pojazd.nadwozie) numery.push(`nadwozie: ${pojazd.nadwozie}`);
-      if (pojazd.podwozie) numery.push(`podwozie: ${pojazd.podwozie}`);
-      if (pojazd.rama) numery.push(`rama: ${pojazd.rama}`);
-      html += `<div><strong>Numery:</strong> ${numery.join(' ')}</div>`;
+      if (pojazd.nadwozie) numery.push(`${t('nadwozie')}: ${pojazd.nadwozie}`);
+      if (pojazd.podwozie) numery.push(`${t('podwozie')}: ${pojazd.podwozie}`);
+      if (pojazd.rama) numery.push(`${t('rama')}: ${pojazd.rama}`);
+      html += `<div><strong>${t('Numery')}:</strong> ${numery.join(' ')}</div>`;
     }
-    if (pojazd.typ) html += `<div><strong>Typ:</strong> ${pojazd.typ}</div>`;
-    if (pojazd.godzinyLodz) html += `<div><strong>Godziny robocze (jednostka pływająca):</strong> ${pojazd.godzinyLodz}</div>`;
-    if (pojazd.kadlub) html += `<div><strong>Nr kadłuba:</strong> ${pojazd.kadlub}</div>`;
-    if (pojazd.godzinySamolot) html += `<div><strong>Godziny robocze (statek powietrzny):</strong> ${pojazd.godzinySamolot}</div>`;
-    if (pojazd.fabryczny) html += `<div><strong>Nr fabryczny:</strong> ${pojazd.fabryczny}</div>`;
+    if (pojazd.typ) html += `<div><strong>${t('Typ')}:</strong> ${pojazd.typ}</div>`;
+    if (pojazd.godzinyLodz) html += `<div><strong>${t('Godziny robocze (jednostka pływająca)')}:</strong> ${pojazd.godzinyLodz}</div>`;
+    if (pojazd.kadlub) html += `<div><strong>${t('Nr kadłuba')}:</strong> ${pojazd.kadlub}</div>`;
+    if (pojazd.godzinySamolot) html += `<div><strong>${t('Godziny robocze (statek powietrzny)')}:</strong> ${pojazd.godzinySamolot}</div>`;
+    if (pojazd.fabryczny) html += `<div><strong>${t('Nr fabryczny')}:</strong> ${pojazd.fabryczny}</div>`;
 
     html += `</div>`;
   }
@@ -1104,19 +1104,19 @@ function renderNoweSrodkiHTML(a) {
 function renderFakturyZaliczkoweHTML(faData) {
   if (!faData.fakturyZaliczkowe || faData.fakturyZaliczkowe.length === 0) return "";
 
-  let html = '<div class="additional-info"><h2>Faktury zaliczkowe</h2><div class="info-grid">';
+  let html = `<div class="additional-info"><h2>${t('Faktury zaliczkowe')}</h2><div class="info-grid">`;
 
   for (let fz of faData.fakturyZaliczkowe) {
     let zalInfo = '';
     if (fz.nrKSeF) {
       zalInfo = `KSeF: ${fz.nrKSeF}`;
     } else if (fz.nrPoza) {
-      zalInfo = `poza KSeF: ${fz.nrPoza}`;
+      zalInfo = `${t('poza KSeF')}: ${fz.nrPoza}`;
     } else if (fz.znacznik) {
-      zalInfo = `(wystawiona poza KSeF)`;
+      zalInfo = t('(wystawiona poza KSeF)');
     }
     if (zalInfo) {
-      html += `<div class="info-item"><span class="info-label">Faktura zaliczkowa:</span> ${zalInfo}</div>`;
+      html += `<div class="info-item"><span class="info-label">${t('Faktura zaliczkowa')}:</span> ${zalInfo}</div>`;
     }
   }
 
@@ -1125,25 +1125,25 @@ function renderFakturyZaliczkoweHTML(faData) {
 }
 
 function renderDodatkoweInformacjeHTML(faData, p1Data) {
-  let html = '<div class="additional-info"><h2>Dodatkowe informacje</h2>';
+  let html = `<div class="additional-info"><h2>${t('Dodatkowe informacje')}</h2>`;
   let infoItems = [];
 
-  if (faData.kodWaluty) infoItems.push({ label: "Waluta", value: faData.kodWaluty });
+  if (faData.kodWaluty) infoItems.push({ label: t("Waluta"), value: faData.kodWaluty });
   if (faData.wz.length > 0) infoItems.push({ label: "WZ", value: faData.wz.join(', ') });
-  if (faData.fp) infoItems.push({ label: "Faktura zaliczkowa", value: "Tak" });
-  if (faData.tp) infoItems.push({ label: "Powiązania", value: "Tak" });
-  if (faData.zwrotAkcyzy) infoItems.push({ label: "Zwrot akcyzy", value: "Tak" });
-  if (faData.kursWalutyZ) infoItems.push({ label: "Kurs waluty", value: faData.kursWalutyZ });
-  if (faData.p15zk) infoItems.push({ label: "Kwota przed korektą", value: formatPrice(faData.p15zk) });
+  if (faData.fp) infoItems.push({ label: t("Faktura zaliczkowa"), value: t("Tak") });
+  if (faData.tp) infoItems.push({ label: t("Powiązania"), value: t("Tak") });
+  if (faData.zwrotAkcyzy) infoItems.push({ label: t("Zwrot akcyzy"), value: t("Tak") });
+  if (faData.kursWalutyZ) infoItems.push({ label: t("Kurs waluty"), value: faData.kursWalutyZ });
+  if (faData.p15zk) infoItems.push({ label: t("Kwota przed korektą"), value: formatPrice(faData.p15zk) });
 
   // Status sprzedawcy
   if (p1Data?.status) {
-    infoItems.push({ label: "Status sprzedawcy", value: taxpayerStatusMap[p1Data.status] || p1Data.status });
+    infoItems.push({ label: t("Status sprzedawcy"), value: t(taxpayerStatusMap[p1Data.status]) || p1Data.status });
   }
 
   // Okres korekty
   if (faData.okresFaKorygowanej) {
-    infoItems.push({ label: "Okres korekty", value: faData.okresFaKorygowanej });
+    infoItems.push({ label: t("Okres korekty"), value: faData.okresFaKorygowanej });
   }
 
   if (infoItems.length > 0) {
@@ -1184,7 +1184,7 @@ function renderDodatkoweInformacjeHTML(faData, p1Data) {
     const opisyBezWiersza = faData.dodatkoweOpisy.filter(o => !o.nrWiersza);
     if (opisyBezWiersza.length > 0) {
       html += '<div style="margin-top: 10px;">';
-      html += '<h3 style="font-size:12px; margin-bottom:2px;">Informacje ogólne</h3>';
+      html += `<h3 style="font-size:12px; margin-bottom:2px;">${t('Informacje ogólne')}</h3>`;
       html += '<div class="info-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px;">';
       for (let opis of opisyBezWiersza) {
         html += `
@@ -1208,7 +1208,7 @@ function renderDodatkoweInformacjeHTML(faData, p1Data) {
       const sortedWiersze = Array.from(opisyWedlugWiersza.keys()).sort((a, b) => parseInt(a) - parseInt(b));
       const sortedKlucze = Array.from(wszystkieKlucze).sort();
       html += '<div class="row-details-section" style="margin-top: 4px;">';
-      html += '<h3 style="font-size:10px; margin-bottom:0px;">Dodatkowe informacje dla wierszy</h3>';
+      html += `<h3 style="font-size:10px; margin-bottom:0px;">${t('Dodatkowe informacje dla wierszy')}</h3>`;
 
       // === ROZWIĄZANIE: GRUPOWANIE KOLUMN W WIERSZE ===
       const MAX_COLUMNS_PER_ROW = 5; // Maksymalnie 3 kolumny danych na wiersz tabeli
@@ -1227,7 +1227,7 @@ function renderDodatkoweInformacjeHTML(faData, p1Data) {
 
         // Nagłówek dla tej grupy
         html += '<thead><tr>';
-        html += '<th style="border:1px solid #bdc3c7; padding:1px 1px 1px 4px; background:#ecf0f1;">Nr wiersza</th>';
+        html += `<th style="border:1px solid #bdc3c7; padding:1px 1px 1px 4px; background:#ecf0f1;">${t('Nr wiersza')}</th>`;
         for (let klucz of chunkKlucze) {
           html += `<th style="border:1px solid #bdc3c7; padding:1px 1px 1px 4px; background:#ecf0f1;">${klucz}</th>`;
         }
@@ -1286,12 +1286,12 @@ function renderDodatkoweInformacjeHTML(faData, p1Data) {
       // Informacja o podziale
       if (chunks.length > 1) {
         html += '<p style="font-size:8px; color:#666; margin-top:2px; font-style:italic;">';
-        html += `↕️ Tabela została podzielona na ${chunks.length} części ze względu na dużą liczbę etykiet (${sortedKlucze.length}).`;
+        html += `↕️ ${t('Tabela została podzielona na {n} części ze względu na dużą liczbę etykiet ({k}).', { n: chunks.length, k: sortedKlucze.length })}`;
         html += '</p>';
       }
 
       html += '</div>'; // koniec row-details-section
-      html += '<div class="row-details-placeholder">Dodatkowe informacje dla wierszy zostały ukryte.</div>';
+      html += `<div class="row-details-placeholder">${t('Dodatkowe informacje dla wierszy zostały ukryte.')}</div>`;
     }
   }
 
@@ -1302,7 +1302,7 @@ function renderDodatkoweInformacjeHTML(faData, p1Data) {
 function renderZalacznikHTML(zalacznikData) {
   if (!zalacznikData || !zalacznikData.bloki || zalacznikData.bloki.length === 0) return "";
 
-  let html = '<div class="additional-info"><h2>Załączniki</h2>';
+  let html = `<div class="additional-info"><h2>${t('Załączniki')}</h2>`;
 
   for (let blok of zalacznikData.bloki) {
     html += `<div class="info-item" style="grid-column: span 3; margin-bottom: 10px;">`;
@@ -1371,16 +1371,16 @@ function renderZalacznikHTML(zalacznikData) {
 function renderZamowienieHTML(zamowienieData) {
   if (!zamowienieData || !zamowienieData.wiersze || zamowienieData.wiersze.length === 0) return "";
 
-  let html = '<div class="additional-info"><h2>Zamówienie/Umowa</h2>';
+  let html = `<div class="additional-info"><h2>${t('Zamówienie/Umowa')}</h2>`;
 
   if (zamowienieData.wartoscZamowienia) {
-    html += `<div class="info-item"><span class="info-label">Wartość zamówienia:</span> ${formatPrice(zamowienieData.wartoscZamowienia)}</div>`;
+    html += `<div class="info-item"><span class="info-label">${t('Wartość zamówienia')}:</span> ${formatPrice(zamowienieData.wartoscZamowienia)}</div>`;
   }
 
   if (zamowienieData.wiersze.length > 0) {
     html += '<table style="width:100%; margin-top:5px;"><tr>';
-    html += '<th>Lp.</th><th>Opis</th><th>Indeks</th><th>Ilość</th><th>JM</th><th>Cena</th><th>Netto</th><th>VAT%</th>';
-    html += '<th>Numer umowy/UUID</th>';  // DODANA KOLUMNA
+    html += `<th>${t('Lp.')}</th><th>${t('Opis')}</th><th>${t('Indeks')}</th><th>${t('Ilość')}</th><th>${t('JM')}</th><th>${t('Cena')}</th><th>${t('Netto')}</th><th>${t('VAT%')}</th>`;
+    html += `<th>${t('Numer umowy/UUID')}</th>`;  // DODANA KOLUMNA
     html += '</tr>';
 
     for (let w of zamowienieData.wiersze) {
@@ -1391,18 +1391,18 @@ function renderZamowienieHTML(zamowienieData) {
       if (w.pkwiu) dodatki.push(`PKWiU: ${w.pkwiu}`);
       if (w.cn) dodatki.push(`CN: ${w.cn}`);
       if (w.pkob) dodatki.push(`PKOB: ${w.pkob}`);
-      if (w.kwotaAkcyzy && w.kwotaAkcyzy !== "0") dodatki.push(`Akcyza: ${formatPrice(w.kwotaAkcyzy)}`);
+      if (w.kwotaAkcyzy && w.kwotaAkcyzy !== "0") dodatki.push(`${t('Akcyza')}: ${formatPrice(w.kwotaAkcyzy)}`);
       if (w.stawkaOSS) dodatki.push(`OSS: ${w.stawkaOSS}%`);
       if (w.gtu) dodatki.push(w.gtuDisplay);
       if (w.procedura) dodatki.push(w.proceduraDisplay);
-      if (w.zal15) dodatki.push('Zał.15');
+      if (w.zal15) dodatki.push(t('Zał.15'));
 
       if (dodatki.length > 0) {
         opisPelny += '<br><small>' + dodatki.join(' | ') + '</small>';
       }
 
       if (w.stanPrzed) {
-        opisPelny += ' <small>(przed korektą)</small>';
+        opisPelny += ` <small>${t('(przed korektą)')}</small>`;
       }
 
       html += '<tr>';
@@ -1434,7 +1434,7 @@ function renderFooterHTML(stopkaData) {
   if (stopkaData.informacje && stopkaData.informacje.length > 0) {
     for (let info of stopkaData.informacje) {
       if (info.stopkaFaktury) {
-        html += `<div class="footer-line"><span class="footer-label">Stopka faktury:</span> ${info.stopkaFaktury}</div>`;
+        html += `<div class="footer-line"><span class="footer-label">${t('Stopka faktury')}:</span> ${info.stopkaFaktury}</div>`;
         hasContent = true;
       }
     }
@@ -1442,7 +1442,7 @@ function renderFooterHTML(stopkaData) {
 
   if (stopkaData.rejestry && stopkaData.rejestry.length > 0) {
     for (let rej of stopkaData.rejestry) {
-      if (rej.pelnaNazwa) { html += `<div class="footer-line"><span class="footer-label">Pełna nazwa:</span> ${rej.pelnaNazwa}</div>`; hasContent = true; }
+      if (rej.pelnaNazwa) { html += `<div class="footer-line"><span class="footer-label">${t('Pełna nazwa')}:</span> ${rej.pelnaNazwa}</div>`; hasContent = true; }
       if (rej.krs) { html += `<div class="footer-line"><span class="footer-label">KRS:</span> ${rej.krs}</div>`; hasContent = true; }
       if (rej.regon) { html += `<div class="footer-line"><span class="footer-label">REGON:</span> ${rej.regon}</div>`; hasContent = true; }
       if (rej.bdo) { html += `<div class="footer-line"><span class="footer-label">BDO:</span> ${rej.bdo}</div>`; hasContent = true; }
@@ -1471,13 +1471,13 @@ function addQRCode(containerId, nip, dataWystawienia, hash) {
     const infoDiv = document.createElement('div');
     infoDiv.className = 'qr-info';
     infoDiv.innerHTML = `
-      <strong>Weryfikacja faktury w KSeF</strong>
-      <div>Zeskanuj kod QR lub kliknij link poniżej:</div>
-      <div class="qr-hash"><strong>Hash dokumentu:</strong> ${hash}</div>
+      <strong>${t('Weryfikacja faktury w KSeF')}</strong>
+      <div>${t('Zeskanuj kod QR lub kliknij link poniżej:')}</div>
+      <div class="qr-hash"><strong>${t('Hash dokumentu')}:</strong> ${hash}</div>
       <div class="qr-link">
         <a href="${url}" target="_blank">${url}</a>
       </div>
-      <small>Strona weryfikacyjna Ministerstwa Finansów</small>
+      <small>${t('Strona weryfikacyjna Ministerstwa Finansów')}</small>
     `;
     container.appendChild(infoDiv);
   });
@@ -1590,6 +1590,13 @@ function addPaymentQR(qrId, amount, nrb, nip, recipientName, title) {
   });
 }
 
+// Gwiazdka o zakresie tłumaczenia. Pokazujemy TYLKO w języku obcym — po polsku
+// wizualizacja jest w języku oryginału faktury i nota nie ma o czym informować.
+function translationNoteHTML() {
+  if (currentLang === 'pl') return '';
+  return `<div style="text-align:center; margin-top:4px; font-size:9px; color:#95a5a6; font-style:italic;">* ${t('Tłumaczeniu podlegają jedynie statyczne elementy szablonu dokumentu (etykiety). Treść merytoryczna faktury pozostaje w języku oryginalnym.')}</div>`;
+}
+
 // ============================================================================
 // GŁÓWNA FUNKCJA RENDERUJĄCA (HTML)
 // ============================================================================
@@ -1654,21 +1661,21 @@ function render(xml, fileName, xmlContent) {
 
   // Sprzedawca / Nabywca + Podmiot upoważniony
   containerContent += `<div class="section two-cols">`;
-  containerContent += renderPodmiotHTML(p1Data, "SPRZEDAWCA");
+  containerContent += renderPodmiotHTML(p1Data, tUpper('Sprzedawca'));
 
   containerContent += `<div class="col">`;
   if (p2kData) {
-    containerContent += `<h2>NABYWCA</h2>`;
+    containerContent += `<h2>${tUpper('Nabywca')}</h2>`;
     containerContent += `<div style="margin-bottom:5px; background:#fef5e7; padding:5px;">`;
-    containerContent += `<small style="color:#7f8c8d;">PRZED KOREKTĄ</small><br>`;
+    containerContent += `<small style="color:#7f8c8d;">${tUpper('Przed korektą')}</small><br>`;
     containerContent += renderPodmiotHTML(p2kData, "").replace('<div class="col">', '').replace('</div>', '');
     containerContent += `</div>`;
     containerContent += `<div style="background:#e8f8f5; padding:5px;">`;
-    containerContent += `<small style="color:#27ae60;">PO KOREKCIE</small><br>`;
+    containerContent += `<small style="color:#27ae60;">${tUpper('Po korekcie')}</small><br>`;
     containerContent += renderPodmiotHTML(p2Data, "").replace('<div class="col">', '').replace('</div>', '');
     containerContent += `</div>`;
   } else {
-    containerContent += renderPodmiotHTML(p2Data, "NABYWCA").replace('<div class="col">', '').replace('</div>', '');
+    containerContent += renderPodmiotHTML(p2Data, tUpper('Nabywca')).replace('<div class="col">', '').replace('</div>', '');
   }
 
   if (puData) {
@@ -1695,37 +1702,37 @@ function render(xml, fileName, xmlContent) {
 let korygowaneInfo = "";
 if (faData.rodzaj.startsWith("KOR") && faData.daneKorygowane.length > 0) {
   let fakturyList = faData.daneKorygowane.map(dk => {
-    let opis = `${dk.nr}&nbsp;z&nbsp;${dk.data}`;
+    let opis = `${dk.nr}&nbsp;${t('z dnia')}&nbsp;${dk.data}`;
     if (dk.nrKSeF) {
       opis += ` KSeF:&nbsp;${dk.nrKSeF}`;
     } else if (dk.pozaKSeF) {
-      opis += `&nbsp;(poza&nbsp;KSeF)`;
+      opis += `&nbsp;${t('(poza KSeF)').replace(/ /g, '&nbsp;')}`;
     }
     return opis;
   });
 
-  korygowaneInfo = `<strong>Korygowane faktury:</strong>&nbsp;${fakturyList.join('<br>')}<br>`;
+  korygowaneInfo = `<strong>${t('Korygowane faktury')}:</strong>&nbsp;${fakturyList.join('<br>')}<br>`;
 
   if (faData.typKorekty) {
-    korygowaneInfo += `<strong>Typ&nbsp;korekty:</strong>&nbsp;${faData.typKorektyDisplay}<br>`;
+    korygowaneInfo += `<strong>${t('Typ korekty').replace(/ /g, '&nbsp;')}:</strong>&nbsp;${faData.typKorektyDisplay}<br>`;
   }
 }
 
-  let przyczynaInfo = faData.przyczynaKorekty ? `<strong>Przyczyna korekty:</strong> ${faData.przyczynaKorekty}<br>` : "";
+  let przyczynaInfo = faData.przyczynaKorekty ? `<strong>${t('Przyczyna korekty')}:</strong> ${faData.przyczynaKorekty}<br>` : "";
 
   containerContent += `
     <div class="section two-cols">
       <div class="col">
-        <h2>DANE FAKTURY</h2>
-        <strong>Numer:</strong> ${faData.nrFaktury}<br>
-        <strong>Data wystawienia:</strong> ${faData.dataWystawienia}${faData.miejsceWystawienia ? ', ' + faData.miejsceWystawienia : ''}<br>
-        ${faData.dataSprzedazy ? `<strong>Data sprzedaży:</strong> ${faData.dataSprzedazy}<br>` : ''}
-        ${faData.okresSprzedazy ? `<strong>Okres:</strong> ${faData.okresSprzedazy.od} - ${faData.okresSprzedazy.do}<br>` : ''}
+        <h2>${tUpper('Dane faktury')}</h2>
+        <strong>${t('Numer')}:</strong> ${faData.nrFaktury}<br>
+        <strong>${t('Data wystawienia')}:</strong> ${faData.dataWystawienia}${faData.miejsceWystawienia ? ', ' + faData.miejsceWystawienia : ''}<br>
+        ${faData.dataSprzedazy ? `<strong>${t('Data sprzedaży')}:</strong> ${faData.dataSprzedazy}<br>` : ''}
+        ${faData.okresSprzedazy ? `<strong>${t('Okres')}:</strong> ${faData.okresSprzedazy.od} - ${faData.okresSprzedazy.do}<br>` : ''}
         ${korygowaneInfo}
         ${przyczynaInfo}
       </div>
       <div class="col">
-        <h2>PŁATNOŚĆ</h2>
+        <h2>${tUpper('Płatność')}</h2>
         ${renderPaymentInfoHTML(platnoscData)}
       </div>
     </div>
@@ -1761,7 +1768,7 @@ if (faData.rodzaj.startsWith("KOR") && faData.daneKorygowane.length > 0) {
           tableRows += `
 <tr class="diff-row">
   <td></td>
-  <td colspan="2"><b>RÓŻNICA</b></td>
+  <td colspan="2"><b>${t('RÓŻNICA')}</b></td>
   <td></td>
   <td class="right">${diffQty !== 0 ? fmtQty(diffQty) : ''}</td>
   <td class="center">—</td>
@@ -1786,24 +1793,24 @@ if (faData.rodzaj.startsWith("KOR") && faData.daneKorygowane.length > 0) {
   // Twardy <br> w nagłówkach — z auto-layout przeglądarka mierzy szerokość po
   // najszerszej nieprzerywalnej sekwencji (analogicznie do \n w pdfmake).
   // Bez tego "Cena po rabacie" rezerwuje znacznie więcej miejsca niż realna zawartość.
-  const rabatHeader = showRabatCol ? '<th class="right">Cena po<br>rabacie</th>' : '';
+  const rabatHeader = showRabatCol ? `<th class="right">${tWrap('Cena po rabacie', '<br>')}</th>` : '';
   // Faktura bez FaWiersz (np. korekta samych danych nabywcy) — same nagłówki kolumn
   // bez ani jednego wiersza to szum, nie informacja. Pomijamy całą tabelę.
   if (wierszeArray.length > 0) containerContent += `
     <table>
       <tr>
         <th>#</th>
-        <th>Opis / GTU</th>
-        <th>Indeks</th>
+        <th>${t('Opis / GTU')}</th>
+        <th>${t('Indeks')}</th>
         <th>EAN/GTIN</th>
-        <th class="right">Ilość</th>
-        <th class="center">JM</th>
-        <th class="right">Cena<br>netto</th>
+        <th class="right">${t('Ilość')}</th>
+        <th class="center">${t('JM')}</th>
+        <th class="right">${tWrap('Cena netto', '<br>')}</th>
         ${rabatHeader}
-        <th class="right">Wart.<br>netto</th>
-        <th class="center">VAT%</th>
-        <th class="right">VAT</th>
-        <th class="right">Wart.<br>brutto</th>
+        <th class="right">${tWrap('Wart. netto', '<br>')}</th>
+        <th class="center">${t('VAT%')}</th>
+        <th class="right">${t('VAT')}</th>
+        <th class="right">${tWrap('Wart. brutto', '<br>')}</th>
       </tr>
       ${tableRows}
     </table>
@@ -1840,13 +1847,14 @@ if (faData.rodzaj.startsWith("KOR") && faData.daneKorygowane.length > 0) {
     containerContent += `
       <div class="qr-section">
         <div class="schema-warning">
-          <strong>Weryfikacja w KSeF niemożliwa</strong>
-          Plik zawiera elementy spoza schematu FA(3). Hash dokumentu może nie odpowiadać oryginałowi z KSeF.
+          <strong>${t('Weryfikacja w KSeF niemożliwa')}</strong>
+          ${t('Plik zawiera elementy spoza schematu FA(3). Hash dokumentu może nie odpowiadać oryginałowi z KSeF.')}
           <div class="unknown-elements-list">${elementsHtml}</div>
         </div>
       </div>
+      ${translationNoteHTML()}
       <div style="text-align:center; margin-top:10px; font-size:10px; color:#7f8c8d;">
-        KSeFeusz.pl - darmowy wizualizator faktur ustrukturyzowanych KSeF wersja ${APP_VERSION}
+        ${t('KSeFeusz.pl - darmowy wizualizator faktur ustrukturyzowanych KSeF wersja {v}', { v: APP_VERSION })}
       </div>
     `;
   } else {
@@ -1854,8 +1862,9 @@ if (faData.rodzaj.startsWith("KOR") && faData.daneKorygowane.length > 0) {
       <div class="qr-section">
         <div id="${qrContainerId}" class="qr-container"></div>
       </div>
+      ${translationNoteHTML()}
       <div style="text-align:center; margin-top:10px; font-size:10px; color:#7f8c8d;">
-        KSeFeusz.pl - darmowy wizualizator faktur ustrukturyzowanych KSeF wersja ${APP_VERSION}
+        ${t('KSeFeusz.pl - darmowy wizualizator faktur ustrukturyzowanych KSeF wersja {v}', { v: APP_VERSION })}
       </div>
     `;
   }

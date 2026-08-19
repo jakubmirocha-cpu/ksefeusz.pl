@@ -22,8 +22,8 @@
 <meta name="twitter:image" content="https://ksefeusz.pl/assets/preview.png">
 
 <link rel="stylesheet" href="css/lib/font-awesome.min.css">
-<link rel="stylesheet" href="css/style.css?v=1.6.19">
-<link rel="stylesheet" href="css/invoice.css?v=1.6.19">
+<link rel="stylesheet" href="css/style.css?v=1.7.0">
+<link rel="stylesheet" href="css/invoice.css?v=1.7.0">
 
 
 <!-- Małe biblioteki potrzebne od razu -->
@@ -112,10 +112,7 @@
   <!-- HERO -->
   <section class="hero">
     <div>
-      <div class="eyebrow">
-        <i class="fas fa-bolt"></i>
-        Darmowy wizualizator faktur KSeF
-      </div>
+      <div class="eyebrow">Darmowy wizualizator faktur KSeF</div>
       <h1>Zamień fakturę XML w <br><span class="accent-word">czytelny PDF</span><br>gotowy do druku i archiwizacji.</h1>
       <p class="hero-lede">Otwórz plik XML z KSeF — w kilka sekund masz czytelny podgląd i PDF gotowy do druku lub archiwizacji. 100% bezpiecznie, bez wysyłania danych na serwer. Całkowicie za darmo.</p>
       <div class="hero-ctas">
@@ -333,6 +330,13 @@
         </div>
         <div class="faq-item">
           <button class="faq-q" onclick="toggleFaq(this)">
+            <span>Czy mogę pokazać fakturę zagranicznemu kontrahentowi?</span>
+            <i class="fas fa-chevron-down faq-chev"></i>
+          </button>
+          <div class="faq-a">Tak. Po wczytaniu faktury wybierz język w belce nad podglądem — do wyboru polski, angielski, niemiecki, francuski i ukraiński. Zmiana działa jednocześnie na podglądzie i na generowanym PDF-ie. Tłumaczeniu podlegają jedynie statyczne elementy szablonu dokumentu (etykiety, nagłówki sekcji, nazwy kolumn). Treść merytoryczna faktury — nazwy towarów i usług, adresy, opisy, przyczyna korekty — pozostaje w języku oryginalnym, bo to dane wystawcy, których wizualizator nie zmienia. Kwoty i daty również zachowują format z pliku XML.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">
             <span>Czy mogę wizualizować wiele faktur na raz?</span>
             <i class="fas fa-chevron-down faq-chev"></i>
           </button>
@@ -461,6 +465,28 @@
           </span>
         </span>
 
+        <span class="lang-group">
+          <label for="invoiceLang" class="lang-label"><i class="fas fa-language"></i></label>
+          <select id="invoiceLang" class="lang-select" onchange="changeInvoiceLang(this.value)" title="Język wizualizacji faktury">
+            <option value="pl" selected>Polski</option>
+            <option value="en">English</option>
+            <option value="de">Deutsch</option>
+            <option value="fr">Français</option>
+            <option value="uk">Українська</option>
+          </select>
+          <span class="view-toggle-info" tabindex="0">
+            <i class="fas fa-info-circle" style="color:var(--text-faint);font-size:14px;"></i>
+            <span class="view-toggle-tooltip">
+              <strong>Język wizualizacji</strong><br>
+              Zmienia język podglądu na ekranie <strong>oraz</strong> generowanego PDF-a<br>
+              — przydatne, gdy wysyłasz fakturę zagranicznemu kontrahentowi.<br><br>
+              Tłumaczeniu podlegają jedynie statyczne elementy szablonu dokumentu (etykiety).<br>
+              Treść merytoryczna faktury — nazwy towarów, adresy, opisy, przyczyna korekty —<br>
+              pozostaje w języku oryginalnym. Kwoty i daty zachowują format z pliku XML.
+            </span>
+          </span>
+        </span>
+
         <button class="action-btn" onclick="window.print()">
           <i class="fas fa-print"></i> Drukuj
         </button>
@@ -493,6 +519,20 @@
         </div>
         <div class="work-subtitle">Wczytaj plik XML — PDF pobierze się automatycznie, bez pośredniego podglądu · Idealny gdy nie potrzebujesz wizualizacji</div>
       </div>
+    </div>
+    <!-- Język MUSI być wybrany przed wskazaniem pliku — PDF pobiera się natychmiast,
+         bez pośredniego podglądu. Stąd osobny pasek nad kaflem, a nie ikonka w rogu. -->
+    <div class="lang-bar">
+      <i class="fas fa-language lang-bar-icon"></i>
+      <label for="invoiceLangPdf" class="lang-bar-text">Język PDF-a:</label>
+      <select id="invoiceLangPdf" class="lang-select" onchange="changeInvoiceLang(this.value)">
+        <option value="pl" selected>Polski</option>
+        <option value="en">English</option>
+        <option value="de">Deutsch</option>
+        <option value="fr">Français</option>
+        <option value="uk">Українська</option>
+      </select>
+      <span class="lang-bar-hint">Wybierz przed wczytaniem pliku. Tłumaczone są etykiety szablonu — treść faktury zostaje w języku oryginału.</span>
     </div>
     <div id="pdfUploadArea" class="upload-area" onclick="document.getElementById('fileInputPdf').click()">
       <i class="fas fa-file-pdf" style="color:var(--danger);"></i>
@@ -531,6 +571,19 @@
         </div>
         <div class="work-subtitle">Wczytaj wiele plików XML i wygeneruj wszystkie PDF-y naraz</div>
       </div>
+    </div>
+    <!-- Język dotyczy wszystkich PDF-ów wygenerowanych z kolejki -->
+    <div class="lang-bar">
+      <i class="fas fa-language lang-bar-icon"></i>
+      <label for="invoiceLangBatch" class="lang-bar-text">Język PDF-ów:</label>
+      <select id="invoiceLangBatch" class="lang-select" onchange="changeInvoiceLang(this.value)">
+        <option value="pl" selected>Polski</option>
+        <option value="en">English</option>
+        <option value="de">Deutsch</option>
+        <option value="fr">Français</option>
+        <option value="uk">Українська</option>
+      </select>
+      <span class="lang-bar-hint">Dotyczy wszystkich faktur z kolejki. Tłumaczone są etykiety szablonu — treść faktur zostaje w języku oryginału.</span>
     </div>
 
     <!-- Informacja dla użytkowników mobilnych -->
@@ -729,11 +782,13 @@
 <script src="js/lib/vfs_fonts.min.js"></script>
 
 <!-- Nasze skrypty -->
-<script src="js/core.js?v=1.6.19"></script>
-<script src="js/utils.js?v=1.6.19"></script>
-<script src="js/renderer.js?v=1.6.19"></script>
-<script src="js/main.js?v=1.6.19"></script>
-<script src="js/upo.js?v=1.6.19"></script>
+<!-- i18n.js PRZED core.js — core/renderer/main wołają t() ze słownika -->
+<script src="js/i18n.js?v=1.7.0"></script>
+<script src="js/core.js?v=1.7.0"></script>
+<script src="js/utils.js?v=1.7.0"></script>
+<script src="js/renderer.js?v=1.7.0"></script>
+<script src="js/main.js?v=1.7.0"></script>
+<script src="js/upo.js?v=1.7.0"></script>
 
 <script>
 function toggleFaq(btn) {

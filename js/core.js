@@ -1,5 +1,5 @@
 // ============================================================================
-// core.js - wersja 1.6.19 (rdzeń aplikacji)
+// core.js - wersja 1.7.0 (rdzeń aplikacji)
 // ============================================================================
 
 // ============================================================================
@@ -309,7 +309,7 @@ function parseFaWiersz(node, czyFakturaMarza = false) {
   const ilosc = safeParse(getText(node, "P_8B"));
   
   let kwotaNetto, kwotaBrutto, kwotaVat;
-  let stawkaVatDisplay = vatRateMap[rate] || (rate ? rate + "%" : "—");
+  let stawkaVatDisplay = t(vatRateMap[rate]) || (rate ? rate + "%" : "—");
   
   // Sprawdź czy to procedura marży (brak stawki VAT)
   const czyMarza = !rate && grossFromXml > 0 && cenaBrutto > 0;
@@ -319,7 +319,7 @@ function parseFaWiersz(node, czyFakturaMarza = false) {
     kwotaNetto = 0;
     kwotaBrutto = grossFromXml;
     kwotaVat = 0;
-    stawkaVatDisplay = "marża";
+    stawkaVatDisplay = t("marża");
   }
   // Sprawdź czy mamy wartości brutto, a brakuje netto (faktura w cenach brutto)
   else if (grossFromXml > 0 && net === 0 && rateNum > 0) {
@@ -429,7 +429,7 @@ function parseFaWiersz(node, czyFakturaMarza = false) {
     kursWaluty: getText(node, "KursWaluty"),
     
     gtu: gtu,
-    gtuDisplay: gtuMap[gtu] || gtu,
+    gtuDisplay: t(gtuMap[gtu]) || gtu,
     procedura: procedura,
     proceduraDisplay: procedureMap[procedura] || procedura,
     zal15: zal15 === "1",
@@ -482,7 +482,7 @@ function parseFa(faNode) {
     miejsceWystawienia: getText(faNode, "P_1M"),
     nrFaktury: getText(faNode, "P_2"),
     rodzaj: getText(faNode, "RodzajFaktury"),
-    rodzajDisplay: invoiceTypeMap[getText(faNode, "RodzajFaktury")] || "FAKTURA",
+    rodzajDisplay: t(invoiceTypeMap[getText(faNode, "RodzajFaktury")]) || t("FAKTURA"),
     
     dataSprzedazy: getText(faNode, "P_6"),
     okresSprzedazy: okresFaNode ? {
@@ -497,7 +497,7 @@ function parseFa(faNode) {
     // Korekty
     przyczynaKorekty: getText(faNode, "PrzyczynaKorekty"),
     typKorekty: getText(faNode, "TypKorekty"),
-    typKorektyDisplay: correctionTypeMap[getText(faNode, "TypKorekty")] || getText(faNode, "TypKorekty"),
+    typKorektyDisplay: t(correctionTypeMap[getText(faNode, "TypKorekty")]) || getText(faNode, "TypKorekty"),
     daneKorygowane: daneKorygList.map(dk => ({
       data: getText(dk, "DataWystFaKorygowanej"),
       nr: getText(dk, "NrFaKorygowanej"),
@@ -890,13 +890,13 @@ function parseZamowienie(node) {
       kwotaVat: vat,
       
       stawkaVat: stawka,
-      stawkaVatDisplay: vatRateMap[stawka] || (stawka ? stawka + "%" : ""),
+      stawkaVatDisplay: t(vatRateMap[stawka]) || (stawka ? stawka + "%" : ""),
       stawkaOSS: getText(w, "P_12Z_XII"),
       
       kwotaAkcyzy: getText(w, "KwotaAkcyzyZ"),
       
       gtu: gtuZ,
-      gtuDisplay: gtuMap[gtuZ] || gtuZ,
+      gtuDisplay: t(gtuMap[gtuZ]) || gtuZ,
       procedura: proceduraZ,
       proceduraDisplay: procedureMap[proceduraZ] || proceduraZ,
       zal15: zal15Z === "1",

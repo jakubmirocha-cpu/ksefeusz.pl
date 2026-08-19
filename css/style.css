@@ -1,4 +1,4 @@
-﻿/* ===== KSeFeusz.pl - style.css - wersja 1.6.19 (2026-08-18) ===== */
+﻿/* ===== KSeFeusz.pl - style.css - wersja 1.7.0 (2026-08-18) ===== */
 
 .upload-area.hidden {
   display: none;
@@ -122,14 +122,15 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   display: grid; grid-template-columns: 1.05fr 1.1fr;
   gap: 56px; align-items: center;
 }
+/* Nadtytuł hero — sam tekst, bez pigułki i ikony. Ma nazwać czym jest serwis,
+   zanim czytelnik dojdzie do h1; nie ma być elementem, na który patrzy się
+   pierwszy. Tło + radius 999px + ikona nadawały mu wagę CTA, którym nie jest. */
 .eyebrow {
-  display: inline-flex; align-items: center; gap: 8px;
-  font-size: 12px; font-weight: 600; color: var(--accent);
+  display: block;
+  font-size: 12px; font-weight: 600; color: var(--text-muted);
   text-transform: uppercase; letter-spacing: 0.08em;
-  padding: 5px 10px; background: var(--accent-soft); border-radius: 999px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
-.eyebrow i { font-size: 8px; }
 .hero h1 {
   font-size: 44px; line-height: 1.08; letter-spacing: -0.022em;
   font-weight: 700; color: var(--brand-ink); margin-bottom: 18px;
@@ -517,6 +518,36 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .action-btn.danger-ghost:hover { background: var(--danger-soft) !important; border-color: var(--danger) !important; }
 .action-btn i { font-size: 12px; }
 
+/* Wybór języka wizualizacji (v1.7.0) — wygląda jak .action-btn,
+   ale to natywny <select>, żeby na mobile otworzyła się lista systemowa. */
+.lang-group { display: inline-flex; align-items: center; gap: 6px; }
+/* Ikona języka jest akcentowana we wszystkich trzech miejscach (belka pliku,
+   Eksport PDF, Wiele faktur) — ma być rozpoznawalna jako ta sama kontrolka. */
+.lang-label { display: inline-flex; align-items: center; color: var(--accent); font-size: 14px; }
+.lang-select {
+  padding: 7px 10px; border-radius: 7px;
+  font-size: 13px; font-weight: 500; font-family: inherit;
+  color: var(--text); border: 1px solid var(--border);
+  background: var(--surface); cursor: pointer;
+  transition: all 0.12s;
+}
+/* Pasek wyboru języka nad kaflem uploadu (Eksport PDF, Wiele faktur).
+   W tych panelach PDF powstaje natychmiast po wskazaniu pliku — nie ma podglądu,
+   w którym dałoby się zmienić język później. Dlatego pełnowymiarowy pasek
+   z podpisem, a nie dyskretna ikonka w rogu nagłówka: musi być widoczny
+   ZANIM użytkownik kliknie w kafel.
+   Bez ramki i tła — ozdobny boks nadawał tej informacji wagę komunikatu
+   wymagającego uwagi, którym nie jest. Ikona i typografia zostają. */
+.lang-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.lang-bar-icon { color: var(--accent); font-size: 16px; }
+.lang-bar-text { font-size: 14px; font-weight: 600; color: var(--brand-ink); cursor: pointer; }
+.lang-bar-hint { font-size: 12.5px; color: var(--text-muted); flex: 1 1 260px; min-width: 0; }
+.lang-select:hover { background: var(--surface-2); border-color: var(--border-strong); }
+.lang-select:focus { outline: none; border-color: var(--accent); }
+
 /* Toggle in filebar */
 .toggle-row {
   display: inline-flex; align-items: center; gap: 8px;
@@ -619,6 +650,22 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .view-toggle-info:hover .view-toggle-tooltip,
 .view-toggle-info:focus .view-toggle-tooltip {
   display: block;
+}
+
+/* Tooltipy w belce pliku otwierają się W DÓŁ (v1.7.0).
+   Belka siedzi tuż pod sticky nav (72px), więc domyślny wariant "do góry"
+   przy dłuższej treści ucieka poza górną krawędź okna — pierwsze linijki
+   chowają się pod paskiem nawigacji i nie da się ich przeczytać.
+   Dotyczy wszystkich trzech tooltipów w belce, żeby zachowywały się tak samo. */
+.filebar .view-toggle-tooltip {
+  bottom: auto;
+  top: calc(100% + 8px);
+}
+.filebar .view-toggle-tooltip::after {
+  top: auto;
+  bottom: 100%;
+  border-top-color: transparent;
+  border-bottom-color: #2c3e50;
 }
 
 /* Komunikat błędu (globalny baner) */
@@ -796,6 +843,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   #panel-batch { display: none; }
   #panel-batch.active { display: block !important; }
   #batchUploadArea, #batchPanel, #panel-batch .work-header { display: none !important; }
+  /* Batch na mobile jest wyłączony (jest notice) — pasek języka nie ma tu czego dotyczyć.
+     W panelu Eksport PDF zostaje: to główna ścieżka mobilna. */
+  #panel-batch .lang-bar { display: none !important; }
   .mobile-batch-notice { display: flex; }
   /* UPO panel: ukryj zawartość, pokaż notice */
   .upo-upload-area, #upoFileInfo, #upo-pages, #panel-upo .work-header { display: none !important; }
