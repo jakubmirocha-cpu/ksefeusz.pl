@@ -2171,10 +2171,10 @@ function pdfRRCreateTableBody(wiersze, jestKorekta, showDiffRows) {
     { text: 'Ilość', style: 'tableHeader', alignment: 'right' },
     { text: 'JM', style: 'tableHeader', alignment: 'center' },
     { text: 'Cena\njedn.', style: 'tableHeader', alignment: 'right' },
-    { text: 'Wartość\nbez zwrotu', style: 'tableHeader', alignment: 'right' },
-    { text: 'Stawka\nzwrotu', style: 'tableHeader', alignment: 'center' },
-    { text: 'Kwota\nzwrotu', style: 'tableHeader', alignment: 'right' },
-    { text: 'Wartość\nze zwrotem', style: 'tableHeader', alignment: 'right' }
+    { text: 'Wartość\nbez ZZP*', style: 'tableHeader', alignment: 'right' },
+    { text: 'Stawka\nZZP', style: 'tableHeader', alignment: 'center' },
+    { text: 'Kwota\nZZP', style: 'tableHeader', alignment: 'right' },
+    { text: 'Wartość\nz ZZP', style: 'tableHeader', alignment: 'right' }
   ]];
 
   if (!jestKorekta) {
@@ -2232,9 +2232,9 @@ function pdfRRSummary(rrData) {
   const body = [naglowek];
 
   const wiersze = [
-    { l: 'Wartość nabycia bez kwoty zwrotu (P_11_1)', v: rrData.wartoscNabycia, w: rrData.wartoscNabyciaW },
-    { l: 'Zryczałtowany zwrot podatku (P_11_2)', v: rrData.zwrotZryczaltowany, w: rrData.zwrotZryczaltowanyW },
-    { l: 'Należność ogółem (P_12_1)', v: rrData.naleznoscOgolem, w: rrData.naleznoscOgolemW, sum: true }
+    { l: 'Wartość nabytych produktów rolnych lub wykonanych usług rolniczych', v: rrData.wartoscNabycia, w: rrData.wartoscNabyciaW },
+    { l: 'Kwota zryczałtowanego zwrotu podatku', v: rrData.zwrotZryczaltowany, w: rrData.zwrotZryczaltowanyW },
+    { l: 'Kwota należności ogółem', v: rrData.naleznoscOgolem, w: rrData.naleznoscOgolemW, sum: true }
   ];
 
   for (const r of wiersze) {
@@ -2486,20 +2486,6 @@ function generateRRPdfWithPdfMake(action = 'download') {
     }
     docDefinition.content.push({ text: metaItems.join('  ·  '), fontSize: 7, color: '#95a5a6', margin: [0, 0, 0, 4] });
 
-    // Objaśnienie natury dokumentu — bez niego odwrócone role są nieczytelne
-    docDefinition.content.push({
-      table: { widths: ['*'], body: [[{
-        text: 'Faktura VAT RR dokumentuje nabycie produktów rolnych lub usług rolniczych od rolnika ryczałtowego. Zgodnie z art. 116 ustawy o VAT wystawia ją nabywca, a zryczałtowany zwrot podatku powiększa kwotę należną rolnikowi.',
-        fontSize: 7, color: '#34495e', fillColor: '#f2f8fd'
-      }]] },
-      layout: {
-        hLineWidth: () => 0, vLineWidth: (i) => i === 0 ? 2 : 0,
-        vLineColor: () => '#3498db',
-        paddingLeft: () => 6, paddingRight: () => 6, paddingTop: () => 4, paddingBottom: () => 4
-      },
-      margin: [0, 0, 0, 5]
-    });
-
     // Podmioty — nagłówki z kwalifikatorem roli
     docDefinition.content.push(pdfTwoBox(
       rrData.podmiot1K
@@ -2580,7 +2566,13 @@ function generateRRPdfWithPdfMake(action = 'download') {
           vLineColor: () => '#aaaaaa',
           paddingLeft: () => 4, paddingRight: () => 4, paddingTop: () => 3, paddingBottom: () => 3
         },
-        margin: [0, 0, 0, 4]
+        margin: [0, 0, 0, 2]
+      });
+      // Skrót ZZP jest standardem w wizualizacjach KSeF, ale nie jest powszechnie
+      // znany — rozwijamy go pod tabelą, zamiast rozpychać nagłówki kolumn.
+      docDefinition.content.push({
+        text: '* ZZP — zryczałtowany zwrot podatku',
+        fontSize: 6.5, italics: true, color: '#7f8c8d', margin: [0, 0, 0, 4]
       });
     }
 
@@ -2589,7 +2581,7 @@ function generateRRPdfWithPdfMake(action = 'download') {
       docDefinition.content.push({
         columns: [
           { width: '*', text: '' },
-          { width: '55%', stack: [pdfRRSummary(rrData)] }
+          { width: '72%', stack: [pdfRRSummary(rrData)] }
         ],
         margin: [0, 0, 0, 2]
       });

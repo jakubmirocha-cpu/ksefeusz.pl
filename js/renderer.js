@@ -1946,9 +1946,9 @@ function rrSummaryHTML(rrData) {
     .some(k => (parseFloat(rrData[k]) || 0) !== 0);
 
   const wiersze = [
-    { l: 'Wartość nabytych produktów rolnych bez kwoty zwrotu (P_11_1)', v: rrData.wartoscNabycia, w: rrData.wartoscNabyciaW },
-    { l: 'Zryczałtowany zwrot podatku (P_11_2)', v: rrData.zwrotZryczaltowany, w: rrData.zwrotZryczaltowanyW },
-    { l: 'Należność ogółem wraz z kwotą zwrotu (P_12_1)', v: rrData.naleznoscOgolem, w: rrData.naleznoscOgolemW, sum: true }
+    { l: 'Wartość nabytych produktów rolnych lub wykonanych usług rolniczych', v: rrData.wartoscNabycia, w: rrData.wartoscNabyciaW },
+    { l: 'Kwota zryczałtowanego zwrotu podatku', v: rrData.zwrotZryczaltowany, w: rrData.zwrotZryczaltowanyW },
+    { l: 'Kwota należności ogółem', v: rrData.naleznoscOgolem, w: rrData.naleznoscOgolemW, sum: true }
   ];
 
   let html = `<table class="vat-summary no-break"><tr><th>Pozycja</th><th class="right">Kwota (${waluta})</th>`;
@@ -2207,15 +2207,6 @@ function renderRR(xml, fileName, xmlContent) {
   // ===== BUDOWANIE HTML =====
   let c = renderNaglowekHTML(rrData, fileName, naglowekData);
 
-  // Jedno zdanie o naturze dokumentu — bez tego odwrócone role podmiotów
-  // są nieczytelne dla kogoś, kto pierwszy raz widzi fakturę VAT RR.
-  c += `<div class="rr-note optional-section">
-    <i class="fas fa-info-circle"></i>
-    Faktura VAT RR dokumentuje nabycie produktów rolnych lub usług rolniczych od rolnika ryczałtowego.
-    Zgodnie z art. 116 ustawy o VAT wystawia ją <strong>nabywca</strong>, a zryczałtowany zwrot podatku
-    powiększa kwotę należną <strong>rolnikowi</strong>.
-  </div>`;
-
   // Podmioty — nagłówki z kwalifikatorem roli
   c += `<div class="section two-cols">`;
   c += rrPodmiotSekcjaHTML(p1Data, rrData.podmiot1K, 'ROLNIK RYCZAŁTOWY (DOSTAWCA)');
@@ -2317,13 +2308,14 @@ function renderRR(xml, fileName, xmlContent) {
         <th class="right">Ilość</th>
         <th class="center">JM</th>
         <th class="right">Cena<br>jedn.</th>
-        <th class="right">Wartość<br>bez zwrotu</th>
-        <th class="center">Stawka<br>zwrotu</th>
-        <th class="right">Kwota<br>zwrotu</th>
-        <th class="right">Wartość<br>ze zwrotem</th>
+        <th class="right">Wartość<br>bez ZZP*</th>
+        <th class="center">Stawka<br>ZZP</th>
+        <th class="right">Kwota<br>ZZP</th>
+        <th class="right">Wartość<br>z ZZP</th>
       </tr>
       ${tableRows}
     </table>
+    <div class="rr-zzp-legend">* ZZP — zryczałtowany zwrot podatku</div>
   `;
 
   c += rrSummaryHTML(rrData);
