@@ -197,6 +197,7 @@ function parsePodmiot(node, typ = 'podmiot1') {
     // Dodatkowe pola specyficzne dla podmiotu
     nrEORI: getText(node, "NrEORI"),
     nrKlienta: getText(node, "NrKlienta"),
+    nrKontrahenta: getText(node, "NrKontrahenta"),   // tylko FA_RR (Podmiot1)
     idNabywcy: getText(node, "IDNabywcy"),
     status: getText(node, "StatusInfoPodatnika"),
     udzial: getText(node, "Udzial"),
@@ -992,5 +993,170 @@ function parsePodmiot1K(node) {
       linia2: getText(adres, "AdresL2"),
       gln: getText(adres, "GLN")
     } : null
+  };
+}
+
+// ============================================================================
+// FA_RR — faktura VAT RR (rolnik ryczałtowy, art. 116 ustawy o VAT)
+// ----------------------------------------------------------------------------
+// Odwrócony kierunek dokumentu: Podmiot1 to DOSTAWCA (rolnik ryczałtowy),
+// Podmiot2 to NABYWCA — i to nabywca wystawia fakturę.
+// Dokument jest wyłącznie krajowy, więc etykiety NIE przechodzą przez t()
+// (patrz decyzja o braku i18n w CLAUDE.md).
+// ============================================================================
+
+// Zryczałtowany zwrot podatku — schemat dopuszcza tylko dwie stawki
+const rrStawkaMap = { "6.5": "6,5%", "7": "7%" };
+
+// Osobna mapa form płatności: w FA_RR "1" znaczy przelew, w FA(3) "1" to gotówka
+const rrPaymentMap = { "1": "przelew" };
+
+const rrInvoiceTypeMap = {
+  "VAT_RR": "FAKTURA VAT RR",
+  "KOR_VAT_RR": "FAKTURA KORYGUJĄCA VAT RR"
+};
+
+// FA_RR ma czwarty typ korekty, którego nie ma w FA(3)
+const rrCorrectionTypeMap = {
+  "1": "Korekta w dacie ujęcia faktury pierwotnej",
+  "2": "Korekta w dacie wystawienia korekty",
+  "3": "Korekta w innej dacie",
+  "4": "Korekta w dacie zwrotu należności"
+};
+
+// ============================================================================
+// PARSER: wiersz faktury RR (FakturaRRWiersz)
+// ============================================================================
+// Nazwy pól celowo zbliżone do parseFaWiersz tam, gdzie karmią wspólny kod:
+// nrWiersza / uuid / stanPrzed / gtin / ilosc czyta groupCorrectionRows bez zmian.
+// Kwoty mają nazwy własne dla RR — "netto" i "VAT" w tym dokumencie nie występują.
+function parseFakturaRRWiersz(node) {
+  if (!node) return null;
+
+  const num = (val) => {
+    if (!val) return 0;
+    const n = parseFloat(String(val).replace(/,/g, ".").replace(/\s/g, ""));
+    return isNaN(n) ? 0 : n;
+  };
+
+  const stawka = getText(node, "P_9");
+
+  return {
+    nrWiersza: getText(node, "NrWierszaFa"),
+    uuid: getText(node, "UU_ID"),
+    stanPrzed: getText(node, "StanPrzed") === "1",
+
+    dataNabycia: getText(node, "P_4AA"),
+    nazwa: getText(node, "P_5"),
+    gtin: getText(node, "GTIN"),
+    pkwiu: getText(node, "PKWiU"),
+    cn: getText(node, "CN"),
+    indeks: "",                       // FA_RR nie ma Indeksu — pole dla groupCorrectionRows
+
+    jednostka: getText(node, "P_6A"),
+    ilosc: num(getText(node, "P_6B")),
+    klasa: getText(node, "P_6C"),     // klasa/jakość — w schemacie wymagana
+
+    cena: num(getText(node, "P_7")),          // cena jednostkowa bez zwrotu
+    wartoscBez: num(getText(node, "P_8")),    // wartość bez kwoty zwrotu
+    stawkaZwrotu: stawka,
+    stawkaZwrotuDisplay: rrStawkaMap[stawka] || (stawka ? stawka + "%" : "—"),
+    kwotaZwrotu: num(getText(node, "P_10")),  // zryczałtowany zwrot podatku
+    wartoscZ: num(getText(node, "P_11")),     // wartość wraz z kwotą zwrotu
+
+    kursWaluty: getText(node, "KursWaluty")   // w FA_RR kurs jest PER WIERSZ, nie w nagłówku
+  };
+}
+
+// ============================================================================
+// PARSER: dane faktury RR (FakturaRR)
+// ============================================================================
+function parseFakturaRR(node) {
+  if (!node) return null;
+
+  const rodzaj = getText(node, "RodzajFaktury");
+  const typKorekty = getText(node, "TypKorekty");
+  const p1kNode = node.getElementsByTagNameNS(ns, "Podmiot1K")[0];
+  const p2kNode = node.getElementsByTagNameNS(ns, "Podmiot2K")[0];
+
+  return {
+    kodWaluty: getText(node, "KodWaluty"),
+    miejsceWystawienia: getText(node, "P_1M"),
+    dataNabycia: getText(node, "P_4A"),
+    dataWystawienia: getText(node, "P_4B"),
+    nrFaktury: getText(node, "P_4C"),
+
+    // Podsumowanie — odpowiednik tabelki VAT w FA(3), ale tylko trzy kwoty
+    wartoscNabycia: getText(node, "P_11_1"),
+    wartoscNabyciaW: getText(node, "P_11_1W"),
+    zwrotZryczaltowany: getText(node, "P_11_2"),
+    zwrotZryczaltowanyW: getText(node, "P_11_2W"),
+    naleznoscOgolem: getText(node, "P_12_1"),
+    naleznoscOgolemW: getText(node, "P_12_1W"),
+    naleznoscSlownie: getText(node, "P_12_2"),
+
+    rodzaj: rodzaj,
+    rodzajDisplay: rrInvoiceTypeMap[rodzaj] || "FAKTURA VAT RR",
+
+    // Korekta
+    przyczynaKorekty: getText(node, "PrzyczynaKorekty"),
+    typKorekty: typKorekty,
+    typKorektyDisplay: rrCorrectionTypeMap[typKorekty] || typKorekty,
+    daneKorygowane: Array.from(node.getElementsByTagNameNS(ns, "DaneFaKorygowanej")).map(dk => ({
+      data: getText(dk, "DataWystFaKorygowanej"),
+      nr: getText(dk, "NrFaKorygowanej"),
+      nrKSeF: getText(dk, "NrKSeFFaKorygowanej"),
+      pozaKSeF: getText(dk, "NrKSeFN") === "1"
+    })),
+    nrFaKorygowany: getText(node, "NrFaKorygowany"),
+    podmiot1K: p1kNode ? parsePodmiot1K(p1kNode) : null,
+    podmiot2K: p2kNode ? parsePodmiot1K(p2kNode) : null,
+
+    // Bez dowodu zapłaty nabywca nie odliczy zryczałtowanego zwrotu — stąd osobna sekcja
+    dokumentyZaplaty: Array.from(node.getElementsByTagNameNS(ns, "DokumentZaplaty")).map(d => ({
+      nr: getText(d, "NrDokumentu"),
+      data: getText(d, "DataDokumentu")
+    })),
+
+    dodatkoweOpisy: Array.from(node.getElementsByTagNameNS(ns, "DodatkowyOpis")).map(o => ({
+      nrWiersza: getText(o, "NrWiersza"),
+      klucz: getText(o, "Klucz"),
+      wartosc: getText(o, "Wartosc")
+    })),
+
+    wiersze: Array.from(node.getElementsByTagNameNS(ns, "FakturaRRWiersz")).map(parseFakturaRRWiersz)
+  };
+}
+
+// ============================================================================
+// PARSER: płatność RR (Platnosc w FakturaRR)
+// ============================================================================
+// Osobno od parsePlatnosc, bo FA_RR rozdziela rachunki na dwa elementy:
+// RachunekBankowy1 = rachunek ROLNIKA (tam idzie przelew),
+// RachunekBankowy2 = rachunek NABYWCY (informacyjnie).
+// Nie ma tu Zaplacono, TerminPlatnosci, Skonta ani zapłat częściowych.
+function parsePlatnoscRR(node) {
+  if (!node) return null;
+
+  const mapRachunki = (tag) => Array.from(node.getElementsByTagNameNS(ns, tag)).map(r => ({
+    nrRB: getText(r, "NrRB"),
+    swift: getText(r, "SWIFT"),
+    nazwaBanku: getText(r, "NazwaBanku"),
+    opis: getText(r, "OpisRachunku")
+  }));
+
+  const forma = getText(node, "FormaPlatnosci");
+
+  return {
+    formaPlatnosci: forma,
+    formaPlatnosciDisplay: rrPaymentMap[forma] || forma,
+    platnoscInna: getText(node, "PlatnoscInna") === "1",
+    opisPlatnosci: getText(node, "OpisPlatnosci"),
+
+    rachunkiRolnika: mapRachunki("RachunekBankowy1"),
+    rachunkiNabywcy: mapRachunki("RachunekBankowy2"),
+
+    ipksef: getText(node, "IPKSeF"),
+    linkDoPlatnosci: getText(node, "LinkDoPlatnosci")
   };
 }
