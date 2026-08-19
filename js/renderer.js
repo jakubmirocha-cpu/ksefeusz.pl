@@ -18,7 +18,10 @@ function nipHtml(nip) {
 // FUNKCJE GRUPUJĄCE WIERSZE KOREKT
 // ============================================================================
 
-function groupCorrectionRows(wierszeArray) {
+// priceField — nazwa pola z ceną jednostkową w wierszu. FA(3) trzyma ją w cenaNetto,
+// FA_RR w cena (tam nie ma pojęcia "netto"). Poza tym algorytm jest identyczny:
+// UU_ID, StanPrzed, GTIN i NrWierszaFa nazywają się w obu schematach tak samo.
+function groupCorrectionRows(wierszeArray, priceField = 'cenaNetto') {
   const grouped = [];
   const used = new Set();
 
@@ -120,9 +123,9 @@ function groupCorrectionRows(wierszeArray) {
     const remA = entry.afters.slice();
 
     // Stage 1: cena + ilość
-    matchPass(remB, remA, (b, a) => sameMoney(b.cenaNetto, a.cenaNetto) && sameQty(b.ilosc, a.ilosc));
+    matchPass(remB, remA, (b, a) => sameMoney(b[priceField], a[priceField]) && sameQty(b.ilosc, a.ilosc));
     // Stage 2: sama cena
-    matchPass(remB, remA, (b, a) => sameMoney(b.cenaNetto, a.cenaNetto));
+    matchPass(remB, remA, (b, a) => sameMoney(b[priceField], a[priceField]));
     // Stage 3: FIFO 1:1
     const n = Math.min(remB.length, remA.length);
     for (let k = 0; k < n; k++) pushPair(remB[k], remA[k]);
@@ -218,6 +221,7 @@ function renderPodmiotHTML(podmiot, tytul) {
   if (podmiot.nrEORI) gridItems.push({html: `<span><strong>EORI:</strong> ${podmiot.nrEORI}</span>`});
   if (podmiot.adres?.gln) gridItems.push({html: `<span><strong>GLN:</strong> ${podmiot.adres.gln}</span>`});
   if (podmiot.nrKlienta) gridItems.push({html: `<span><strong>${t('Nr klienta')}:</strong> ${podmiot.nrKlienta}</span>`});
+  if (podmiot.nrKontrahenta) gridItems.push({html: `<span><strong>${t('Nr kontrahenta')}:</strong> ${podmiot.nrKontrahenta}</span>`});
   if (podmiot.idNabywcy) gridItems.push({html: `<span><strong>${t('ID nabywcy')}:</strong> ${podmiot.idNabywcy}</span>`});
   if (podmiot.idWew) gridItems.push({html: `<span><strong>${t('ID wewn.')}:</strong> ${podmiot.idWew}</span>`});
   if (podmiot.kodUE && podmiot.nrVatUE) gridItems.push({html: `<span><strong>${t('VAT UE')}:</strong> ${podmiot.kodUE} ${podmiot.nrVatUE}</span>`});
@@ -1497,13 +1501,23 @@ function formatNRB(nrb) {
   return nrb;
 }
 
-function renderPaymentContainerHTML(p1Data, platnoscData, faData, qrId) {
-  if (!platnoscData || !platnoscData.rachunki || platnoscData.rachunki.length === 0) return null;
+// opts pozwala obsłużyć FA_RR, gdzie te same dane leżą gdzie indziej:
+//   rachunki      — w RR przelew idzie na RachunekBankowy1 (rachunek rolnika)
+//   formaPrzelewu — w RR "1" znaczy przelew, w FA(3) "1" to gotówka (kolizja numeracji)
+//   amount        — w RR kwotą jest DoZaplaty lub P_12_1, nie P_15
+//   whiteList     — w RR wyłączona (uzasadnienie przy wywołaniu w renderRR)
+function renderPaymentContainerHTML(p1Data, platnoscData, faData, qrId, opts = {}) {
+  const rachunki = opts.rachunki || (platnoscData && platnoscData.rachunki);
+  const formaPrzelewu = opts.formaPrzelewu || "6";
+  const pokazBialaListe = opts.whiteList !== false;
+
+  if (!platnoscData || !rachunki || rachunki.length === 0) return null;
   const forma = platnoscData.formaPlatnosci;
-  if (forma && forma !== "6") return null;
+  if (forma && forma !== formaPrzelewu) return null;
   if (platnoscData.zaplacono) return null;
 
-  const amount = faData.vatSummary.p15 || "0";
+  const amount = (opts.amount !== undefined && opts.amount !== null && opts.amount !== ''
+                    ? opts.amount : faData.vatSummary.p15) || "0";
   if (parseFloat(amount) <= 0) return null;
 
   const currency = faData.kodWaluty || "PLN";
@@ -1522,10 +1536,10 @@ function renderPaymentContainerHTML(p1Data, platnoscData, faData, qrId) {
   }
 
   let accountsHtml = '';
-  platnoscData.rachunki.forEach((r, i) => {
-    const label = platnoscData.rachunki.length > 1 ? `Nr rachunku ${i + 1}` : 'Nr rachunku';
+  rachunki.forEach((r, i) => {
+    const label = rachunki.length > 1 ? `Nr rachunku ${i + 1}` : 'Nr rachunku';
     const cleanNrb = r.nrRB.replace(/\s/g, '').replace(/^PL/i, '');
-    const blRow = nip ? `<div class="payment-bl-row">
+    const blRow = (nip && pokazBialaListe) ? `<div class="payment-bl-row">
       <button class="payment-bl-check" onclick="checkWhiteList(this,'${escAttr(nip)}','${escAttr(cleanNrb)}')">Sprawdź białą listę</button>
       <span class="payment-bl-result"></span>
     </div>` : '';
@@ -1893,6 +1907,498 @@ if (faData.rodzaj.startsWith("KOR") && faData.daneKorygowane.length > 0) {
   }
 
   // UI
+  switchTab('faktura');
+  const uploadArea = document.querySelector('#panel-faktura .upload-area');
+  const newInvoiceBtn = document.getElementById('newInvoiceBtn');
+  if (uploadArea) uploadArea.style.display = 'none';
+  if (newInvoiceBtn) newInvoiceBtn.style.display = 'inline-flex';
+  hideLoading();
+}
+
+// ============================================================================
+// FA_RR — RENDEROWANIE HTML
+// ----------------------------------------------------------------------------
+// Osobne wejście renderRR() zamiast gałęzi w render(). Dokument różni się na tyle
+// (odwrócone role podmiotów, brak VAT-u, inne kolumny tabeli), że rozgałęzianie
+// w środku 300-linijkowej funkcji byłoby gorsze niż drugie wejście.
+// Współdzielone z FA(3) zostają: renderNaglowekHTML, renderPodmiotHTML,
+// renderPodmiot3HTML, renderRozliczenieHTML, renderDodatkoweInformacjeHTML,
+// renderFooterHTML, groupCorrectionRows, addQRCode, renderPaymentContainerHTML.
+//
+// BEZ i18n: faktura VAT RR to konstrukcja art. 116 polskiej ustawy o VAT —
+// wystawia ją polski podatnik nabywający produkty rolne od polskiego rolnika
+// ryczałtowego. Etykiety nie przechodzą przez t(); renderRR wymusza język polski.
+// ============================================================================
+
+// Czy jest co pokazać w podsumowaniu (odpowiednik hasVatSummaryData dla FA(3)).
+function hasRRSummaryData(rrData) {
+  return ['wartoscNabycia', 'zwrotZryczaltowany', 'naleznoscOgolem']
+    .some(k => (parseFloat(rrData[k]) || 0) !== 0);
+}
+
+// Podsumowanie RR: trzy kwoty zamiast tabelki VAT wg stawek.
+// Kolumna "w PLN" pojawia się tylko dla faktur w walucie obcej (pola ...W).
+function rrSummaryHTML(rrData) {
+  if (!hasRRSummaryData(rrData)) return "";
+
+  const waluta = rrData.kodWaluty || 'PLN';
+  const czyKolumnaW = ['wartoscNabyciaW', 'zwrotZryczaltowanyW', 'naleznoscOgolemW']
+    .some(k => (parseFloat(rrData[k]) || 0) !== 0);
+
+  const wiersze = [
+    { l: 'Wartość nabytych produktów rolnych bez kwoty zwrotu (P_11_1)', v: rrData.wartoscNabycia, w: rrData.wartoscNabyciaW },
+    { l: 'Zryczałtowany zwrot podatku (P_11_2)', v: rrData.zwrotZryczaltowany, w: rrData.zwrotZryczaltowanyW },
+    { l: 'Należność ogółem wraz z kwotą zwrotu (P_12_1)', v: rrData.naleznoscOgolem, w: rrData.naleznoscOgolemW, sum: true }
+  ];
+
+  let html = `<table class="vat-summary no-break"><tr><th>Pozycja</th><th class="right">Kwota (${waluta})</th>`;
+  if (czyKolumnaW) html += `<th class="right">w PLN</th>`;
+  html += `</tr>`;
+
+  for (const r of wiersze) {
+    const tag = r.sum ? 'th' : 'td';
+    html += `<tr><${tag}>${r.l}</${tag}><${tag} class="right">${formatPrice(r.v)}</${tag}>`;
+    if (czyKolumnaW) html += `<${tag} class="right">${(parseFloat(r.w) || 0) !== 0 ? formatPrice(r.w) : '—'}</${tag}>`;
+    html += `</tr>`;
+  }
+  html += `</table>`;
+
+  // P_12_2 — kwota słownie. Pole wymagane w schemacie, w FA(3) nie istnieje.
+  if (rrData.naleznoscSlownie) {
+    html += `<div class="rr-slownie no-break">Słownie: ${rrData.naleznoscSlownie}</div>`;
+  }
+  return html;
+}
+
+// Walidator spójności nagłówka: P_11_1 + P_11_2 = P_12_1.
+// Prostszy niż odpowiednik FA(3) — w RR nie ma faktur rozliczeniowych ani zaliczek,
+// więc nie ma wyjątków, w których P_12_1 z definicji różni się od sumy.
+// Przy korekcie wszystkie trzy pola to kwoty różnicy (mogą być ujemne) — porównanie
+// działa tak samo, bo liczymy sumę, nie wartość bezwzględną. Tolerancja 0,02 zł.
+function rrHeaderConsistencyCalc(rrData) {
+  const present = (k) => rrData[k] !== undefined && rrData[k] !== null && String(rrData[k]).trim() !== "";
+  if (!present('naleznoscOgolem')) return null;
+  if (!present('wartoscNabycia') && !present('zwrotZryczaltowany')) return null;
+
+  const wartosc = parseFloat(rrData.wartoscNabycia) || 0;
+  const zwrot = parseFloat(rrData.zwrotZryczaltowany) || 0;
+  const expected = wartosc + zwrot;
+  const ogolem = parseFloat(rrData.naleznoscOgolem) || 0;
+  const diff = expected - ogolem;
+
+  if (Math.abs(diff) <= 0.02) return null;
+  return { wartosc, zwrot, expected, ogolem, diff };
+}
+
+function rrHeaderConsistencyCheckHTML(rrData) {
+  const mm = rrHeaderConsistencyCalc(rrData);
+  if (!mm) return "";
+
+  return `
+    <div class="correction-mismatch no-break">
+      <strong>⚠ Niezgodność sum w nagłówku faktury</strong>
+      <p>Wartość nabycia powiększona o zryczałtowany zwrot podatku nie zgadza się z zadeklarowaną należnością ogółem:</p>
+      <table>
+        <tr><td>Wartość nabycia (P_11_1)</td><td class="right">${formatPrice(mm.wartosc)}</td></tr>
+        <tr><td>Zryczałtowany zwrot (P_11_2)</td><td class="right">${formatPrice(mm.zwrot)}</td></tr>
+        <tr><td>Suma</td><td class="right"><strong>${formatPrice(mm.expected)}</strong></td></tr>
+        <tr><td>Należność ogółem (P_12_1)</td><td class="right"><strong>${formatPrice(mm.ogolem)}</strong></td></tr>
+        <tr><td>Rozbieżność</td><td class="right"><strong>${formatPrice(mm.diff)}</strong></td></tr>
+      </table>
+      <small>KSeFeusz.pl prezentuje dane wyłącznie w formie wizualizacji oryginalnego pliku XML. W razie wątpliwości zweryfikuj dane źródłowe w pliku XML lub bezpośrednio w KSeF — wizualizator nie modyfikuje wartości z faktury.</small>
+    </div>
+  `;
+}
+
+// Bramka wierszy RÓŻNICA — odpowiednik correctionDiffRowsAllowed dla FA(3).
+// Cała logika (pomijanie "po" bez pary, wyjście przy braku par, tolerancja 0,02)
+// jest identyczna; zmienia się tylko deklaracja, z którą porównujemy deltę:
+// P_11_1 / P_11_2 / P_12_1 zamiast ΣP_13 / ΣP_14 / P_15.
+function rrCorrectionDiffRowsAllowed(rrData, wierszeArray) {
+  if (!rrData || rrData.rodzaj !== 'KOR_VAT_RR') return true;
+  if (!wierszeArray || wierszeArray.length === 0) return true;
+
+  const grouped = groupCorrectionRows(wierszeArray, 'cena');
+  if (!grouped.some(g => g.type === 'pair')) return true;
+
+  let calcW = 0, calcZ = 0, calcO = 0;
+  for (const g of grouped) {
+    if (g.type === 'pair') {
+      calcW += (parseFloat(g.after.wartoscBez) || 0) - (parseFloat(g.before.wartoscBez) || 0);
+      calcZ += (parseFloat(g.after.kwotaZwrotu) || 0) - (parseFloat(g.before.kwotaZwrotu) || 0);
+      calcO += (parseFloat(g.after.wartoscZ) || 0) - (parseFloat(g.before.wartoscZ) || 0);
+    } else if (g.isBefore) {
+      calcW -= parseFloat(g.row.wartoscBez) || 0;
+      calcZ -= parseFloat(g.row.kwotaZwrotu) || 0;
+      calcO -= parseFloat(g.row.wartoscZ) || 0;
+    }
+  }
+
+  const TOL = 0.02;
+  if (Math.abs(calcW) <= TOL && Math.abs(calcZ) <= TOL && Math.abs(calcO) <= TOL) return true;
+
+  return Math.abs(calcW - (parseFloat(rrData.wartoscNabycia) || 0)) <= TOL
+      && Math.abs(calcZ - (parseFloat(rrData.zwrotZryczaltowany) || 0)) <= TOL
+      && Math.abs(calcO - (parseFloat(rrData.naleznoscOgolem) || 0)) <= TOL;
+}
+
+// Wiersz tabeli pozycji RR. Kolumna "Klasa/jakość" (P_6C) jest w schemacie
+// wymagana, więc zawsze widoczna — to element odróżniający fakturę RR.
+function rrRowHTML(w, isBefore = false) {
+  let opis = w.nazwa || '';
+  const dodatki = [];
+  if (w.gtin) dodatki.push(`EAN/GTIN: ${w.gtin}`);
+  if (w.pkwiu) dodatki.push(`PKWiU: ${w.pkwiu}`);
+  if (w.cn) dodatki.push(`CN: ${w.cn}`);
+  if (w.dataNabycia) dodatki.push(`Data nabycia: ${w.dataNabycia}`);
+  if (w.kursWaluty && w.kursWaluty !== "0") dodatki.push(`Kurs: ${w.kursWaluty}`);
+  if (dodatki.length > 0) opis += ' <small>(' + dodatki.join(' | ') + ')</small>';
+  if (isBefore) opis += ' <small>(przed korektą)</small>';
+
+  return `
+<tr class="${isBefore ? 'before-row' : ''}">
+  <td class="center">${w.nrWiersza || ''}</td>
+  <td>${opis}</td>
+  <td>${w.klasa || '—'}</td>
+  <td class="right">${fmtQty(w.ilosc)}</td>
+  <td class="center">${w.jednostka || ''}</td>
+  <td class="right">${formatPrice(w.cena)}</td>
+  <td class="right">${formatPrice(w.wartoscBez)}</td>
+  <td class="center">${w.stawkaZwrotuDisplay}</td>
+  <td class="right">${formatPrice(w.kwotaZwrotu)}</td>
+  <td class="right">${formatPrice(w.wartoscZ)}</td>
+</tr>`;
+}
+
+// Płatność RR. Rozdzielamy rachunki wprost, bo pomylenie ich kierunku to
+// najgroźniejszy błąd w tym dokumencie: przelew idzie do ROLNIKA.
+function renderRRPaymentInfoHTML(pl) {
+  if (!pl) return '<em>Brak danych o płatności</em>';
+
+  let html = '';
+  if (pl.platnoscInna && pl.opisPlatnosci) {
+    html += `<strong>Forma:</strong> ${pl.opisPlatnosci}<br>`;
+  } else if (pl.formaPlatnosciDisplay) {
+    html += `<strong>Forma:</strong> ${pl.formaPlatnosciDisplay}<br>`;
+  }
+
+  for (const r of pl.rachunkiRolnika) {
+    html += `<strong>Rachunek rolnika:</strong> <span class="payment-nrb">${formatNRB(r.nrRB)}</span>`;
+    if (r.nazwaBanku) html += ` <small>(${r.nazwaBanku})</small>`;
+    html += '<br>';
+    if (r.swift) html += `<small>SWIFT: ${r.swift}</small><br>`;
+    if (r.opis) html += `<small>${r.opis}</small><br>`;
+  }
+  for (const r of pl.rachunkiNabywcy) {
+    html += `<span class="hide-in-simplified"><strong>Rachunek nabywcy:</strong> <span class="payment-nrb">${formatNRB(r.nrRB)}</span>`;
+    if (r.nazwaBanku) html += ` <small>(${r.nazwaBanku})</small>`;
+    html += '</span><br>';
+  }
+
+  if (pl.ipksef) html += `<small>IPKSeF: ${pl.ipksef}</small><br>`;
+  if (pl.linkDoPlatnosci) html += `<small>Link do płatności: ${escAttr(pl.linkDoPlatnosci)}</small><br>`;
+
+  return html || '<em>Brak danych o płatności</em>';
+}
+
+// Dowód zapłaty nie jest w VAT RR ozdobnikiem: bez niego nabywca nie zwiększa
+// podatku naliczonego o zryczałtowany zwrot (art. 116 ust. 6 ustawy o VAT).
+function renderRRDokumentyZaplatyHTML(rrData) {
+  if (!rrData.dokumentyZaplaty || rrData.dokumentyZaplaty.length === 0) return '';
+
+  let html = `<div class="additional-info no-break"><h2>Dokumenty zapłaty</h2><div class="info-grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:3px;">`;
+  for (const d of rrData.dokumentyZaplaty) {
+    html += `<div class="info-item" style="border:1px solid #e0e0e0; padding:2px; background:#fafafa; border-radius:3px; font-size:10px;">
+      <strong>${d.nr}</strong>${d.data ? ` <span style="color:#7f8c8d;">z dnia ${d.data}</span>` : ''}
+    </div>`;
+  }
+  const remaining = rrData.dokumentyZaplaty.length % 3;
+  if (remaining !== 0) for (let i = 0; i < 3 - remaining; i++) html += '<div style="border:none;"></div>';
+  html += '</div></div>';
+  return html;
+}
+
+// Podmiot1K / Podmiot2K w RR zawierają tylko dane identyfikacyjne i adres,
+// więc renderujemy je skrótowo.
+function rrPodmiotKorektaHTML(pkData) {
+  if (!pkData) return '';
+  let html = '';
+  if (pkData.nazwa) html += `<strong>${pkData.nazwa}</strong><br>`;
+  if (pkData.nip) html += `<div><strong>NIP:</strong> ${nipHtml(pkData.nip)}</div>`;
+  if (pkData.adres) {
+    let a = `${pkData.adres.kodKraju || ''} ${pkData.adres.linia1 || ''}`;
+    if (pkData.adres.linia2) a += `, ${pkData.adres.linia2}`;
+    html += `<div>${a.trim()}</div>`;
+  }
+  return html;
+}
+
+// Sekcja podmiotu z ewentualnym stanem przed korektą (Podmiot1K / Podmiot2K).
+function rrPodmiotSekcjaHTML(podmiot, podmiotK, tytul) {
+  if (!podmiotK) {
+    return renderPodmiotHTML(podmiot, tytul);
+  }
+  let html = `<div class="col"><h2>${tytul}</h2>`;
+  html += `<div style="margin-bottom:5px; background:#fef5e7; padding:5px;">`;
+  html += `<small style="color:#7f8c8d;">PRZED KOREKTĄ</small><br>`;
+  html += rrPodmiotKorektaHTML(podmiotK);
+  html += `</div><div style="background:#e8f8f5; padding:5px;">`;
+  html += `<small style="color:#27ae60;">PO KOREKCIE</small><br>`;
+  html += renderPodmiotHTML(podmiot, "").replace('<div class="col">', '').replace(/<\/div>$/, '');
+  html += `</div></div>`;
+  return html;
+}
+
+// ============================================================================
+// GŁÓWNA FUNKCJA RENDERUJĄCA FA_RR (HTML)
+// ============================================================================
+function renderRR(xml, fileName, xmlContent) {
+  const root = xml.documentElement;
+  if (root.namespaceURI !== NS_FA_RR) { showError("Plik XML ma nieprawidłową przestrzeń nazw"); return; }
+  setDocNs(NS_FA_RR);
+
+  // Faktura VAT RR jest dokumentem wyłącznie krajowym — wymuszamy polski,
+  // żeby przy wcześniej wybranym języku obcym nie powstał dokument-hybryda
+  // (współdzielone helpery wołają t()).
+  setInvoiceLang('pl');
+
+  document.getElementById("pages").innerHTML = "";
+  document.getElementById("currentFile").textContent = fileName;
+  document.getElementById("fileInfo").style.display = "flex";
+  const rdToggle = document.getElementById('rowDetailsToggle');
+  if (rdToggle) { rdToggle.checked = false; }
+  document.getElementById("pages").classList.remove('hide-row-details');
+  const rdGroup = document.getElementById('rowDetailsToggleGroup');
+  if (rdGroup) { rdGroup.style.display = 'none'; }
+
+  const fakturaNode = xml.getElementsByTagNameNS(ns, "Faktura")[0];
+  if (!fakturaNode) { showError("Nieprawidłowa struktura XML - brak elementu Faktura"); return; }
+  const frrNode = fakturaNode.getElementsByTagNameNS(ns, "FakturaRR")[0];
+  if (!frrNode) { showError("Brak elementu FakturaRR w dokumencie"); return; }
+
+  // ===== PARSOWANIE =====
+  const naglowekNode = fakturaNode.getElementsByTagNameNS(ns, "Naglowek")[0];
+  const naglowekData = naglowekNode ? {
+    dataWytworzenia: getText(naglowekNode, "DataWytworzeniaFa"),
+    systemInfo: getText(naglowekNode, "SystemInfo")
+  } : null;
+
+  // UWAGA na kierunek: Podmiot1 = rolnik (dostawca), Podmiot2 = nabywca (wystawca)
+  const p1Data = parsePodmiot(fakturaNode.getElementsByTagNameNS(ns, "Podmiot1")[0], 'podmiot1');
+  const p2Data = parsePodmiot(fakturaNode.getElementsByTagNameNS(ns, "Podmiot2")[0], 'podmiot2');
+  const p3DataArray = Array.from(fakturaNode.getElementsByTagNameNS(ns, "Podmiot3")).map(n => parsePodmiot(n, 'podmiot3'));
+
+  const rrData = parseFakturaRR(frrNode);
+  const platnoscData = parsePlatnoscRR(frrNode.getElementsByTagNameNS(ns, "Platnosc")[0]);
+  const rozliczenieData = parseRozliczenie(frrNode.getElementsByTagNameNS(ns, "Rozliczenie")[0]);
+  const stopkaData = parseStopka(fakturaNode.getElementsByTagNameNS(ns, "Stopka")[0]);
+
+  const wierszeArray = rrData.wiersze;
+  if (wierszeArray.length > 5000) { showError("Faktura zawiera zbyt wiele wierszy (max 5000)"); return; }
+
+  const xmlHash = calculateXmlHash(xmlContent);
+  const unknownElements = findUnknownFakturaElements(xml);
+  // Numer KSeF i link weryfikacyjny odnoszą się do WYSTAWCY, a w VAT RR
+  // wystawcą jest nabywca (Podmiot2) — nie rolnik.
+  const nipWystawcy = p2Data && p2Data.nip;
+
+  const jestKorekta = rrData.rodzaj === 'KOR_VAT_RR';
+
+  // ===== BUDOWANIE HTML =====
+  let c = renderNaglowekHTML(rrData, fileName, naglowekData);
+
+  // Jedno zdanie o naturze dokumentu — bez tego odwrócone role podmiotów
+  // są nieczytelne dla kogoś, kto pierwszy raz widzi fakturę VAT RR.
+  c += `<div class="rr-note optional-section">
+    <i class="fas fa-info-circle"></i>
+    Faktura VAT RR dokumentuje nabycie produktów rolnych lub usług rolniczych od rolnika ryczałtowego.
+    Zgodnie z art. 116 ustawy o VAT wystawia ją <strong>nabywca</strong>, a zryczałtowany zwrot podatku
+    powiększa kwotę należną <strong>rolnikowi</strong>.
+  </div>`;
+
+  // Podmioty — nagłówki z kwalifikatorem roli
+  c += `<div class="section two-cols">`;
+  c += rrPodmiotSekcjaHTML(p1Data, rrData.podmiot1K, 'ROLNIK RYCZAŁTOWY (DOSTAWCA)');
+  c += rrPodmiotSekcjaHTML(p2Data, rrData.podmiot2K, 'NABYWCA (WYSTAWCA FAKTURY)');
+  c += `</div>`;
+
+  if (p3DataArray.length > 0) {
+    for (let i = 0; i < p3DataArray.length; i += 2) {
+      c += `<div class="section two-cols">`;
+      c += renderPodmiot3HTML(p3DataArray[i]);
+      c += (i + 1 < p3DataArray.length) ? renderPodmiot3HTML(p3DataArray[i + 1]) : `<div class="col"></div>`;
+      c += `</div>`;
+    }
+  }
+
+  // Dane faktury + płatność
+  let korygowaneInfo = '';
+  if (jestKorekta && rrData.daneKorygowane.length > 0) {
+    const lista = rrData.daneKorygowane.map(dk => {
+      let o = `${dk.nr}&nbsp;z&nbsp;dnia&nbsp;${dk.data}`;
+      if (dk.nrKSeF) o += ` KSeF:&nbsp;${dk.nrKSeF}`;
+      else if (dk.pozaKSeF) o += `&nbsp;(poza&nbsp;KSeF)`;
+      return o;
+    });
+    korygowaneInfo = `<strong>Korygowane faktury:</strong>&nbsp;${lista.join('<br>')}<br>`;
+    if (rrData.typKorekty) korygowaneInfo += `<strong>Typ&nbsp;korekty:</strong>&nbsp;${rrData.typKorektyDisplay}<br>`;
+  }
+  if (rrData.nrFaKorygowany) korygowaneInfo += `<strong>Nr faktury korygowanej:</strong> ${rrData.nrFaKorygowany}<br>`;
+  const przyczynaInfo = rrData.przyczynaKorekty ? `<strong>Przyczyna korekty:</strong> ${rrData.przyczynaKorekty}<br>` : '';
+
+  c += `
+    <div class="section two-cols">
+      <div class="col">
+        <h2>DANE FAKTURY</h2>
+        <strong>Numer:</strong> ${rrData.nrFaktury}<br>
+        <strong>Data wystawienia:</strong> ${rrData.dataWystawienia}${rrData.miejsceWystawienia ? ', ' + rrData.miejsceWystawienia : ''}<br>
+        ${rrData.dataNabycia ? `<strong>Data nabycia:</strong> ${rrData.dataNabycia}<br>` : ''}
+        ${korygowaneInfo}
+        ${przyczynaInfo}
+      </div>
+      <div class="col">
+        <h2>PŁATNOŚĆ</h2>
+        ${renderRRPaymentInfoHTML(platnoscData)}
+      </div>
+    </div>
+  `;
+
+  // Tabela pozycji
+  let tableRows = '';
+  if (jestKorekta) {
+    const grouped = groupCorrectionRows(wierszeArray, 'cena');
+    const showDiffRows = rrCorrectionDiffRowsAllowed(rrData, wierszeArray);
+    for (const item of grouped) {
+      if (item.type === 'pair') {
+        tableRows += rrRowHTML(item.before, true);
+        tableRows += rrRowHTML(item.after, false);
+
+        const dQty = (parseFloat(item.after.ilosc) || 0) - (parseFloat(item.before.ilosc) || 0);
+        const dPrice = (parseFloat(item.after.cena) || 0) - (parseFloat(item.before.cena) || 0);
+        const dWartosc = (parseFloat(item.after.wartoscBez) || 0) - (parseFloat(item.before.wartoscBez) || 0);
+        const dZwrot = (parseFloat(item.after.kwotaZwrotu) || 0) - (parseFloat(item.before.kwotaZwrotu) || 0);
+        const dOgolem = (parseFloat(item.after.wartoscZ) || 0) - (parseFloat(item.before.wartoscZ) || 0);
+
+        if (showDiffRows && (dQty !== 0 || dPrice !== 0 || dWartosc !== 0 || dZwrot !== 0 || dOgolem !== 0)) {
+          // Gdy stawka zwrotu się zmieniła (6,5% ↔ 7%), pokazujemy "—" — różnica
+          // stawek nie ma sensu liczbowego (analogicznie do korekt stawki VAT w FA(3)).
+          const stawka = (item.before.stawkaZwrotu === item.after.stawkaZwrotu)
+            ? item.before.stawkaZwrotuDisplay
+            : '—';
+          tableRows += `
+<tr class="diff-row">
+  <td></td>
+  <td colspan="2"><b>RÓŻNICA</b></td>
+  <td class="right">${dQty !== 0 ? fmtQty(dQty) : ''}</td>
+  <td class="center">—</td>
+  <td class="right">${dPrice !== 0 ? formatPrice(dPrice) : ''}</td>
+  <td class="right">${dWartosc !== 0 ? formatPrice(dWartosc) : ''}</td>
+  <td class="center">${stawka}</td>
+  <td class="right">${dZwrot !== 0 ? formatPrice(dZwrot) : ''}</td>
+  <td class="right">${dOgolem !== 0 ? formatPrice(dOgolem) : ''}</td>
+</tr>`;
+        }
+      } else {
+        tableRows += rrRowHTML(item.row, item.isBefore);
+      }
+    }
+  } else {
+    for (const w of wierszeArray) tableRows += rrRowHTML(w, false);
+  }
+
+  // Korekta samych danych podmiotu bywa bez wierszy — same nagłówki kolumn
+  // to szum, nie informacja (guard jak w FA(3) od v1.6.19).
+  if (wierszeArray.length > 0) c += `
+    <table>
+      <tr>
+        <th>#</th>
+        <th>Nazwa produktu / usługi</th>
+        <th>Klasa /<br>jakość</th>
+        <th class="right">Ilość</th>
+        <th class="center">JM</th>
+        <th class="right">Cena<br>jedn.</th>
+        <th class="right">Wartość<br>bez zwrotu</th>
+        <th class="center">Stawka<br>zwrotu</th>
+        <th class="right">Kwota<br>zwrotu</th>
+        <th class="right">Wartość<br>ze zwrotem</th>
+      </tr>
+      ${tableRows}
+    </table>
+  `;
+
+  c += rrSummaryHTML(rrData);
+  c += rrHeaderConsistencyCheckHTML(rrData);
+  c += renderRozliczenieHTML(rozliczenieData);
+  c += renderRRDokumentyZaplatyHTML(rrData);
+  // p1Data celowo nie przekazujemy: helper pokazałby "Status sprzedawcy",
+  // a w RR StatusInfoPodatnika ma nabywca — trafia do jego sekcji podmiotu.
+  c += renderDodatkoweInformacjeHTML(rrData, null);
+  c += renderFooterHTML(stopkaData);
+
+  // QR weryfikacyjny KSeF
+  const qrContainerId = "qr-container-main";
+  if (unknownElements.length > 0) {
+    const serializer = new XMLSerializer();
+    const elementsHtml = unknownElements.map(el => {
+      const raw = serializer.serializeToString(el);
+      return `<pre class="unknown-element-xml">${raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`;
+    }).join('');
+    c += `
+      <div class="qr-section">
+        <div class="schema-warning">
+          <strong>Weryfikacja w KSeF niemożliwa</strong>
+          Plik zawiera elementy spoza schematu FA_RR(1). Hash dokumentu może nie odpowiadać oryginałowi z KSeF.
+          <div class="unknown-elements-list">${elementsHtml}</div>
+        </div>
+      </div>`;
+  } else {
+    c += `<div class="qr-section"><div id="${qrContainerId}" class="qr-container"></div></div>`;
+  }
+  c += `<div style="text-align:center; margin-top:10px; font-size:10px; color:#7f8c8d;">
+    KSeFeusz.pl - darmowy wizualizator faktur ustrukturyzowanych KSeF wersja ${APP_VERSION}
+  </div>`;
+
+  // ===== WSTAWIENIE DO STRONY =====
+  const container = document.createElement("div");
+  const isFullView = document.getElementById('viewToggle') && document.getElementById('viewToggle').checked;
+  container.className = "invoice-container" + (isFullView ? "" : " simplified");
+  container.innerHTML = c;
+  document.getElementById("pages").appendChild(container);
+
+  if (unknownElements.length === 0 && nipWystawcy && rrData.dataWystawienia) {
+    addQRCode(qrContainerId, nipWystawcy, rrData.dataWystawienia, xmlHash);
+  }
+
+  // ===== PAYMENT CONTAINER =====
+  // Przelew idzie do ROLNIKA, więc odbiorcą jest Podmiot1 i jego rachunek (RachunekBankowy1).
+  // Kwota: DoZaplaty z Rozliczenia gdy wystawca je podał (uwzględnia potrącenia),
+  // w przeciwnym razie P_12_1.
+  // Biała lista jest WYŁĄCZONA: rolnik ryczałtowy jest zwolniony z VAT na podstawie
+  // art. 43 ust. 1 pkt 3 i z reguły nie figuruje w wykazie podatników VAT. Odpowiedź
+  // "rachunek nieprzypisany" byłaby regułą, nie ostrzeżeniem — czerwony krzyżyk przy
+  // poprawnej fakturze wprowadzałby w błąd.
+  const kwotaDoZaplaty = (rozliczenieData && rozliczenieData.doZaplaty)
+    ? rozliczenieData.doZaplaty
+    : rrData.naleznoscOgolem;
+
+  const paymentQrId = 'pqr-' + Date.now();
+  const paymentHtml = renderPaymentContainerHTML(p1Data, platnoscData, rrData, paymentQrId, {
+    rachunki: platnoscData ? platnoscData.rachunkiRolnika : null,
+    formaPrzelewu: "1",
+    amount: kwotaDoZaplaty,
+    whiteList: false
+  });
+  if (paymentHtml) {
+    const el = document.createElement('div');
+    el.innerHTML = paymentHtml;
+    document.getElementById("pages").appendChild(el.firstElementChild);
+    if ((rrData.kodWaluty || 'PLN') === 'PLN') {
+      addPaymentQR(paymentQrId, kwotaDoZaplaty || '0', platnoscData.rachunkiRolnika[0].nrRB,
+                   (p1Data && p1Data.nip) || '', (p1Data && p1Data.nazwa) || '', rrData.nrFaktury || '');
+    }
+  }
+
+  // ===== UI =====
   switchTab('faktura');
   const uploadArea = document.querySelector('#panel-faktura .upload-area');
   const newInvoiceBtn = document.getElementById('newInvoiceBtn');

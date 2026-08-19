@@ -983,3 +983,39 @@
   .upo-info-grid { grid-template-columns: 1fr; }
   .upo-header { flex-direction: column; gap: 6px; }
 }
+
+/* ============================================================================
+   FA_RR — faktura VAT RR (rolnik ryczałtowy)
+   ============================================================================ */
+
+/* Baner wyjaśniający naturę dokumentu. Bez niego odwrócone role podmiotów
+   (fakturę wystawia nabywca) są nieczytelne przy pierwszym kontakcie.
+   Ma klasę .optional-section, więc znika w widoku uproszczonym. */
+.invoice-container .rr-note {
+  margin: 6px 0 8px 0;
+  padding: 6px 9px;
+  background: #f2f8fd;
+  border-left: 3px solid #3498db;
+  border-radius: 3px;
+  font-size: 10px;
+  line-height: 1.45;
+  color: #34495e;
+}
+.invoice-container .rr-note i { color: #3498db; margin-right: 4px; }
+
+/* Kwota słownie (P_12_2) — pole wymagane w schemacie RR, w FA(3) nie istnieje */
+.invoice-container .rr-slownie {
+  margin-top: 4px;
+  font-size: 10px;
+  font-style: italic;
+  color: #546e7a;
+}
+
+@media print {
+  .invoice-container .rr-note {
+    background: #f2f8fd !important;
+    border-left: 3px solid #3498db !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}

@@ -1081,6 +1081,7 @@ function parseFakturaRR(node) {
 
   return {
     kodWaluty: getText(node, "KodWaluty"),
+    wz: [],   // FA_RR nie ma WZ — pole obecne, bo renderDodatkoweInformacjeHTML je czyta
     miejsceWystawienia: getText(node, "P_1M"),
     dataNabycia: getText(node, "P_4A"),
     dataWystawienia: getText(node, "P_4B"),

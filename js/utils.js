@@ -69,11 +69,18 @@ const VALID_FAKTURA_CHILDREN = new Set([
   'Fa', 'Stopka', 'Zalacznik'
 ]);
 
+// ...i wg schematu FA_RR(1). Zestaw jest węższy — RR nie ma PodmiotUpowazniony
+// ani Zalacznika.
+const VALID_FA_RR_CHILDREN = new Set([
+  'Naglowek', 'Podmiot1', 'Podmiot2', 'Podmiot3', 'FakturaRR', 'Stopka'
+]);
+
 function findUnknownFakturaElements(xmlDom) {
   const root = xmlDom.documentElement;
+  const dozwolone = (root.namespaceURI === NS_FA_RR) ? VALID_FA_RR_CHILDREN : VALID_FAKTURA_CHILDREN;
   const unknown = [];
   for (const child of root.children) {
-    if (!VALID_FAKTURA_CHILDREN.has(child.localName)) {
+    if (!dozwolone.has(child.localName)) {
       unknown.push(child);
     }
   }
