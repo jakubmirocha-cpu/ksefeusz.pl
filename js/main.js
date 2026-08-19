@@ -2054,3 +2054,645 @@ if (uploadArea) {
     }
   });
 }
+
+// ============================================================================
+// FA_RR — EKSPORT PDF
+// ----------------------------------------------------------------------------
+// Lustro renderRR() z renderer.js. Reużywa layoutowych helperów pdfmake
+// (pdfSectionHeader, pdfBox, pdfTwoBox ze stałą COL_W, pdfCreateGrid, pdfKvTable,
+// nagłówek/stopkę stron, sanitizeSellerName) oraz logiki wspólnej z HTML
+// (rrHeaderConsistencyCalc, rrCorrectionDiffRowsAllowed, hasRRSummaryData,
+// groupCorrectionRows) — dokładnie tak, jak tor FA(3).
+//
+// Bez i18n — etykiety nie przechodzą przez t() (patrz komentarz w renderer.js).
+// ============================================================================
+
+function pdfRenderRRPodmiot(data, tytul) {
+  if (!data) return [];
+  const content = [pdfSectionHeader(tytul, 0)];
+  if (data.nazwa) content.push({ text: data.nazwa, bold: true, margin: [0, 0, 0, 1] });
+  if (data.nip) content.push({ text: `NIP: ${data.nip}`, margin: [0, 0, 0, 1] });
+  if (data.adres) {
+    let a = `${data.adres.kodKraju || ''} ${data.adres.linia1 || ''}`;
+    if (data.adres.linia2) a += `, ${data.adres.linia2}`;
+    content.push({ text: a.trim(), margin: [0, 0, 0, 1] });
+  }
+  if (data.adresKoresp) {
+    let a = `${data.adresKoresp.kodKraju || ''} ${data.adresKoresp.linia1 || ''}`;
+    if (data.adresKoresp.linia2) a += `, ${data.adresKoresp.linia2}`;
+    content.push({ text: `Adres koresp.: ${a.trim()}`, margin: [0, 0, 0, 1], fontSize: 7 });
+  }
+
+  const gridItems = [];
+  if (data.adres && data.adres.gln) gridItems.push({ text: `GLN: ${data.adres.gln}`, fontSize: 7 });
+  if (data.nrKontrahenta) gridItems.push({ text: `Nr kontrahenta: ${data.nrKontrahenta}`, fontSize: 7 });
+  if (data.status) gridItems.push({ text: `Status: ${taxpayerStatusMap[data.status] || data.status}`, fontSize: 7 });
+  if (gridItems.length > 0) content.push(pdfCreateGrid(gridItems, 3));
+
+  if (data.kontakty && data.kontakty.length > 0) {
+    const linie = [];
+    for (const k of data.kontakty) {
+      if (k.emaile.length > 0) linie.push(`e-mail: ${k.emaile.join(', ')}`);
+      if (k.telefony.length > 0) linie.push(`tel.: ${k.telefony.join(', ')}`);
+    }
+    if (linie.length > 0) content.push({ text: linie.join(' • '), margin: [0, 1, 0, 0], fontSize: 7 });
+  }
+  return content;
+}
+
+// Podmiot ze stanem przed korektą (Podmiot1K / Podmiot2K).
+function pdfRenderRRPodmiotZKorekta(przed, po, tytul) {
+  const content = [pdfSectionHeader(tytul, 0)];
+  content.push({ text: 'PRZED KOREKTĄ', fontSize: 6.5, color: '#7f8c8d', margin: [0, 0, 0, 1] });
+  if (przed.nazwa) content.push({ text: przed.nazwa, bold: true, fontSize: 7.5 });
+  if (przed.nip) content.push({ text: `NIP: ${przed.nip}`, fontSize: 7.5 });
+  if (przed.adres) {
+    let a = `${przed.adres.kodKraju || ''} ${przed.adres.linia1 || ''}`;
+    if (przed.adres.linia2) a += `, ${przed.adres.linia2}`;
+    content.push({ text: a.trim(), fontSize: 7.5, margin: [0, 0, 0, 3] });
+  }
+  content.push({ text: 'PO KOREKCIE', fontSize: 6.5, color: '#27ae60', margin: [0, 0, 0, 1] });
+  if (po.nazwa) content.push({ text: po.nazwa, bold: true });
+  if (po.nip) content.push({ text: `NIP: ${po.nip}` });
+  if (po.adres) {
+    let a = `${po.adres.kodKraju || ''} ${po.adres.linia1 || ''}`;
+    if (po.adres.linia2) a += `, ${po.adres.linia2}`;
+    content.push({ text: a.trim() });
+  }
+  return content;
+}
+
+// Płatność RR. Rozdzielamy rachunki wprost — pomylenie kierunku to najgroźniejszy
+// błąd w tym dokumencie: przelew idzie do ROLNIKA (RachunekBankowy1).
+function pdfRenderRRPaymentInfo(pl) {
+  if (!pl) return [{ text: 'Brak danych o płatności', italics: true, color: '#888888' }];
+
+  const rows = [];
+  if (pl.platnoscInna && pl.opisPlatnosci) rows.push(['Forma:', pl.opisPlatnosci]);
+  else if (pl.formaPlatnosciDisplay) rows.push(['Forma:', pl.formaPlatnosciDisplay]);
+
+  for (const r of pl.rachunkiRolnika) {
+    rows.push(['Rachunek rolnika:', r.nrRB + (r.nazwaBanku ? ` (${r.nazwaBanku})` : '')]);
+    if (r.swift) rows.push(['SWIFT:', r.swift]);
+  }
+  for (const r of pl.rachunkiNabywcy) {
+    rows.push(['Rachunek nabywcy:', r.nrRB + (r.nazwaBanku ? ` (${r.nazwaBanku})` : '')]);
+  }
+  if (pl.ipksef) rows.push(['IPKSeF:', pl.ipksef]);
+
+  if (rows.length === 0) return [{ text: 'Brak danych o płatności', italics: true, color: '#888888' }];
+  return [pdfKvTable(rows.map(([k, v]) => [{ text: k, color: '#555555' }, { text: v }]))];
+}
+
+// Wiersz tabeli pozycji RR — 10 kolumn (lustro rrRowHTML).
+function pdfRRRowArray(w, isBefore) {
+  let opis = w.nazwa || '';
+  const dodatki = [];
+  if (w.gtin) dodatki.push(`EAN/GTIN: ${w.gtin}`);
+  if (w.pkwiu) dodatki.push(`PKWiU: ${w.pkwiu}`);
+  if (w.cn) dodatki.push(`CN: ${w.cn}`);
+  if (w.dataNabycia) dodatki.push(`Data nabycia: ${w.dataNabycia}`);
+  if (w.kursWaluty && w.kursWaluty !== "0") dodatki.push(`Kurs: ${w.kursWaluty}`);
+  if (dodatki.length > 0) opis += ` (${dodatki.join(' | ')})`;
+  if (isBefore) opis += ' (przed korektą)';
+
+  return [
+    { text: w.nrWiersza || '', alignment: 'center' },
+    { text: opis },
+    { text: w.klasa || '—' },
+    { text: fmtQty(w.ilosc), alignment: 'right' },
+    { text: w.jednostka || '', alignment: 'center' },
+    { text: formatPrice(w.cena, true), alignment: 'right', preserveWhiteSpace: true },
+    { text: formatPrice(w.wartoscBez, true), alignment: 'right', preserveWhiteSpace: true },
+    { text: w.stawkaZwrotuDisplay, alignment: 'center' },
+    { text: formatPrice(w.kwotaZwrotu, true), alignment: 'right', preserveWhiteSpace: true },
+    { text: formatPrice(w.wartoscZ, true), alignment: 'right', preserveWhiteSpace: true }
+  ];
+}
+
+function pdfRRCreateTableBody(wiersze, jestKorekta, showDiffRows) {
+  const body = [[
+    { text: '#', style: 'tableHeader', alignment: 'center' },
+    { text: 'Nazwa produktu / usługi', style: 'tableHeader' },
+    { text: 'Klasa /\njakość', style: 'tableHeader' },
+    { text: 'Ilość', style: 'tableHeader', alignment: 'right' },
+    { text: 'JM', style: 'tableHeader', alignment: 'center' },
+    { text: 'Cena\njedn.', style: 'tableHeader', alignment: 'right' },
+    { text: 'Wartość\nbez zwrotu', style: 'tableHeader', alignment: 'right' },
+    { text: 'Stawka\nzwrotu', style: 'tableHeader', alignment: 'center' },
+    { text: 'Kwota\nzwrotu', style: 'tableHeader', alignment: 'right' },
+    { text: 'Wartość\nze zwrotem', style: 'tableHeader', alignment: 'right' }
+  ]];
+
+  if (!jestKorekta) {
+    for (const w of wiersze) body.push(pdfRRRowArray(w, false));
+    return body;
+  }
+
+  for (const item of groupCorrectionRows(wiersze, 'cena')) {
+    if (item.type === 'pair') {
+      body.push(pdfRRRowArray(item.before, true));
+      body.push(pdfRRRowArray(item.after, false));
+
+      const dQty = (parseFloat(item.after.ilosc) || 0) - (parseFloat(item.before.ilosc) || 0);
+      const dPrice = (parseFloat(item.after.cena) || 0) - (parseFloat(item.before.cena) || 0);
+      const dWartosc = (parseFloat(item.after.wartoscBez) || 0) - (parseFloat(item.before.wartoscBez) || 0);
+      const dZwrot = (parseFloat(item.after.kwotaZwrotu) || 0) - (parseFloat(item.before.kwotaZwrotu) || 0);
+      const dOgolem = (parseFloat(item.after.wartoscZ) || 0) - (parseFloat(item.before.wartoscZ) || 0);
+
+      if (showDiffRows && (dQty !== 0 || dPrice !== 0 || dWartosc !== 0 || dZwrot !== 0 || dOgolem !== 0)) {
+        // Zmiana stawki zwrotu (6,5% ↔ 7%) → "—", różnica stawek nie ma sensu liczbowego
+        const stawka = (item.before.stawkaZwrotu === item.after.stawkaZwrotu)
+          ? item.before.stawkaZwrotuDisplay
+          : '—';
+        body.push([
+          { text: '' },
+          { text: 'RÓŻNICA', bold: true, italics: true },
+          { text: '' },
+          { text: dQty !== 0 ? fmtQty(dQty) : '', alignment: 'right', italics: true },
+          { text: '—', alignment: 'center' },
+          { text: dPrice !== 0 ? formatPrice(dPrice, true) : '', alignment: 'right', italics: true, preserveWhiteSpace: true },
+          { text: dWartosc !== 0 ? formatPrice(dWartosc, true) : '', alignment: 'right', italics: true, preserveWhiteSpace: true },
+          { text: stawka, alignment: 'center', italics: true },
+          { text: dZwrot !== 0 ? formatPrice(dZwrot, true) : '', alignment: 'right', italics: true, preserveWhiteSpace: true },
+          { text: dOgolem !== 0 ? formatPrice(dOgolem, true) : '', alignment: 'right', italics: true, preserveWhiteSpace: true }
+        ]);
+      }
+    } else {
+      body.push(pdfRRRowArray(item.row, item.isBefore));
+    }
+  }
+  return body;
+}
+
+// Podsumowanie: trzy kwoty zamiast tabelki VAT wg stawek (lustro rrSummaryHTML).
+function pdfRRSummary(rrData) {
+  const waluta = rrData.kodWaluty || 'PLN';
+  const czyKolumnaW = ['wartoscNabyciaW', 'zwrotZryczaltowanyW', 'naleznoscOgolemW']
+    .some(k => (parseFloat(rrData[k]) || 0) !== 0);
+
+  const naglowek = [
+    { text: 'Pozycja', style: 'tableHeader' },
+    { text: `Kwota (${waluta})`, style: 'tableHeader', alignment: 'right' }
+  ];
+  if (czyKolumnaW) naglowek.push({ text: 'w PLN', style: 'tableHeader', alignment: 'right' });
+  const body = [naglowek];
+
+  const wiersze = [
+    { l: 'Wartość nabycia bez kwoty zwrotu (P_11_1)', v: rrData.wartoscNabycia, w: rrData.wartoscNabyciaW },
+    { l: 'Zryczałtowany zwrot podatku (P_11_2)', v: rrData.zwrotZryczaltowany, w: rrData.zwrotZryczaltowanyW },
+    { l: 'Należność ogółem (P_12_1)', v: rrData.naleznoscOgolem, w: rrData.naleznoscOgolemW, sum: true }
+  ];
+
+  for (const r of wiersze) {
+    const row = [
+      { text: r.l, bold: !!r.sum },
+      { text: formatPrice(r.v, true), alignment: 'right', bold: !!r.sum, preserveWhiteSpace: true }
+    ];
+    if (czyKolumnaW) {
+      row.push({
+        text: (parseFloat(r.w) || 0) !== 0 ? formatPrice(r.w, true) : '—',
+        alignment: 'right', bold: !!r.sum, preserveWhiteSpace: true
+      });
+    }
+    body.push(row);
+  }
+
+  return {
+    table: { widths: czyKolumnaW ? ['*', 55, 55] : ['*', 55], body: body },
+    layout: {
+      hLineWidth: (i, node) => (i === 0 || i === node.table.body.length) ? 0.5 : 0.3,
+      vLineWidth: (i, node) => (i === 0 || i === node.table.widths.length) ? 0.5 : 0.3,
+      hLineColor: () => '#aaaaaa',
+      vLineColor: () => '#aaaaaa',
+      paddingLeft: () => 5, paddingRight: () => 5, paddingTop: () => 2, paddingBottom: () => 2
+    }
+  };
+}
+
+// Walidator P_11_1 + P_11_2 = P_12_1. Logika wspólna z HTML przez
+// rrHeaderConsistencyCalc (renderer.js). Bez ⚠ — Roboto w pdfMake nie ma U+26A0
+// (tofu); wyróżnienie kolorem + bold, jak w torze FA(3).
+function pdfRRHeaderConsistencyCheck(rrData) {
+  const mm = rrHeaderConsistencyCalc(rrData);
+  if (!mm) return null;
+
+  const row = (label, value, bold) => ([
+    { text: label, fontSize: 8 },
+    { text: formatPrice(value, true), alignment: 'right', fontSize: 8, bold: !!bold, color: bold ? '#b9521a' : undefined }
+  ]);
+
+  const inner = {
+    stack: [
+      { text: 'Niezgodność sum w nagłówku faktury', bold: true, color: '#b9521a', fontSize: 10, margin: [0, 0, 0, 3] },
+      { text: 'Wartość nabycia powiększona o zryczałtowany zwrot podatku nie zgadza się z zadeklarowaną należnością ogółem.', fontSize: 8, color: '#5b3a1a', margin: [0, 0, 0, 4] },
+      {
+        table: {
+          widths: ['*', 'auto'],
+          body: [
+            row('Wartość nabycia (P_11_1)', mm.wartosc),
+            row('Zryczałtowany zwrot (P_11_2)', mm.zwrot),
+            row('Suma', mm.expected, true),
+            row('Należność ogółem (P_12_1)', mm.ogolem, true),
+            row('Rozbieżność', mm.diff, true)
+          ]
+        },
+        layout: {
+          hLineWidth: (i, node) => (i === 0 || i === node.table.body.length) ? 0.5 : 0.3,
+          vLineWidth: (i, node) => (i === 0 || i === node.table.widths.length) ? 0.5 : 0.3,
+          hLineColor: () => '#e67e22',
+          vLineColor: () => '#e67e22',
+          paddingLeft: () => 5, paddingRight: () => 5, paddingTop: () => 2, paddingBottom: () => 2
+        }
+      },
+      { text: 'KSeFeusz.pl prezentuje dane wyłącznie w formie wizualizacji oryginalnego pliku XML. W razie wątpliwości zweryfikuj dane źródłowe w pliku XML lub bezpośrednio w KSeF — wizualizator nie modyfikuje wartości z faktury.', fontSize: 7, italics: true, color: '#6b4a22', margin: [0, 5, 0, 0] }
+    ]
+  };
+
+  return {
+    table: { widths: ['*'], body: [[{ stack: [inner], fillColor: '#fff8e6' }]] },
+    layout: {
+      hLineWidth: () => 0.8, vLineWidth: () => 0.8,
+      hLineColor: () => '#e67e22', vLineColor: () => '#e67e22',
+      paddingLeft: () => 8, paddingRight: () => 8, paddingTop: () => 6, paddingBottom: () => 6
+    },
+    unbreakable: true,
+    margin: [0, 0, 0, 4]
+  };
+}
+
+function pdfRenderRRDokumentyZaplaty(rrData) {
+  if (!rrData.dokumentyZaplaty || rrData.dokumentyZaplaty.length === 0) return null;
+  const items = rrData.dokumentyZaplaty.map(d => ({
+    text: d.nr + (d.data ? ` (z dnia ${d.data})` : ''), fontSize: 7.5
+  }));
+  return [pdfSectionHeader('DOKUMENTY ZAPŁATY', 0), pdfCreateGrid(items, 3)];
+}
+
+// Dodatkowe opisy (TKluczWartosc) — ogólne i przypisane do wierszy.
+function pdfRenderRRDodatkoweOpisy(rrData) {
+  const opisy = rrData.dodatkoweOpisy || [];
+  if (opisy.length === 0) return null;
+
+  const content = [pdfSectionHeader('DODATKOWE INFORMACJE', 0)];
+
+  const bezWiersza = opisy.filter(o => !o.nrWiersza);
+  if (bezWiersza.length > 0) {
+    content.push(pdfKvTable(bezWiersza.map(o => [
+      { text: o.klucz + ':', color: '#555555' }, { text: o.wartosc }
+    ])));
+  }
+
+  const zWierszem = opisy.filter(o => o.nrWiersza);
+  if (zWierszem.length > 0) {
+    const klucze = Array.from(new Set(zWierszem.map(o => o.klucz))).sort();
+    const nry = Array.from(new Set(zWierszem.map(o => o.nrWiersza))).sort((a, b) => parseInt(a) - parseInt(b));
+    const body = [[{ text: 'Nr wiersza', style: 'tableHeader' }]
+      .concat(klucze.map(k => ({ text: k, style: 'tableHeader' })))];
+    for (const nr of nry) {
+      const row = [{ text: nr, alignment: 'center', bold: true }];
+      for (const k of klucze) {
+        const wartosci = zWierszem.filter(o => o.nrWiersza === nr && o.klucz === k).map(o => o.wartosc);
+        row.push({ text: wartosci.length ? wartosci.join(', ') : '—' });
+      }
+      body.push(row);
+    }
+    content.push({
+      fontSize: 7,
+      table: { headerRows: 1, widths: ['auto'].concat(klucze.map(() => '*')), body: body },
+      layout: {
+        hLineWidth: () => 0.3, vLineWidth: () => 0.3,
+        hLineColor: () => '#bdc3c7', vLineColor: () => '#bdc3c7',
+        paddingLeft: () => 4, paddingRight: () => 4, paddingTop: () => 2, paddingBottom: () => 2
+      },
+      margin: [0, 4, 0, 0]
+    });
+  }
+  return content;
+}
+
+// ============================================================================
+// GŁÓWNA FUNKCJA GENERUJĄCA PDF FA_RR
+// ============================================================================
+function generateRRPdfWithPdfMake(action = 'download') {
+  if (!currentXml || !currentXmlContent) {
+    showError("Najpierw wczytaj plik XML");
+    return;
+  }
+
+  const pdfBtn = document.getElementById("pdfBtn");
+  const originalText = pdfBtn ? pdfBtn.innerHTML : '';
+
+  try {
+    if (pdfBtn) { pdfBtn.innerHTML = "⏳ Generowanie PDF..."; pdfBtn.disabled = true; }
+
+    // Faktura VAT RR jest dokumentem wyłącznie krajowym — patrz renderRR().
+    setInvoiceLang('pl');
+    setDocNs(NS_FA_RR);
+
+    const xml = new DOMParser().parseFromString(currentXmlContent, "application/xml");
+    const fakturaNode = xml.getElementsByTagNameNS(ns, "Faktura")[0];
+    const frrNode = fakturaNode.getElementsByTagNameNS(ns, "FakturaRR")[0];
+
+    const naglowekNode = fakturaNode.getElementsByTagNameNS(ns, "Naglowek")[0];
+    const naglowekData = naglowekNode ? {
+      dataWytworzenia: getText(naglowekNode, "DataWytworzeniaFa"),
+      systemInfo: getText(naglowekNode, "SystemInfo")
+    } : null;
+
+    // Kierunek: Podmiot1 = rolnik (dostawca), Podmiot2 = nabywca (wystawca)
+    const p1Data = parsePodmiot(fakturaNode.getElementsByTagNameNS(ns, "Podmiot1")[0], 'podmiot1');
+    const p2Data = parsePodmiot(fakturaNode.getElementsByTagNameNS(ns, "Podmiot2")[0], 'podmiot2');
+    const p3DataArray = Array.from(fakturaNode.getElementsByTagNameNS(ns, "Podmiot3")).map(n => parsePodmiot(n, 'podmiot3'));
+
+    const rrData = parseFakturaRR(frrNode);
+    const platnoscData = parsePlatnoscRR(frrNode.getElementsByTagNameNS(ns, "Platnosc")[0]);
+    const rozliczenieData = parseRozliczenie(frrNode.getElementsByTagNameNS(ns, "Rozliczenie")[0]);
+    const stopkaData = parseStopka(fakturaNode.getElementsByTagNameNS(ns, "Stopka")[0]);
+    const wierszeArray = rrData.wiersze;
+
+    const xmlHash = calculateXmlHash(currentXmlContent);
+    const unknownElements = findUnknownFakturaElements(xml);
+    // Link weryfikacyjny odnosi się do WYSTAWCY — w VAT RR jest nim nabywca (Podmiot2)
+    const nipWystawcy = p2Data && p2Data.nip;
+    const ksefNumber = extractKSeFNumberFromFilename(currentFileName);
+    const isValidKSeF = ksefNumber && isValidKSeFNumber(ksefNumber);
+    const jestKorekta = rrData.rodzaj === 'KOR_VAT_RR';
+
+    const docDefinition = {
+      pageSize: 'A4',
+      pageMargins: [25, 25, 25, 25],
+      defaultStyle: { font: 'Roboto', fontSize: 8 },
+      header: function(currentPage) {
+        if (currentPage === 1) return {};
+        let naglowek = rrData.rodzajDisplay;
+        if (rrData.nrFaktury) naglowek += ` nr ${rrData.nrFaktury}`;
+        return {
+          columns: [
+            { text: 'KSeFeusz.pl', fontSize: 7, color: '#bdc3c7', margin: [25, 12, 0, 0] },
+            { text: naglowek, alignment: 'right', margin: [0, 12, 25, 0], fontSize: 7, color: '#95a5a6' }
+          ]
+        };
+      },
+      footer: function(currentPage, pageCount) {
+        return {
+          columns: [
+            { text: 'ksefeusz.pl', fontSize: 7, color: '#bdc3c7', margin: [25, 5, 0, 0] },
+            { text: `Strona ${currentPage} z ${pageCount}`, alignment: 'right', margin: [0, 5, 25, 0], fontSize: 7, color: '#515858' }
+          ]
+        };
+      },
+      content: [],
+      styles: {
+        header: { fontSize: 18, bold: true, color: '#1a5276' },
+        subheader: { fontSize: 9, bold: true, color: '#1a5276' },
+        tableHeader: { bold: true, fontSize: 8, color: '#000000', fillColor: '#e8e8e8' }
+      }
+    };
+
+    // Nagłówek
+    docDefinition.content.push({
+      table: {
+        widths: ['*', 'auto'],
+        body: [[
+          {
+            border: [false, false, false, false],
+            stack: [
+              { text: rrData.rodzajDisplay.toUpperCase() + (rrData.nrFaktury ? ' nr' : ''), fontSize: 12, color: '#1a5276', bold: true, margin: [0, 0, 0, 1] },
+              { text: rrData.nrFaktury || '(brak numeru)', fontSize: 14, bold: true, color: '#1a5276' },
+              { text: 'Wizualizacja faktury ustrukturyzowanej XML', fontSize: 7, color: '#95a5a6', margin: [0, 2, 0, 0] }
+            ]
+          },
+          {
+            border: [false, false, false, false],
+            alignment: 'right',
+            stack: [
+              { text: `Data wystawienia: ${rrData.dataWystawienia}`, fontSize: 8, color: '#2c3e50' },
+              rrData.dataNabycia ? { text: `Data nabycia: ${rrData.dataNabycia}`, fontSize: 8, color: '#555' } : { text: '' },
+              { text: `Waluta: ${rrData.kodWaluty}`, fontSize: 7, color: '#7f8c8d' }
+            ]
+          }
+        ]]
+      },
+      layout: 'noBorders',
+      margin: [0, 0, 0, 1]
+    });
+
+    docDefinition.content.push({
+      canvas: [{ type: 'line', x1: 0, y1: 0, x2: 545, y2: 0, lineWidth: 0.5, lineColor: '#bdc3c7' }],
+      margin: [0, 0, 0, 2]
+    });
+
+    const metaItems = [];
+    if (isValidKSeF) metaItems.push(`Nr KSeF: ${ksefNumber}`);
+    else if (ksefNumber) metaItems.push(`Nr KSeF: ${ksefNumber} (błędna suma kontrolna)`);
+    else metaItems.push('brak numeru KSeF w nazwie pliku');
+    if (naglowekData && naglowekData.systemInfo) metaItems.push(`System: ${naglowekData.systemInfo}`);
+    if (naglowekData && naglowekData.dataWytworzenia) {
+      metaItems.push('Wytworzono: ' + naglowekData.dataWytworzenia.replace('T', ' ').replace(/([+-]\d{2}:\d{2})$/, ' $1').replace(/Z$/, ''));
+    }
+    docDefinition.content.push({ text: metaItems.join('  ·  '), fontSize: 7, color: '#95a5a6', margin: [0, 0, 0, 4] });
+
+    // Objaśnienie natury dokumentu — bez niego odwrócone role są nieczytelne
+    docDefinition.content.push({
+      table: { widths: ['*'], body: [[{
+        text: 'Faktura VAT RR dokumentuje nabycie produktów rolnych lub usług rolniczych od rolnika ryczałtowego. Zgodnie z art. 116 ustawy o VAT wystawia ją nabywca, a zryczałtowany zwrot podatku powiększa kwotę należną rolnikowi.',
+        fontSize: 7, color: '#34495e', fillColor: '#f2f8fd'
+      }]] },
+      layout: {
+        hLineWidth: () => 0, vLineWidth: (i) => i === 0 ? 2 : 0,
+        vLineColor: () => '#3498db',
+        paddingLeft: () => 6, paddingRight: () => 6, paddingTop: () => 4, paddingBottom: () => 4
+      },
+      margin: [0, 0, 0, 5]
+    });
+
+    // Podmioty — nagłówki z kwalifikatorem roli
+    docDefinition.content.push(pdfTwoBox(
+      rrData.podmiot1K
+        ? pdfRenderRRPodmiotZKorekta(rrData.podmiot1K, p1Data, 'ROLNIK RYCZAŁTOWY (DOSTAWCA)')
+        : pdfRenderRRPodmiot(p1Data, 'ROLNIK RYCZAŁTOWY (DOSTAWCA)'),
+      rrData.podmiot2K
+        ? pdfRenderRRPodmiotZKorekta(rrData.podmiot2K, p2Data, 'NABYWCA (WYSTAWCA FAKTURY)')
+        : pdfRenderRRPodmiot(p2Data, 'NABYWCA (WYSTAWCA FAKTURY)')
+    ));
+
+    const p3Contents = p3DataArray.map(d => pdfRenderPodmiot3(d)).filter(c => c);
+    for (let i = 0; i < p3Contents.length; i += 2) {
+      docDefinition.content.push(pdfTwoBox(p3Contents[i], p3Contents[i + 1] || []));
+    }
+
+    // Dane faktury + płatność
+    const faKvRows = [
+      [{ text: 'Numer:', color: '#555555' }, { text: rrData.nrFaktury || '—', bold: true }],
+      [{ text: 'Data wystawienia:', color: '#555555' }, { text: rrData.dataWystawienia + (rrData.miejsceWystawienia ? ', ' + rrData.miejsceWystawienia : '') }]
+    ];
+    if (rrData.dataNabycia) faKvRows.push([{ text: 'Data nabycia:', color: '#555555' }, { text: rrData.dataNabycia }]);
+    if (rrData.typKorekty) faKvRows.push([{ text: 'Typ korekty:', color: '#555555' }, { text: rrData.typKorektyDisplay }]);
+    if (rrData.nrFaKorygowany) faKvRows.push([{ text: 'Nr faktury korygowanej:', color: '#555555' }, { text: rrData.nrFaKorygowany }]);
+    if (rrData.przyczynaKorekty) faKvRows.push([{ text: 'Przyczyna korekty:', color: '#555555' }, { text: rrData.przyczynaKorekty }]);
+
+    docDefinition.content.push(pdfTwoBox(
+      [pdfSectionHeader('DANE FAKTURY'), {
+        table: { widths: ['auto', '*'], body: faKvRows },
+        layout: { hLineWidth: () => 0, vLineWidth: () => 0, paddingLeft: () => 0, paddingRight: () => 4, paddingTop: () => 1, paddingBottom: () => 1 }
+      }],
+      [pdfSectionHeader('PŁATNOŚĆ')].concat(pdfRenderRRPaymentInfo(platnoscData))
+    ));
+
+    // Korygowane faktury
+    if (jestKorekta && rrData.daneKorygowane.length > 0) {
+      const korBody = rrData.daneKorygowane.map(dk => ([
+        { text: dk.nr, bold: true },
+        { text: `z dnia ${dk.data}`, color: '#555555' },
+        dk.nrKSeF
+          ? { text: dk.nrKSeF, fontSize: 7, color: '#555555' }
+          : dk.pozaKSeF
+            ? { text: '(poza KSeF)', fontSize: 7, color: '#888888', italics: true }
+            : { text: '' }
+      ]));
+      docDefinition.content.push({
+        stack: [
+          pdfSectionHeader('KORYGOWANE FAKTURY'),
+          {
+            table: { widths: ['auto', 'auto', '*'], body: korBody },
+            layout: { hLineWidth: () => 0, vLineWidth: () => 0, paddingLeft: () => 0, paddingRight: () => 12, paddingTop: () => 1, paddingBottom: () => 1 }
+          }
+        ],
+        margin: [0, 0, 0, 4]
+      });
+    }
+
+    // Tabela pozycji — bez wierszy pomijamy całkowicie (jak w HTML)
+    if (wierszeArray.length > 0) {
+      const showDiffRows = rrCorrectionDiffRowsAllowed(rrData, wierszeArray);
+      const tableBody = pdfRRCreateTableBody(wierszeArray, jestKorekta, showDiffRows);
+      docDefinition.content.push({
+        fontSize: 7,
+        table: {
+          headerRows: 1,
+          widths: ['auto', '*', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto'],
+          body: tableBody
+        },
+        layout: {
+          fillColor: function(rowIndex, node) {
+            if (rowIndex === 0) return '#e8e8e8';
+            const r = node.table.body[rowIndex];
+            if (r && r[1] && r[1].text === 'RÓŻNICA') return '#f5f5f5';
+            return (rowIndex % 2 === 0) ? '#fafafa' : null;
+          },
+          hLineWidth: (i, node) => (i === 0 || i === node.table.body.length) ? 0.5 : 0.3,
+          vLineWidth: () => 0.3,
+          hLineColor: () => '#aaaaaa',
+          vLineColor: () => '#aaaaaa',
+          paddingLeft: () => 4, paddingRight: () => 4, paddingTop: () => 3, paddingBottom: () => 3
+        },
+        margin: [0, 0, 0, 4]
+      });
+    }
+
+    // Podsumowanie (wyrównane do prawej, jak tabelka VAT w FA(3))
+    if (hasRRSummaryData(rrData)) {
+      docDefinition.content.push({
+        columns: [
+          { width: '*', text: '' },
+          { width: '55%', stack: [pdfRRSummary(rrData)] }
+        ],
+        margin: [0, 0, 0, 2]
+      });
+      if (rrData.naleznoscSlownie) {
+        docDefinition.content.push({
+          text: `Słownie: ${rrData.naleznoscSlownie}`,
+          fontSize: 7.5, italics: true, color: '#546e7a', alignment: 'right', margin: [0, 0, 0, 4]
+        });
+      }
+    }
+
+    const headerCheck = pdfRRHeaderConsistencyCheck(rrData);
+    if (headerCheck) docDefinition.content.push(headerCheck);
+
+    if (rozliczenieData) docDefinition.content.push(pdfBox(pdfRenderRozliczenie(rozliczenieData)));
+
+    const dokZaplaty = pdfRenderRRDokumentyZaplaty(rrData);
+    if (dokZaplaty) docDefinition.content.push(pdfBox(dokZaplaty));
+
+    const opisy = pdfRenderRRDodatkoweOpisy(rrData);
+    if (opisy) docDefinition.content.push(pdfBox(opisy, true));
+
+    if (stopkaData) docDefinition.content.push(pdfBox(pdfRenderFooter(stopkaData)));
+
+    // QR weryfikacyjny KSeF
+    if (unknownElements.length > 0) {
+      const unknownNames = unknownElements.map(el => `<${el.prefix ? el.prefix + ':' : ''}${el.localName}>`).join(', ');
+      docDefinition.content.push(pdfBox([
+        pdfSectionHeader('WERYFIKACJA FAKTURY W KSEF', 0),
+        { text: 'Weryfikacja niemożliwa — plik zawiera elementy spoza schematu FA_RR(1).', fontSize: 8, color: '#c0392b', margin: [0, 0, 0, 3] },
+        { text: `Nieznane elementy: ${unknownNames}`, fontSize: 7.5, color: '#555555' }
+      ]));
+    } else if (nipWystawcy && rrData.dataWystawienia) {
+      const qrUrl = generateVerificationUrl(nipWystawcy, rrData.dataWystawienia, xmlHash);
+      docDefinition.content.push(pdfBox([
+        pdfSectionHeader('WERYFIKACJA FAKTURY W KSEF', 0),
+        {
+          columns: [
+            { width: 'auto', stack: [{ qr: qrUrl, fit: 110, margin: [0, 0, 12, 0] }] },
+            {
+              width: '*',
+              stack: [
+                { text: 'Zeskanuj kod QR lub kliknij link, aby zweryfikować fakturę w systemie KSeF Ministerstwa Finansów.', fontSize: 8, margin: [0, 0, 0, 4] },
+                { text: 'Hash dokumentu:', fontSize: 7, color: '#888888', margin: [0, 0, 0, 1] },
+                { text: xmlHash, fontSize: 6.5, margin: [0, 0, 0, 4] },
+                { text: 'Link weryfikacyjny:', fontSize: 7, color: '#888888', margin: [0, 0, 0, 1] },
+                { text: qrUrl, fontSize: 6.5, decoration: 'underline', color: '#3498db', link: qrUrl }
+              ]
+            }
+          ]
+        }
+      ]));
+    }
+
+    docDefinition.content.push({
+      canvas: [{ type: 'line', x1: 0, y1: 0, x2: 545, y2: 0, lineWidth: 0.5, lineColor: '#ecf0f1' }],
+      margin: [0, 8, 0, 4]
+    });
+    docDefinition.content.push({
+      text: `Wygenerowano przez KSeFeusz.pl · Darmowy wizualizator faktur ustrukturyzowanych KSeF · Wersja ${APP_VERSION}`,
+      fontSize: 7, color: '#5e6264', alignment: 'center'
+    });
+
+    // Nazwa pliku: {P_4C}_{nazwaRolnika}.pdf — konsekwentnie "druga strona
+    // transakcji", tak jak w FA(3) plik nosi nazwę sprzedawcy.
+    const nrDoNazwy = rrData.nrFaktury
+      ? rrData.nrFaktury.replace(/[/\\:*?"<>|]/g, '_').replace(/\s+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
+      : currentFileName;
+    const rolnikDoNazwy = sanitizeSellerName(p1Data && p1Data.nazwa);
+    const pdfFileName = rolnikDoNazwy ? `${nrDoNazwy}_${rolnikDoNazwy}.pdf` : `${nrDoNazwy}.pdf`;
+
+    if (action === 'print') {
+      pdfMake.createPdf(docDefinition).print();
+      showSuccess("Wysłano do druku!");
+    } else if (action === 'open') {
+      pdfMake.createPdf(docDefinition).open();
+    } else {
+      pdfMake.createPdf(docDefinition).download(pdfFileName);
+      showSuccess("PDF wygenerowany pomyślnie!");
+    }
+    setTimeout(() => { const e = document.getElementById("errorMessage"); if (e) e.style.display = "none"; }, 3000);
+
+  } catch (error) {
+    console.error('Błąd generowania PDF (FA_RR):', error);
+    showError('❌ Nie udało się wygenerować PDF');
+  } finally {
+    if (pdfBtn) { pdfBtn.innerHTML = originalText; pdfBtn.disabled = false; }
+  }
+}
+
+// Router eksportu PDF — wybiera tor po namespace wczytanego dokumentu.
+// Wołany zamiast generatePdfWithPdfMake wszędzie, gdzie typ nie jest z góry znany.
+function generateAnyPdf(action = 'download') {
+  if (currentXml && detectDocType(currentXml) === 'FA_RR') {
+    generateRRPdfWithPdfMake(action);
+  } else {
+    generatePdfWithPdfMake(action);
+  }
+}
