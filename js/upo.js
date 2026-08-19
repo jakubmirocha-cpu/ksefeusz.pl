@@ -111,8 +111,8 @@ function handleUpoFile(file) {
 
       const root = xmlDom.documentElement;
       if (root.localName !== "Potwierdzenie" || root.namespaceURI !== UPO_NS) {
-        if (root.namespaceURI === ns)
-          throw new Error('To jest faktura FA(3), nie plik UPO. Uzyj zakladki "Wizualizator" aby ja zwizualizowac.');
+        if (root.namespaceURI === NS_FA3 || root.namespaceURI === NS_FA_RR)
+          throw new Error('To jest faktura, nie plik UPO. Uzyj zakladki "Wizualizator" aby ja zwizualizowac.');
         throw new Error("Plik nie jest dokumentem UPO KSeF. Oczekiwano schematu UPO v4-3.");
       }
 

@@ -5,7 +5,50 @@
 // ============================================================================
 // STAŁE I KONFIGURACJA
 // ============================================================================
-const ns = "http://crd.gov.pl/wzor/2025/06/25/13775/";
+// Przestrzenie nazw obsługiwanych dokumentów
+const NS_FA3   = "http://crd.gov.pl/wzor/2025/06/25/13775/";   // faktura FA(3)
+const NS_FA_RR = "http://crd.gov.pl/wzor/2026/03/06/14189/";   // faktura VAT RR — FA_RR(1)
+const NS_UPO   = "http://upo.schematy.mf.gov.pl/KSeF/v4-3";    // UPO (patrz upo.js)
+
+// Namespace AKTUALNIE parsowanego dokumentu. Ustawia go detectDocType()/setDocNs()
+// przed każdym parsowaniem. Wszystkie parsery w core.js czytają tę zmienną — dzięki
+// temu parsePodmiot/parsePlatnosc/parseStopka działają dla FA(3) i FA_RR bez zmian.
+// PUŁAPKA: to zmienna globalna — nie parsuj dwóch dokumentów naraz. Parsowanie jest
+// w pełni synchroniczne (także w batchu), więc w praktyce jest to bezpieczne.
+let ns = NS_FA3;
+
+function setDocNs(uri) { ns = uri; }
+
+// Schematy rozpoznawane wyłącznie po to, żeby dać sensowny komunikat błędu
+const LEGACY_INVOICE_SCHEMAS = {
+  "http://crd.gov.pl/wzor/2023/06/29/11089/": "FA(2)",
+  "http://crd.gov.pl/wzor/2022/01/17/11089/": "FA(1)"
+};
+
+// Router typu dokumentu. UWAGA: dla faktur ustawia globalne `ns` jako efekt uboczny.
+// Zwraca 'FA3' | 'FA_RR' | 'UPO' | null
+function detectDocType(xmlDom) {
+  const root = xmlDom && xmlDom.documentElement;
+  if (!root) return null;
+  const uri = root.namespaceURI || "";
+  if (uri === NS_FA3)   { setDocNs(NS_FA3);   return "FA3"; }
+  if (uri === NS_FA_RR) { setDocNs(NS_FA_RR); return "FA_RR"; }
+  if (uri === NS_UPO && root.localName === "Potwierdzenie") return "UPO";
+  return null;
+}
+
+// Wspólny komunikat dla nierozpoznanego dokumentu — jedno miejsce prawdy, żeby lista
+// obsługiwanych typów nie rozjechała się między czterema wejściami (wizualizator,
+// panel PDF, batch, przykłady).
+function unsupportedDocMessage(xmlDom) {
+  const root = xmlDom && xmlDom.documentElement;
+  const uri = root ? (root.namespaceURI || "") : "";
+  const legacy = LEGACY_INVOICE_SCHEMAS[uri];
+  if (legacy) return "Plik jest fakturą " + legacy + ". KSeFeusz obsługuje faktury FA(3) i VAT RR.";
+  if (root && root.localName === "Faktura")
+    return "Nieobsługiwana przestrzeń nazw faktury. Obsługiwane są schematy FA(3) i FA_RR (faktura VAT RR).";
+  return "Plik XML nie jest dokumentem KSeF. Obsługiwane są faktury FA(3), faktury VAT RR i pliki UPO.";
+}
 
 // ============================================================================
 // SŁOWNIKI

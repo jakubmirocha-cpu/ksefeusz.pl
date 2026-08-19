@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Faktura xmlns:etd="http://crd.gov.pl/xml/schematy/dziedzinowe/mf/2022/01/05/eD/DefinicjeTypy/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xmlns="http://crd.gov.pl/wzor/2026/03/06/14189/">
+	<Naglowek>
+		<KodFormularza kodSystemowy="FA_RR (1)" wersjaSchemy="1-1E">FA_RR</KodFormularza>
+		<WariantFormularza>1</WariantFormularza>
+		<DataWytworzeniaFa>2026-03-20T11:40:00Z</DataWytworzeniaFa>
+		<SystemInfo>SamploFaktur</SystemInfo>
+	</Naglowek>
+	<Podmiot1>
+		<DaneIdentyfikacyjne>
+			<NIP>7743210987</NIP>
+			<Nazwa>Gospodarstwo Rolne Marek Zieliński</Nazwa>
+		</DaneIdentyfikacyjne>
+		<Adres>
+			<KodKraju>PL</KodKraju>
+			<AdresL1>Dębowa Wola 17</AdresL1>
+			<AdresL2>62-020 Swarzędz</AdresL2>
+		</Adres>
+		<DaneKontaktowe>
+			<Email>marek.zielinski@example.pl</Email>
+			<Telefon>601234567</Telefon>
+		</DaneKontaktowe>
+		<NrKontrahenta>ROL/0042</NrKontrahenta>
+	</Podmiot1>
+	<Podmiot2>
+		<DaneIdentyfikacyjne>
+			<NIP>7792233445</NIP>
+			<Nazwa>Skup Płodów Rolnych AGROPOL sp. z o.o.</Nazwa>
+		</DaneIdentyfikacyjne>
+		<Adres>
+			<KodKraju>PL</KodKraju>
+			<AdresL1>ul. Przemysłowa 44</AdresL1>
+			<AdresL2>61-001 Poznań</AdresL2>
+		</Adres>
+		<DaneKontaktowe>
+			<Email>skup@agropol.example.pl</Email>
+			<Telefon>618887766</Telefon>
+		</DaneKontaktowe>
+	</Podmiot2>
+	<FakturaRR>
+		<KodWaluty>PLN</KodWaluty>
+		<P_1M>Poznań</P_1M>
+		<P_4B>2026-03-20</P_4B>
+		<P_4C>KOR-RR/2026/03/04</P_4C>
+		<P_11_1>-950.00</P_11_1>
+		<P_11_2>-66.50</P_11_2>
+		<P_12_1>-1016.50</P_12_1>
+		<P_12_2>minus jeden tysiąc szesnaście złotych 50/100</P_12_2>
+		<RodzajFaktury>KOR_VAT_RR</RodzajFaktury>
+		<PrzyczynaKorekty>Korekta ilości pszenicy po ponownym ważeniu przy rozładunku — 14 t zamiast 15 t.</PrzyczynaKorekty>
+		<TypKorekty>2</TypKorekty>
+		<DaneFaKorygowanej>
+			<DataWystFaKorygowanej>2026-03-10</DataWystFaKorygowanej>
+			<NrFaKorygowanej>RR/2026/03/17</NrFaKorygowanej>
+			<NrKSeF>1</NrKSeF>
+			<NrKSeFFaKorygowanej>7792233445-20260310-0A1B2C-0A1B2C-3F</NrKSeFFaKorygowanej>
+		</DaneFaKorygowanej>
+		<DokumentZaplaty>
+			<NrDokumentu>PRZ/2026/03/0088</NrDokumentu>
+			<DataDokumentu>2026-03-12</DataDokumentu>
+		</DokumentZaplaty>
+		<FakturaRRWiersz>
+			<NrWierszaFa>1</NrWierszaFa>
+			<UU_ID>a1f4c8e2-1111-4b0a-9c3d-0000000000a1</UU_ID>
+			<P_5>Pszenica konsumpcyjna</P_5>
+			<PKWiU>01.11.13.0</PKWiU>
+			<CN>1001</CN>
+			<P_6A>t</P_6A>
+			<P_6B>15.000000</P_6B>
+			<P_6C>klasa A, wilgotność 13,5%</P_6C>
+			<P_7>950.00</P_7>
+			<P_8>14250.00</P_8>
+			<P_9>7</P_9>
+			<P_10>997.50</P_10>
+			<P_11>15247.50</P_11>
+			<StanPrzed>1</StanPrzed>
+		</FakturaRRWiersz>
+		<FakturaRRWiersz>
+			<NrWierszaFa>2</NrWierszaFa>
+			<UU_ID>a1f4c8e2-1111-4b0a-9c3d-0000000000a1</UU_ID>
+			<P_5>Pszenica konsumpcyjna</P_5>
+			<PKWiU>01.11.13.0</PKWiU>
+			<CN>1001</CN>
+			<P_6A>t</P_6A>
+			<P_6B>14.000000</P_6B>
+			<P_6C>klasa A, wilgotność 13,5%</P_6C>
+			<P_7>950.00</P_7>
+			<P_8>13300.00</P_8>
+			<P_9>7</P_9>
+			<P_10>931.00</P_10>
+			<P_11>14231.00</P_11>
+		</FakturaRRWiersz>
+		<FakturaRRWiersz>
+			<NrWierszaFa>3</NrWierszaFa>
+			<UU_ID>a1f4c8e2-1111-4b0a-9c3d-0000000000a2</UU_ID>
+			<P_5>Ziemniaki jadalne</P_5>
+			<GTIN>05901234123457</GTIN>
+			<PKWiU>01.13.51.0</PKWiU>
+			<P_6A>t</P_6A>
+			<P_6B>3.500000</P_6B>
+			<P_6C>klasa I, kaliber 40-60 mm</P_6C>
+			<P_7>1200.00</P_7>
+			<P_8>4200.00</P_8>
+			<P_9>6.5</P_9>
+			<P_10>273.00</P_10>
+			<P_11>4473.00</P_11>
+			<StanPrzed>1</StanPrzed>
+		</FakturaRRWiersz>
+		<FakturaRRWiersz>
+			<NrWierszaFa>4</NrWierszaFa>
+			<UU_ID>a1f4c8e2-1111-4b0a-9c3d-0000000000a2</UU_ID>
+			<P_5>Ziemniaki jadalne</P_5>
+			<GTIN>05901234123457</GTIN>
+			<PKWiU>01.13.51.0</PKWiU>
+			<P_6A>t</P_6A>
+			<P_6B>3.500000</P_6B>
+			<P_6C>klasa I, kaliber 40-60 mm</P_6C>
+			<P_7>1200.00</P_7>
+			<P_8>4200.00</P_8>
+			<P_9>6.5</P_9>
+			<P_10>273.00</P_10>
+			<P_11>4473.00</P_11>
+		</FakturaRRWiersz>
+		<Platnosc>
+			<FormaPlatnosci>1</FormaPlatnosci>
+			<RachunekBankowy1>
+				<NrRB>11222233334444555566667777</NrRB>
+				<NazwaBanku>Bank Spółdzielczy w Swarzędzu</NazwaBanku>
+				<OpisRachunku>Rachunek rolnika</OpisRachunku>
+			</RachunekBankowy1>
+		</Platnosc>
+	</FakturaRR>
+	<Stopka>
+		<Informacje>
+			<StopkaFaktury>Faktura korygująca do faktury VAT RR nr RR/2026/03/17. Zwrot nadpłaty nastąpi przelewem w terminie 7 dni.</StopkaFaktury>
+		</Informacje>
+	</Stopka>
+</Faktura>
