@@ -1,5 +1,5 @@
 // ============================================================================
-// main.js - wersja 1.8.3 (generowanie PDF i obsługa zdarzeń)
+// main.js - wersja 1.8.4 (generowanie PDF i obsługa zdarzeń)
 // ============================================================================
 // Zakładamy, że core.js, utils.js i renderer.js są załadowane przed main.js
 
@@ -1265,10 +1265,24 @@ function generatePdfWithPdfMake(action = 'download') {
         };
       },
       footer: function(currentPage, pageCount) {
-        return {
+        const pasek = {
           columns: [
             { text: `ksefeusz.pl`, fontSize: 7, color: '#bdc3c7', margin: [25, 5, 0, 0] },
             { text: t('Strona {n} z {k}', { n: currentPage, k: pageCount }), alignment: 'right', margin: [0, 5, 25, 0], fontSize: 7, color: '#515858' }
+          ]
+        };
+        if (currentPage !== pageCount) return pasek;
+        // Podpis aplikacji tylko na ostatniej stronie i w STOPCE, nie w treści:
+        // jako blok treści potrafił wypchnąć kolejną stronę, na której nie było
+        // już nic poza nim. Rzadkie, bo wymaga faktury kończącej się tuż przy
+        // dolnej krawędzi, ale wtedy wygląda na błąd generatora.
+        return {
+          stack: [
+            {
+              text: t('Wygenerowano przez KSeFeusz.pl · Darmowy wizualizator faktur ustrukturyzowanych KSeF · Wersja {v}', { v: APP_VERSION }),
+              fontSize: 6, color: '#a9b0b3', alignment: 'center', margin: [25, 2, 25, 0]
+            },
+            pasek
           ]
         };
       },
@@ -1512,16 +1526,6 @@ if (unknownElements.length > 0) {
     }
   ]));
 }
-
-    // Stopka autora
-    docDefinition.content.push({
-      canvas: [{ type: 'line', x1: 0, y1: 0, x2: 545, y2: 0, lineWidth: 0.5, lineColor: '#ecf0f1' }],
-      margin: [0, 8, 0, 4]
-    });
-    docDefinition.content.push({
-      text: t('Wygenerowano przez KSeFeusz.pl · Darmowy wizualizator faktur ustrukturyzowanych KSeF · Wersja {v}', { v: APP_VERSION }),
-      fontSize: 7, color: '#5e6264', alignment: 'center', margin: [0, 0, 0, 0]
-    });
 
     // Gwiazdka o zakresie tłumaczenia — tylko w języku obcym (po polsku nie ma
     // o czym informować, faktura jest w języku oryginału).

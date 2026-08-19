@@ -1,5 +1,5 @@
 // ============================================================================
-// i18n.js - wersja 1.8.3 (tłumaczenie szablonu wizualizacji)
+// i18n.js - wersja 1.8.4 (tłumaczenie szablonu wizualizacji)
 // ============================================================================
 // Wspólne źródło prawdy dla obu torów renderowania (renderer.js = HTML,
 // main.js = PDF) oraz dla słowników kodów w core.js.
