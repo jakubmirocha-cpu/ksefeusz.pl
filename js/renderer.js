@@ -1,5 +1,5 @@
 // ============================================================================
-// renderer.js - wersja 1.8.4 (renderowanie HTML faktury)
+// renderer.js - wersja 1.8.5 (renderowanie HTML faktury)
 // ============================================================================
 // Zakładamy, że core.js i utils.js są załadowane przed renderer.js
 
@@ -1134,7 +1134,7 @@ function renderDodatkoweInformacjeHTML(faData, p1Data) {
 
   if (faData.kodWaluty) infoItems.push({ label: t("Waluta"), value: faData.kodWaluty });
   if (faData.wz.length > 0) infoItems.push({ label: "WZ", value: faData.wz.join(', ') });
-  if (faData.fp) infoItems.push({ label: t("Faktura zaliczkowa"), value: t("Tak") });
+  if (faData.fp) infoItems.push({ label: t("Faktura do paragonu"), value: t("Tak"), title: t("Faktura, o której mowa w art. 109 ust. 3d ustawy") });
   if (faData.tp) infoItems.push({ label: t("Powiązania"), value: t("Tak") });
   if (faData.zwrotAkcyzy) infoItems.push({ label: t("Zwrot akcyzy"), value: t("Tak") });
   if (faData.kursWalutyZ) infoItems.push({ label: t("Kurs waluty"), value: faData.kursWalutyZ });
@@ -1154,7 +1154,7 @@ function renderDodatkoweInformacjeHTML(faData, p1Data) {
     html += '<div class="info-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; margin-bottom: 5px;">';
     for (let item of infoItems) {
       html += `
-        <div class="info-item" style="border: 1px solid #e0e0e0; padding: 2px 2px; background: #fafafa; border-radius: 3px; display: flex; align-items: baseline; gap: 3px;">
+        <div class="info-item"${item.title ? ` title="${item.title}"` : ''} style="border: 1px solid #e0e0e0; padding: 2px 2px; background: #fafafa; border-radius: 3px; display: flex; align-items: baseline; gap: 3px;">
           <span class="info-label" style="font-weight: bold; color: #2c3e50; font-size: 10px; text-transform: uppercase; white-space: nowrap;">${item.label}:</span>
           <span style="font-size: 10px;">${item.value}</span>
         </div>

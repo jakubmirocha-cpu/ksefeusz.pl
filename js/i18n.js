@@ -1,5 +1,5 @@
 // ============================================================================
-// i18n.js - wersja 1.8.4 (tłumaczenie szablonu wizualizacji)
+// i18n.js - wersja 1.8.5 (tłumaczenie szablonu wizualizacji)
 // ============================================================================
 // Wspólne źródło prawdy dla obu torów renderowania (renderer.js = HTML,
 // main.js = PDF) oraz dla słowników kodów w core.js.
@@ -394,6 +394,8 @@ I18N.en = {
 
   // --- dodatkowe informacje ---
   'Dodatkowe informacje': 'Additional information',
+  'Faktura do paragonu': 'Invoice for a fiscal receipt',
+  'Faktura, o której mowa w art. 109 ust. 3d ustawy': 'Invoice referred to in Article 109(3d) of the VAT Act',
   'Powiązania': 'Related parties',
   'Zwrot akcyzy': 'Excise duty refund',
   'Kwota przed korektą': 'Amount before correction',
@@ -745,6 +747,8 @@ I18N.de = {
 
   // --- dodatkowe informacje ---
   'Dodatkowe informacje': 'Zusätzliche Angaben',
+  'Faktura do paragonu': 'Rechnung zum Kassenbon',
+  'Faktura, o której mowa w art. 109 ust. 3d ustawy': 'Rechnung im Sinne des Art. 109 Abs. 3d des Umsatzsteuergesetzes',
   'Powiązania': 'Verbundene Parteien',
   'Zwrot akcyzy': 'Verbrauchsteuererstattung',
   'Kwota przed korektą': 'Betrag vor der Korrektur',
@@ -1098,6 +1102,8 @@ I18N.fr = {
 
   // --- dodatkowe informacje ---
   'Dodatkowe informacje': 'Informations complémentaires',
+  'Faktura do paragonu': 'Facture liée à un ticket de caisse',
+  'Faktura, o której mowa w art. 109 ust. 3d ustawy': 'Facture visée à l’art. 109, al. 3d de la loi sur la TVA',
   'Powiązania': 'Parties liées',
   'Zwrot akcyzy': 'Remboursement d’accise',
   'Kwota przed korektą': 'Montant avant rectification',
@@ -1449,6 +1455,8 @@ I18N.uk = {
 
   // --- dodatkowe informacje ---
   'Dodatkowe informacje': 'Додаткова інформація',
+  'Faktura do paragonu': 'Фактура до касового чека',
+  'Faktura, o której mowa w art. 109 ust. 3d ustawy': 'Фактура, зазначена у ст. 109 п. 3d закону про ПДВ',
   'Powiązania': 'Повʼязані сторони',
   'Zwrot akcyzy': 'Повернення акцизу',
   'Kwota przed korektą': 'Сума до коригування',

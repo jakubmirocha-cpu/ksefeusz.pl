@@ -1,5 +1,5 @@
 // ============================================================================
-// main.js - wersja 1.8.4 (generowanie PDF i obsługa zdarzeń)
+// main.js - wersja 1.8.5 (generowanie PDF i obsługa zdarzeń)
 // ============================================================================
 // Zakładamy, że core.js, utils.js i renderer.js są załadowane przed main.js
 
@@ -565,7 +565,7 @@ function pdfRenderDodatkoweInformacje(faData, p1Data) {
 
   if (faData.kodWaluty) infoItems.push({ text: `${t('Waluta')}: ${faData.kodWaluty}`, fontSize: 7 });
   if (faData.wz.length > 0) infoItems.push({ text: `WZ: ${faData.wz.join(', ')}`, fontSize: 7 });
-  if (faData.fp) infoItems.push({ text: `${t('Faktura zaliczkowa')}: ${t('Tak')}`, fontSize: 7 });
+  if (faData.fp) infoItems.push({ text: `${t('Faktura do paragonu')}: ${t('Tak')}`, fontSize: 7 });
   if (faData.tp) infoItems.push({ text: `${t('Powiązania')}: ${t('Tak')}`, fontSize: 7 });
   if (faData.zwrotAkcyzy) infoItems.push({ text: `${t('Zwrot akcyzy')}: ${t('Tak')}`, fontSize: 7 });
   if (faData.kursWalutyZ) infoItems.push({ text: `${t('Kurs waluty')}: ${faData.kursWalutyZ}`, fontSize: 7 });
