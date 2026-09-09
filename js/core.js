@@ -19,10 +19,13 @@ let ns = NS_FA3;
 
 function setDocNs(uri) { ns = uri; }
 
-// Schematy rozpoznawane wyłącznie po to, żeby dać sensowny komunikat błędu
+// Schematy rozpoznawane wyłącznie po to, żeby dać sensowny komunikat błędu.
+// Namespace'y sprawdzone w targetNamespace oryginalnych XSD — FA(2) ma numer wzoru
+// 12648, nie 11089 (11089 to FA(1)); pomyłka tutaj daje komunikat ogólny zamiast
+// nazwania wersji, co jest realne, bo archiwa firm są dziś pełne faktur FA(2).
 const LEGACY_INVOICE_SCHEMAS = {
-  "http://crd.gov.pl/wzor/2023/06/29/11089/": "FA(2)",
-  "http://crd.gov.pl/wzor/2022/01/17/11089/": "FA(1)"
+  "http://crd.gov.pl/wzor/2023/06/29/12648/": "FA(2)",
+  "http://crd.gov.pl/wzor/2021/11/29/11089/": "FA(1)"
 };
 
 // Router typu dokumentu. UWAGA: dla faktur ustawia globalne `ns` jako efekt uboczny.
