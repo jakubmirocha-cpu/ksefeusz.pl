@@ -1,5 +1,5 @@
 // ============================================================================
-// renderer.js - wersja 1.8.5 (renderowanie HTML faktury)
+// renderer.js - wersja 1.8.6 (renderowanie HTML faktury)
 // ============================================================================
 // Zakładamy, że core.js i utils.js są załadowane przed renderer.js
 

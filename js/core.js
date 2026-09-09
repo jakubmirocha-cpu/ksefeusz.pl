@@ -1,5 +1,5 @@
 // ============================================================================
-// core.js - wersja 1.8.5 (rdzeń aplikacji)
+// core.js - wersja 1.8.6 (rdzeń aplikacji)
 // ============================================================================
 
 // ============================================================================
@@ -60,12 +60,15 @@ const vatRateMap = {
   "zw": "zwolnione", "oo": "odwrotne obciążenie",
   "np I": "niepodlegające (poza kraj)", "np II": "niepodlegające (art. 100)"
 };
+// Etykiety wg §10 ust. 3 pkt 1-2 rozporządzenia w sprawie JPK_VAT z deklaracją.
+// Uwaga: numeracja bywa mylona — GTU_12 to usługi niematerialne, transport dopiero GTU_13.
 const gtuMap = {
-  "GTU_01": "GTU_01 Alkohol", "GTU_02": "GTU_02 Paliwa", "GTU_03": "GTU_03 Olej opałowy",
+  "GTU_01": "GTU_01 Alkohol", "GTU_02": "GTU_02 Paliwa", "GTU_03": "GTU_03 Oleje opałowe i smarowe",
   "GTU_04": "GTU_04 Tytoń", "GTU_05": "GTU_05 Odpady", "GTU_06": "GTU_06 Urządzenia elektroniczne",
-  "GTU_07": "GTU_07 Pojazdy", "GTU_08": "GTU_08 Metale szlachetne", "GTU_09": "GTU_09 Leasing",
-  "GTU_10": "GTU_10 Budowlanka", "GTU_11": "GTU_11 Usługi niematerialne", "GTU_12": "GTU_12 Usługi transportowe",
-  "GTU_13": "GTU_13 Usługi magazynowe"
+  "GTU_07": "GTU_07 Pojazdy", "GTU_08": "GTU_08 Metale szlachetne i nieszlachetne",
+  "GTU_09": "GTU_09 Leki i wyroby medyczne", "GTU_10": "GTU_10 Budynki, budowle i grunty",
+  "GTU_11": "GTU_11 Uprawnienia do emisji gazów cieplarnianych", "GTU_12": "GTU_12 Usługi niematerialne",
+  "GTU_13": "GTU_13 Usługi transportowe i magazynowe"
 };
 const procedureMap = {
   "WSTO_EE": "WSTO_EE", "IED": "IED", "TT_D": "TT_D", "I_42": "I_42",

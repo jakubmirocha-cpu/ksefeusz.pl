@@ -1,5 +1,5 @@
 // ============================================================================
-// i18n.js - wersja 1.8.5 (tłumaczenie szablonu wizualizacji)
+// i18n.js - wersja 1.8.6 (tłumaczenie szablonu wizualizacji)
 // ============================================================================
 // Wspólne źródło prawdy dla obu torów renderowania (renderer.js = HTML,
 // main.js = PDF) oraz dla słowników kodów w core.js.
@@ -242,17 +242,17 @@ I18N.en = {
   // --- gtuMap ---
   'GTU_01 Alkohol': 'GTU_01 Alcohol',
   'GTU_02 Paliwa': 'GTU_02 Fuels',
-  'GTU_03 Olej opałowy': 'GTU_03 Heating oil',
+  'GTU_03 Oleje opałowe i smarowe': 'GTU_03 Heating and lubricating oils',
   'GTU_04 Tytoń': 'GTU_04 Tobacco',
   'GTU_05 Odpady': 'GTU_05 Waste',
   'GTU_06 Urządzenia elektroniczne': 'GTU_06 Electronic devices',
   'GTU_07 Pojazdy': 'GTU_07 Vehicles',
-  'GTU_08 Metale szlachetne': 'GTU_08 Precious metals',
-  'GTU_09 Leasing': 'GTU_09 Leasing',
-  'GTU_10 Budowlanka': 'GTU_10 Construction',
-  'GTU_11 Usługi niematerialne': 'GTU_11 Intangible services',
-  'GTU_12 Usługi transportowe': 'GTU_12 Transport services',
-  'GTU_13 Usługi magazynowe': 'GTU_13 Warehousing services',
+  'GTU_08 Metale szlachetne i nieszlachetne': 'GTU_08 Precious and base metals',
+  'GTU_09 Leki i wyroby medyczne': 'GTU_09 Medicines and medical devices',
+  'GTU_10 Budynki, budowle i grunty': 'GTU_10 Buildings, structures and land',
+  'GTU_11 Uprawnienia do emisji gazów cieplarnianych': 'GTU_11 Greenhouse gas emission allowances',
+  'GTU_12 Usługi niematerialne': 'GTU_12 Intangible services',
+  'GTU_13 Usługi transportowe i magazynowe': 'GTU_13 Transport and warehousing services',
 
   // --- podsumowanie VAT / stawki (vatRateMap) ---
   'Kategoria': 'Category',
@@ -595,17 +595,17 @@ I18N.de = {
   // --- gtuMap ---
   'GTU_01 Alkohol': 'GTU_01 Alkohol',
   'GTU_02 Paliwa': 'GTU_02 Kraftstoffe',
-  'GTU_03 Olej opałowy': 'GTU_03 Heizöl',
+  'GTU_03 Oleje opałowe i smarowe': 'GTU_03 Heiz- und Schmieröle',
   'GTU_04 Tytoń': 'GTU_04 Tabak',
   'GTU_05 Odpady': 'GTU_05 Abfälle',
   'GTU_06 Urządzenia elektroniczne': 'GTU_06 Elektronikgeräte',
   'GTU_07 Pojazdy': 'GTU_07 Fahrzeuge',
-  'GTU_08 Metale szlachetne': 'GTU_08 Edelmetalle',
-  'GTU_09 Leasing': 'GTU_09 Leasing',
-  'GTU_10 Budowlanka': 'GTU_10 Bauleistungen',
-  'GTU_11 Usługi niematerialne': 'GTU_11 Immaterielle Leistungen',
-  'GTU_12 Usługi transportowe': 'GTU_12 Transportleistungen',
-  'GTU_13 Usługi magazynowe': 'GTU_13 Lagerleistungen',
+  'GTU_08 Metale szlachetne i nieszlachetne': 'GTU_08 Edel- und Unedelmetalle',
+  'GTU_09 Leki i wyroby medyczne': 'GTU_09 Arzneimittel und Medizinprodukte',
+  'GTU_10 Budynki, budowle i grunty': 'GTU_10 Gebäude, Bauwerke und Grundstücke',
+  'GTU_11 Uprawnienia do emisji gazów cieplarnianych': 'GTU_11 Treibhausgas-Emissionszertifikate',
+  'GTU_12 Usługi niematerialne': 'GTU_12 Immaterielle Leistungen',
+  'GTU_13 Usługi transportowe i magazynowe': 'GTU_13 Transport- und Lagerleistungen',
 
   // --- podsumowanie VAT / stawki (vatRateMap) ---
   'Kategoria': 'Kategorie',
@@ -950,17 +950,17 @@ I18N.fr = {
   // --- gtuMap ---
   'GTU_01 Alkohol': 'GTU_01 Alcool',
   'GTU_02 Paliwa': 'GTU_02 Carburants',
-  'GTU_03 Olej opałowy': 'GTU_03 Fioul',
+  'GTU_03 Oleje opałowe i smarowe': 'GTU_03 Fiouls et huiles lubrifiantes',
   'GTU_04 Tytoń': 'GTU_04 Tabac',
   'GTU_05 Odpady': 'GTU_05 Déchets',
   'GTU_06 Urządzenia elektroniczne': 'GTU_06 Appareils électroniques',
   'GTU_07 Pojazdy': 'GTU_07 Véhicules',
-  'GTU_08 Metale szlachetne': 'GTU_08 Métaux précieux',
-  'GTU_09 Leasing': 'GTU_09 Crédit-bail',
-  'GTU_10 Budowlanka': 'GTU_10 Construction',
-  'GTU_11 Usługi niematerialne': 'GTU_11 Services immatériels',
-  'GTU_12 Usługi transportowe': 'GTU_12 Services de transport',
-  'GTU_13 Usługi magazynowe': 'GTU_13 Services d’entreposage',
+  'GTU_08 Metale szlachetne i nieszlachetne': 'GTU_08 Métaux précieux et non précieux',
+  'GTU_09 Leki i wyroby medyczne': 'GTU_09 Médicaments et dispositifs médicaux',
+  'GTU_10 Budynki, budowle i grunty': 'GTU_10 Bâtiments, ouvrages et terrains',
+  'GTU_11 Uprawnienia do emisji gazów cieplarnianych': 'GTU_11 Quotas d’émission de gaz à effet de serre',
+  'GTU_12 Usługi niematerialne': 'GTU_12 Services immatériels',
+  'GTU_13 Usługi transportowe i magazynowe': 'GTU_13 Services de transport et d’entreposage',
 
   // --- podsumowanie VAT / stawki (vatRateMap) ---
   'Kategoria': 'Catégorie',
@@ -1303,17 +1303,17 @@ I18N.uk = {
   // --- gtuMap ---
   'GTU_01 Alkohol': 'GTU_01 Алкоголь',
   'GTU_02 Paliwa': 'GTU_02 Паливо',
-  'GTU_03 Olej opałowy': 'GTU_03 Мазут',
+  'GTU_03 Oleje opałowe i smarowe': 'GTU_03 Пічні та мастильні оливи',
   'GTU_04 Tytoń': 'GTU_04 Тютюн',
   'GTU_05 Odpady': 'GTU_05 Відходи',
   'GTU_06 Urządzenia elektroniczne': 'GTU_06 Електронні пристрої',
   'GTU_07 Pojazdy': 'GTU_07 Транспортні засоби',
-  'GTU_08 Metale szlachetne': 'GTU_08 Дорогоцінні метали',
-  'GTU_09 Leasing': 'GTU_09 Лізинг',
-  'GTU_10 Budowlanka': 'GTU_10 Будівництво',
-  'GTU_11 Usługi niematerialne': 'GTU_11 Нематеріальні послуги',
-  'GTU_12 Usługi transportowe': 'GTU_12 Транспортні послуги',
-  'GTU_13 Usługi magazynowe': 'GTU_13 Складські послуги',
+  'GTU_08 Metale szlachetne i nieszlachetne': 'GTU_08 Дорогоцінні та недорогоцінні метали',
+  'GTU_09 Leki i wyroby medyczne': 'GTU_09 Лікарські засоби та медичні вироби',
+  'GTU_10 Budynki, budowle i grunty': 'GTU_10 Будівлі, споруди та земельні ділянки',
+  'GTU_11 Uprawnienia do emisji gazów cieplarnianych': 'GTU_11 Дозволи на викиди парникових газів',
+  'GTU_12 Usługi niematerialne': 'GTU_12 Нематеріальні послуги',
+  'GTU_13 Usługi transportowe i magazynowe': 'GTU_13 Транспортні та складські послуги',
 
   // --- podsumowanie VAT / stawki (vatRateMap) ---
   'Kategoria': 'Категорія',

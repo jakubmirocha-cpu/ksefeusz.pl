@@ -1,5 +1,5 @@
 // ============================================================================
-// main.js - wersja 1.8.5 (generowanie PDF i obsługa zdarzeń)
+// main.js - wersja 1.8.6 (generowanie PDF i obsługa zdarzeń)
 // ============================================================================
 // Zakładamy, że core.js, utils.js i renderer.js są załadowane przed main.js
 
