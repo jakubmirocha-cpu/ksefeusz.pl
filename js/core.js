@@ -105,6 +105,28 @@ const marzaTypeMap = {
   "P_PMarzy_3_3": "kolekcjonerskie/antyki"
 };
 
+// Mapy używane w OBU torach renderowania (renderer.js = HTML, main.js = PDF).
+// Trzymane tutaj, a nie lokalnie w każdej z funkcji, żeby nie dało się ich
+// rozjechać między torami — reszta słowników kodów siedzi w tym samym miejscu.
+const transportTypeMap = {   // TRodzajTransportu — schemat NIE MA wartości "6"
+  "1": "Morski", "2": "Kolejowy", "3": "Drogowy", "4": "Lotniczy",
+  "5": "Przesyłka pocztowa", "7": "Stałe instalacje przesyłowe", "8": "Żegluga śródlądowa"
+};
+const cargoMap = {           // TLadunek — rodzaj opakowania ładunku
+  "1": "Bańka", "2": "Beczka", "3": "Butla", "4": "Karton", "5": "Kanister",
+  "6": "Klatka", "7": "Kontener", "8": "Kosz/koszyk", "9": "Łubianka",
+  "10": "Opakowanie zbiorcze", "11": "Paczka", "12": "Pakiet", "13": "Paleta",
+  "14": "Pojemnik", "15": "Pojemnik do ładunków masowych stałych",
+  "16": "Pojemnik do ładunków masowych w postaci płynnej", "17": "Pudełko",
+  "18": "Puszka", "19": "Skrzynia", "20": "Worek"
+};
+const authorizedRoleMap = {  // TRolaPodmiotuUpowaznionego (≠ roleMap, który dotyczy Podmiot3)
+  "1": "Organ egzekucyjny", "2": "Komornik sądowy", "3": "Przedstawiciel podatkowy"
+};
+const bankAccountTypeMap = { // TRachunekWlasnyBanku
+  "1": "rach. własny (wierzytelności)", "2": "rach. własny (pobranie)", "3": "rach. własny (gospodarka)"
+};
+
 // ============================================================================
 // FUNKCJE POMOCNICZE (getText, fmtPrice, fmtQty, isValidUUID)
 // ============================================================================

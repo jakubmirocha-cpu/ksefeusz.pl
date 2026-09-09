@@ -85,8 +85,7 @@ function pdfRenderPodmiotUpowazniony(puData) {
     content.push({ text: `${t('Adres koresp.')}: ${adresKorespTekst.trim()}`, margin: [0, 0, 0, 1], fontSize: 8 });
   }
 
-  const roleMapPU = { "1": "Organ egzekucyjny", "2": "Komornik sądowy", "3": "Przedstawiciel podatkowy" };
-  if (puData.rola) content.push({ text: `${t('Rola')}: ${t(roleMapPU[puData.rola]) || puData.rola}`, margin: [0, 0, 0, 1] });
+  if (puData.rola) content.push({ text: `${t('Rola')}: ${t(authorizedRoleMap[puData.rola]) || puData.rola}`, margin: [0, 0, 0, 1] });
 
   if (puData.kontakty && puData.kontakty.length > 0) {
     for (let kontakt of puData.kontakty) {
@@ -210,7 +209,6 @@ function pdfRenderPaymentInfo(p) {
   if (!p) return { text: "—" };
 
   const lbl = txt => ({ text: txt, color: '#555555' });
-  const typyMap = { "1": "rach. własny (wierzytelności)", "2": "rach. własny (pobranie)", "3": "rach. własny (gospodarka)" };
   const rows = [];
 
   if (p.formaPlatnosci) rows.push([lbl(t('Forma') + ':'), { text: t(paymentMap[p.formaPlatnosci]) || p.formaPlatnosci }]);
@@ -227,7 +225,7 @@ function pdfRenderPaymentInfo(p) {
     if (rach.nrRB) {
       const sub = [];
       if (rach.swift) sub.push(`SWIFT: ${rach.swift}`);
-      if (rach.typWlasny) sub.push(t(typyMap[rach.typWlasny]) || t('rachunek własny'));
+      if (rach.typWlasny) sub.push(t(bankAccountTypeMap[rach.typWlasny]) || t('rachunek własny'));
       if (rach.nazwaBanku) sub.push(rach.nazwaBanku);
       const val = sub.length ? { stack: [{ text: formatujRachunek(rach.nrRB) }, { text: sub.join(' • '), fontSize: 7, color: '#555555' }] } : { text: formatujRachunek(rach.nrRB) };
       rows.push([lbl(t('Rachunek') + ':'), val]);
@@ -238,7 +236,7 @@ function pdfRenderPaymentInfo(p) {
     if (rach.nrRB) {
       const sub = [];
       if (rach.swift) sub.push(`SWIFT: ${rach.swift}`);
-      if (rach.typWlasny) sub.push(t(typyMap[rach.typWlasny]) || t('rachunek własny'));
+      if (rach.typWlasny) sub.push(t(bankAccountTypeMap[rach.typWlasny]) || t('rachunek własny'));
       if (rach.nazwaBanku) sub.push(rach.nazwaBanku);
       const val = sub.length ? { stack: [{ text: formatujRachunek(rach.nrRB) }, { text: sub.join(' • '), fontSize: 7, color: '#555555' }] } : { text: formatujRachunek(rach.nrRB) };
       rows.push([lbl(t('Rachunek faktora') + ':'), val]);
@@ -375,8 +373,7 @@ function pdfRenderTransport(tr) {
   let content = [];
 
   if (tr.rodzaj) {
-    const rodzajMap = { "1": "Morski", "2": "Kolejowy", "3": "Drogowy", "4": "Lotniczy", "5": "Przesyłka pocztowa", "7": "Stałe instalacje przesyłowe", "8": "Żegluga śródlądowa" };
-    content.push({ text: `${t('Transport')} - ${t(rodzajMap[tr.rodzaj]) || tr.rodzaj}`, margin: [0, 0, 0, 1] });
+    content.push({ text: `${t('Transport')} - ${t(transportTypeMap[tr.rodzaj]) || tr.rodzaj}`, margin: [0, 0, 0, 1] });
   } else if (tr.transportInny && tr.opisInnegoTransportu) {
     content.push({ text: `${t('Transport')} - ${tr.opisInnegoTransportu} ${t('(inny)')}`, margin: [0, 0, 0, 1] });
   }
@@ -395,8 +392,7 @@ function pdfRenderTransport(tr) {
   if (tr.nrZlecenia) content.push({ text: `${t('Zlecenie transportu')}: ${tr.nrZlecenia}`, margin: [0, 0, 0, 1] });
 
   if (tr.ladunek) {
-    const ladunekMap = { "1": "Bańka", "2": "Beczka", "3": "Butla", "4": "Karton", "5": "Kanister", "6": "Klatka", "7": "Kontener", "8": "Kosz/koszyk", "9": "Łubianka", "10": "Opakowanie zbiorcze", "11": "Paczka", "12": "Pakiet", "13": "Paleta", "14": "Pojemnik", "15": "Pojemnik do ładunków masowych stałych", "16": "Pojemnik do ładunków masowych w postaci płynnej", "17": "Pudełko", "18": "Puszka", "19": "Skrzynia", "20": "Worek" };
-    let ladunekText = `${t('Ładunek')}: ${t(ladunekMap[tr.ladunek]) || tr.ladunek}`;
+    let ladunekText = `${t('Ładunek')}: ${t(cargoMap[tr.ladunek]) || tr.ladunek}`;
     if (tr.jednostkaOpakowania) ladunekText += ` (${tr.jednostkaOpakowania})`;
     content.push({ text: ladunekText, margin: [0, 0, 0, 1] });
   } else if (tr.ladunekInny && tr.opisInnegoLadunku) {

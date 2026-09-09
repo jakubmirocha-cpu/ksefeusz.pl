@@ -276,8 +276,7 @@ function renderPodmiotUpowaznionyHTML(puData) {
     html += `<div><strong>${t('Adres koresp.')}:</strong> ${adresKorespTekst.trim()}</div>`;
   }
 
-  const roleMapPU = { "1": "Organ egzekucyjny", "2": "Komornik sądowy", "3": "Przedstawiciel podatkowy" };
-  if (puData.rola) html += `<div><strong>${t('Rola')}:</strong> ${t(roleMapPU[puData.rola]) || puData.rola}</div>`;
+  if (puData.rola) html += `<div><strong>${t('Rola')}:</strong> ${t(authorizedRoleMap[puData.rola]) || puData.rola}</div>`;
 
   if (puData.kontakty && puData.kontakty.length > 0) {
     for (const kontakt of puData.kontakty) {
@@ -425,8 +424,7 @@ function renderPaymentInfoHTML(p) {
       let rachunekInfo = `<div style="margin-top: 5px;"><strong>${t('Rachunek')}:</strong> ${formatujRachunek(rach.nrRB)}`;
       if (rach.swift) rachunekInfo += ` (SWIFT: ${rach.swift})`;
 
-      const typyMap = { "1": "rach. własny (wierzytelności)", "2": "rach. własny (pobranie)", "3": "rach. własny (gospodarka)" };
-      if (rach.typWlasny) rachunekInfo += `<br><small>${t(typyMap[rach.typWlasny]) || t('rachunek własny')}</small>`;
+      if (rach.typWlasny) rachunekInfo += `<br><small>${t(bankAccountTypeMap[rach.typWlasny]) || t('rachunek własny')}</small>`;
       if (rach.nazwaBanku) rachunekInfo += `<br>${rach.nazwaBanku}`;
       if (rach.opis) rachunekInfo += `<br><small>${rach.opis}</small>`;
       rachunekInfo += `</div>`;
@@ -438,8 +436,7 @@ function renderPaymentInfoHTML(p) {
     if (rach.nrRB) {
       let rachunekInfo = `<div style="margin-top: 5px;"><strong>${t('Rachunek faktora')}:</strong> ${formatujRachunek(rach.nrRB)}`;
       if (rach.swift) rachunekInfo += ` (SWIFT: ${rach.swift})`;
-      const typyMap = { "1": "rach. własny (wierzytelności)", "2": "rach. własny (pobranie)", "3": "rach. własny (gospodarka)" };
-      if (rach.typWlasny) rachunekInfo += `<br><small>${t(typyMap[rach.typWlasny]) || t('rachunek własny')}</small>`;
+      if (rach.typWlasny) rachunekInfo += `<br><small>${t(bankAccountTypeMap[rach.typWlasny]) || t('rachunek własny')}</small>`;
       if (rach.nazwaBanku) rachunekInfo += `<br>${rach.nazwaBanku}`;
       rachunekInfo += `</div>`;
       html += rachunekInfo;
@@ -900,8 +897,7 @@ function renderWarunkiTransakcjiHTML(w) {
 
       // Rodzaj transportu
       if (tr.rodzaj) {
-        const rodzajMap = { "1": "Morski", "2": "Kolejowy", "3": "Drogowy", "4": "Lotniczy", "5": "Przesyłka pocztowa", "7": "Stałe instalacje przesyłowe", "8": "Żegluga śródlądowa" };
-        html += `<div><strong>${t('Rodzaj')}:</strong> ${t(rodzajMap[tr.rodzaj]) || tr.rodzaj}</div>`;
+        html += `<div><strong>${t('Rodzaj')}:</strong> ${t(transportTypeMap[tr.rodzaj]) || tr.rodzaj}</div>`;
       } else if (tr.transportInny && tr.opisInnegoTransportu) {
         html += `<div><strong>${t('Rodzaj')}:</strong> ${tr.opisInnegoTransportu} ${t('(inny)')}</div>`;
       }
@@ -930,8 +926,7 @@ function renderWarunkiTransakcjiHTML(w) {
 
       // Ładunek
       if (tr.ladunek) {
-        const ladunekMap = { "1": "Bańka", "2": "Beczka", "3": "Butla", "4": "Karton", "5": "Kanister", "6": "Klatka", "7": "Kontener", "8": "Kosz/koszyk", "9": "Łubianka", "10": "Opakowanie zbiorcze", "11": "Paczka", "12": "Pakiet", "13": "Paleta", "14": "Pojemnik", "15": "Pojemnik do ładunków masowych stałych", "16": "Pojemnik do ładunków masowych w postaci płynnej", "17": "Pudełko", "18": "Puszka", "19": "Skrzynia", "20": "Worek" };
-        html += `<div><strong>${t('Ładunek')}:</strong> ${t(ladunekMap[tr.ladunek]) || tr.ladunek}`;
+        html += `<div><strong>${t('Ładunek')}:</strong> ${t(cargoMap[tr.ladunek]) || tr.ladunek}`;
         if (tr.jednostkaOpakowania) html += ` (${tr.jednostkaOpakowania})`;
         html += `</div>`;
       } else if (tr.ladunekInny && tr.opisInnegoLadunku) {
