@@ -1,0 +1,416 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Faktura testowa FA(3) — próbka o szerokim pokryciu pól.
+  Powstała po zgłoszeniu błędu w słowniku GTU (v1.8.6): pozostałe próbki nie
+  zawierały ANI JEDNEGO kodu GTU, procedury, transportu, podmiotu upoważnionego
+  ani rachunku własnego banku, więc te ścieżki renderowania nie były niczym
+  sprawdzane.
+
+  Co ta faktura pokrywa:
+    - 9 kodów GTU (w tym GTU_09, GTU_11, GTU_12, GTU_13 — poprawione w v1.8.6)
+    - oznaczenia procedur: B_SPV_DOSTAWA, WSTO_EE
+    - stawki: 23%, 8%, zw, np II, OSS (P_12_XII) oraz MPP (P_12_Zal_15)
+    - rabat per wiersz (cena x ilosc != wartosc netto) i jawny opust P_10
+    - PKWiU, CN, PKOB, GTIN, Indeks, akcyza, data pozycji (P_6A)
+    - Podmiot3 w trzech rolach (2, 6, 10), PodmiotUpowazniony (rola 3)
+    - status podatnika, prefiks VAT UE, NrEORI, GLN, GV = czlonek grupy VAT
+    - adnotacje: MPP, zwolnienie z podstawa prawna, brak nowych srodkow transportu
+    - platnosc: termin opisowy, rachunek wlasny banku, rachunek faktora, skonto
+    - warunki transakcji: umowa, zamowienie, partie towaru, kurs umowny, transport
+    - rozliczenie: obciazenia i odliczenia, kwota do zaplaty
+    - DodatkowyOpis ogolny i przypisany do wierszy (przelacznik szczegolow)
+
+  Arytmetyka jest spojna (P_15 = suma P_13_* + P_14_*), zeby walidator spojnosci
+  naglowka milczal. Dane sa fikcyjne, NIP-y maja poprawne sumy kontrolne.
+  Plik zwalidowany przeciwko documentations/schemat.xsd.
+-->
+<Faktura xmlns:etd="http://crd.gov.pl/xml/schematy/dziedzinowe/mf/2022/01/05/eD/DefinicjeTypy/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">
+	<Naglowek>
+		<KodFormularza kodSystemowy="FA (3)" wersjaSchemy="1-0E">FA</KodFormularza>
+		<WariantFormularza>3</WariantFormularza>
+		<DataWytworzeniaFa>2026-03-02T09:15:00Z</DataWytworzeniaFa>
+		<SystemInfo>KSeFeusz — próbka testowa</SystemInfo>
+	</Naglowek>
+	<Podmiot1>
+		<PrefiksPodatnika>PL</PrefiksPodatnika>
+		<NrEORI>PL999999999900000</NrEORI>
+		<DaneIdentyfikacyjne>
+			<NIP>9999999999</NIP>
+			<Nazwa>Kancelaria Wielobranżowa Omega sp. z o.o.</Nazwa>
+		</DaneIdentyfikacyjne>
+		<Adres>
+			<KodKraju>PL</KodKraju>
+			<AdresL1>ul. Rynek Główny 12/4</AdresL1>
+			<AdresL2>31-042 Kraków</AdresL2>
+			<GLN>5901234123457</GLN>
+		</Adres>
+		<AdresKoresp>
+			<KodKraju>PL</KodKraju>
+			<AdresL1>skr. poczt. 118</AdresL1>
+			<AdresL2>30-960 Kraków 1</AdresL2>
+		</AdresKoresp>
+		<DaneKontaktowe>
+			<Email>faktury@omega-kancelaria.example</Email>
+			<Telefon>124455667</Telefon>
+		</DaneKontaktowe>
+		<StatusInfoPodatnika>2</StatusInfoPodatnika>
+	</Podmiot1>
+	<Podmiot2>
+		<NrEORI>PL111111111100000</NrEORI>
+		<DaneIdentyfikacyjne>
+			<NIP>1111111111</NIP>
+			<Nazwa>Przedsiębiorstwo Handlowe Delta S.A.</Nazwa>
+		</DaneIdentyfikacyjne>
+		<Adres>
+			<KodKraju>PL</KodKraju>
+			<AdresL1>al. Niepodległości 210</AdresL1>
+			<AdresL2>00-608 Warszawa</AdresL2>
+			<GLN>5901234123464</GLN>
+		</Adres>
+		<AdresKoresp>
+			<KodKraju>PL</KodKraju>
+			<AdresL1>ul. Magazynowa 7, hala B</AdresL1>
+			<AdresL2>05-090 Raszyn</AdresL2>
+		</AdresKoresp>
+		<DaneKontaktowe>
+			<Email>zobowiazania@delta-sa.example</Email>
+			<Telefon>223334455</Telefon>
+		</DaneKontaktowe>
+		<NrKlienta>KL-2026-0417</NrKlienta>
+		<JST>2</JST>
+		<GV>1</GV>
+	</Podmiot2>
+	<Podmiot3>
+		<DaneIdentyfikacyjne>
+			<NIP>3333333333</NIP>
+			<Nazwa>Delta S.A. — Oddział w Gdańsku</Nazwa>
+		</DaneIdentyfikacyjne>
+		<Adres>
+			<KodKraju>PL</KodKraju>
+			<AdresL1>ul. Portowa 3</AdresL1>
+			<AdresL2>80-701 Gdańsk</AdresL2>
+		</Adres>
+		<Rola>2</Rola>
+		<NrKlienta>ODB-GD-11</NrKlienta>
+	</Podmiot3>
+	<Podmiot3>
+		<DaneIdentyfikacyjne>
+			<NIP>4444444444</NIP>
+			<Nazwa>Delta Finanse sp. z o.o.</Nazwa>
+		</DaneIdentyfikacyjne>
+		<Adres>
+			<KodKraju>PL</KodKraju>
+			<AdresL1>ul. Bankowa 1</AdresL1>
+			<AdresL2>00-950 Warszawa</AdresL2>
+		</Adres>
+		<Rola>6</Rola>
+	</Podmiot3>
+	<Podmiot3>
+		<DaneIdentyfikacyjne>
+			<NIP>5555555555</NIP>
+			<Nazwa>Delta Logistyka sp. z o.o. (członek grupy VAT)</Nazwa>
+		</DaneIdentyfikacyjne>
+		<Adres>
+			<KodKraju>PL</KodKraju>
+			<AdresL1>ul. Składowa 22</AdresL1>
+			<AdresL2>05-090 Raszyn</AdresL2>
+		</Adres>
+		<Rola>10</Rola>
+	</Podmiot3>
+	<PodmiotUpowazniony>
+		<DaneIdentyfikacyjne>
+			<NIP>6666666666</NIP>
+			<Nazwa>Biuro Przedstawiciela Podatkowego Sigma sp. z o.o.</Nazwa>
+		</DaneIdentyfikacyjne>
+		<Adres>
+			<KodKraju>PL</KodKraju>
+			<AdresL1>ul. Skarbowa 5</AdresL1>
+			<AdresL2>00-020 Warszawa</AdresL2>
+		</Adres>
+		<DaneKontaktowe>
+			<EmailPU>kontakt@sigma-pp.example</EmailPU>
+			<TelefonPU>228889900</TelefonPU>
+		</DaneKontaktowe>
+		<RolaPU>3</RolaPU>
+	</PodmiotUpowazniony>
+	<Fa>
+		<KodWaluty>PLN</KodWaluty>
+		<P_1>2026-03-02</P_1>
+		<P_1M>Kraków</P_1M>
+		<P_2>FV/2026/03/0042</P_2>
+		<WZ>WZ/2026/03/118</WZ>
+		<WZ>WZ/2026/03/119</WZ>
+		<P_6>2026-02-28</P_6>
+		<P_13_1>9800.00</P_13_1>
+		<P_14_1>2254.00</P_14_1>
+		<P_13_2>900.00</P_13_2>
+		<P_14_2>72.00</P_14_2>
+		<P_13_5>400.00</P_13_5>
+		<P_14_5>76.00</P_14_5>
+		<P_13_7>60000.00</P_13_7>
+		<P_13_9>3000.00</P_13_9>
+		<P_15>76502.00</P_15>
+		<Adnotacje>
+			<P_16>2</P_16>
+			<P_17>2</P_17>
+			<P_18>2</P_18>
+			<P_18A>1</P_18A>
+			<Zwolnienie>
+				<P_19>1</P_19>
+				<P_19A>art. 43 ust. 1 pkt 10 ustawy o podatku od towarów i usług</P_19A>
+			</Zwolnienie>
+			<NoweSrodkiTransportu>
+				<P_22N>1</P_22N>
+			</NoweSrodkiTransportu>
+			<P_23>2</P_23>
+			<PMarzy>
+				<P_PMarzyN>1</P_PMarzyN>
+			</PMarzy>
+		</Adnotacje>
+		<RodzajFaktury>VAT</RodzajFaktury>
+		<TP>1</TP>
+		<DodatkowyOpis>
+			<Klucz>Numer projektu</Klucz>
+			<Wartosc>PRJ-2026-DELTA-07</Wartosc>
+		</DodatkowyOpis>
+		<DodatkowyOpis>
+			<Klucz>Opiekun handlowy</Klucz>
+			<Wartosc>Anna Zielińska</Wartosc>
+		</DodatkowyOpis>
+		<DodatkowyOpis>
+			<NrWiersza>3</NrWiersza>
+			<Klucz>Numer serii</Klucz>
+			<Wartosc>SER/2026/0031</Wartosc>
+		</DodatkowyOpis>
+		<DodatkowyOpis>
+			<NrWiersza>3</NrWiersza>
+			<Klucz>Data ważności</Klucz>
+			<Wartosc>2028-04-30</Wartosc>
+		</DodatkowyOpis>
+		<DodatkowyOpis>
+			<NrWiersza>4</NrWiersza>
+			<Klucz>Numer serii</Klucz>
+			<Wartosc>SER/2026/0032</Wartosc>
+		</DodatkowyOpis>
+		<DodatkowyOpis>
+			<NrWiersza>4</NrWiersza>
+			<Klucz>Banderole</Klucz>
+			<Wartosc>PL-AKC-2026-778</Wartosc>
+		</DodatkowyOpis>
+		<FaWiersz>
+			<NrWierszaFa>1</NrWierszaFa>
+			<UU_ID>f2d1c0a4-1e77-4f4a-9a10-0b1a2c3d4e5f</UU_ID>
+			<P_7>Usługi księgowe — obsługa miesiąca 02/2026</P_7>
+			<Indeks>USL-KSIEG-01</Indeks>
+			<PKWiU>69.20.23.0</PKWiU>
+			<P_8A>usł.</P_8A>
+			<P_8B>1</P_8B>
+			<P_9A>2500.00</P_9A>
+			<P_11>2500.00</P_11>
+			<P_11Vat>575.00</P_11Vat>
+			<P_12>23</P_12>
+			<GTU>GTU_12</GTU>
+		</FaWiersz>
+		<FaWiersz>
+			<NrWierszaFa>2</NrWierszaFa>
+			<P_7>Transport towarów na trasie Kraków — Raszyn</P_7>
+			<Indeks>USL-TRANS-03</Indeks>
+			<PKWiU>49.41.19.0</PKWiU>
+			<P_8A>kurs</P_8A>
+			<P_8B>3</P_8B>
+			<P_9A>400.00</P_9A>
+			<P_10>120.00</P_10>
+			<P_11>1080.00</P_11>
+			<P_11Vat>248.40</P_11Vat>
+			<P_12>23</P_12>
+			<GTU>GTU_13</GTU>
+		</FaWiersz>
+		<FaWiersz>
+			<NrWierszaFa>3</NrWierszaFa>
+			<P_6A>2026-02-26</P_6A>
+			<P_7>Produkty lecznicze — opakowanie zbiorcze</P_7>
+			<Indeks>TOW-LEK-114</Indeks>
+			<GTIN>05901234123457</GTIN>
+			<CN>3004 90 00</CN>
+			<P_8A>op.</P_8A>
+			<P_8B>20</P_8B>
+			<P_9A>45.00</P_9A>
+			<P_11>900.00</P_11>
+			<P_11Vat>72.00</P_11Vat>
+			<P_12>8</P_12>
+			<GTU>GTU_09</GTU>
+		</FaWiersz>
+		<FaWiersz>
+			<NrWierszaFa>4</NrWierszaFa>
+			<P_7>Napoje alkoholowe — wódka czysta 0,5 l</P_7>
+			<Indeks>TOW-ALK-220</Indeks>
+			<GTIN>05901234123464</GTIN>
+			<CN>2208 60 11</CN>
+			<P_8A>but.</P_8A>
+			<P_8B>12</P_8B>
+			<P_9A>60.00</P_9A>
+			<P_11>720.00</P_11>
+			<P_11Vat>165.60</P_11Vat>
+			<P_12>23</P_12>
+			<KwotaAkcyzy>300.00</KwotaAkcyzy>
+			<GTU>GTU_01</GTU>
+		</FaWiersz>
+		<FaWiersz>
+			<NrWierszaFa>5</NrWierszaFa>
+			<P_7>Przeniesienie uprawnień do emisji gazów cieplarnianych</P_7>
+			<Indeks>USL-EUA-01</Indeks>
+			<P_8A>szt.</P_8A>
+			<P_8B>100</P_8B>
+			<P_9A>50.00</P_9A>
+			<P_11>5000.00</P_11>
+			<P_11Vat>1150.00</P_11Vat>
+			<P_12>23</P_12>
+			<P_12_Zal_15>1</P_12_Zal_15>
+			<GTU>GTU_11</GTU>
+		</FaWiersz>
+		<FaWiersz>
+			<NrWierszaFa>6</NrWierszaFa>
+			<P_7>Realizacja bonu jednego przeznaczenia (SPV)</P_7>
+			<Indeks>BON-SPV-09</Indeks>
+			<P_8A>szt.</P_8A>
+			<P_8B>1</P_8B>
+			<P_9A>500.00</P_9A>
+			<P_11>500.00</P_11>
+			<P_11Vat>115.00</P_11Vat>
+			<P_12>23</P_12>
+			<Procedura>B_SPV_DOSTAWA</Procedura>
+		</FaWiersz>
+		<FaWiersz>
+			<NrWierszaFa>7</NrWierszaFa>
+			<P_7>Usługi doradcze dla kontrahenta z UE (art. 28b ustawy)</P_7>
+			<Indeks>USL-DOR-77</Indeks>
+			<PKWiU>70.22.13.0</PKWiU>
+			<P_8A>usł.</P_8A>
+			<P_8B>1</P_8B>
+			<P_9A>3000.00</P_9A>
+			<P_11>3000.00</P_11>
+			<P_12>np II</P_12>
+			<GTU>GTU_12</GTU>
+		</FaWiersz>
+		<FaWiersz>
+			<NrWierszaFa>8</NrWierszaFa>
+			<P_7>Dostawa lokalu użytkowego wraz z udziałem w gruncie</P_7>
+			<Indeks>NIER-LOK-02</Indeks>
+			<PKOB>1220</PKOB>
+			<P_8A>szt.</P_8A>
+			<P_8B>1</P_8B>
+			<P_9A>60000.00</P_9A>
+			<P_11>60000.00</P_11>
+			<P_12>zw</P_12>
+			<GTU>GTU_10</GTU>
+		</FaWiersz>
+		<FaWiersz>
+			<NrWierszaFa>9</NrWierszaFa>
+			<P_7>Kurs online dla konsumenta z Niemiec (procedura OSS)</P_7>
+			<Indeks>USL-OSS-05</Indeks>
+			<P_8A>szt.</P_8A>
+			<P_8B>2</P_8B>
+			<P_9A>200.00</P_9A>
+			<P_11>400.00</P_11>
+			<P_11Vat>76.00</P_11Vat>
+			<P_12_XII>19.00</P_12_XII>
+			<Procedura>WSTO_EE</Procedura>
+		</FaWiersz>
+		<Rozliczenie>
+			<Obciazenia>
+				<Kwota>50.00</Kwota>
+				<Powod>Opłata za dostawę na wskazany magazyn</Powod>
+			</Obciazenia>
+			<SumaObciazen>50.00</SumaObciazen>
+			<Odliczenia>
+				<Kwota>200.00</Kwota>
+				<Powod>Zaliczka wpłacona 2026-02-10</Powod>
+			</Odliczenia>
+			<SumaOdliczen>200.00</SumaOdliczen>
+			<DoZaplaty>76352.00</DoZaplaty>
+		</Rozliczenie>
+		<Platnosc>
+			<TerminPlatnosci>
+				<Termin>2026-03-16</Termin>
+				<TerminOpis>
+					<Ilosc>14</Ilosc>
+					<Jednostka>dni</Jednostka>
+					<ZdarzeniePoczatkowe>od daty wystawienia faktury</ZdarzeniePoczatkowe>
+				</TerminOpis>
+			</TerminPlatnosci>
+			<FormaPlatnosci>6</FormaPlatnosci>
+			<RachunekBankowy>
+				<NrRB>11109010140000071219812874</NrRB>
+				<SWIFT>WBKPPLPP</SWIFT>
+				<RachunekWlasnyBanku>1</RachunekWlasnyBanku>
+				<NazwaBanku>Bank Przykładowy S.A.</NazwaBanku>
+				<OpisRachunku>Rachunek rozliczeniowy — faktoring wierzytelności</OpisRachunku>
+			</RachunekBankowy>
+			<RachunekBankowyFaktora>
+				<NrRB>22102055610000350200997654</NrRB>
+				<NazwaBanku>Faktor Bank S.A.</NazwaBanku>
+				<OpisRachunku>Rachunek faktora do spłaty wierzytelności</OpisRachunku>
+			</RachunekBankowyFaktora>
+			<Skonto>
+				<WarunkiSkonta>Zapłata do 2026-03-09</WarunkiSkonta>
+				<WysokoscSkonta>2% wartości netto</WysokoscSkonta>
+			</Skonto>
+		</Platnosc>
+		<WarunkiTransakcji>
+			<Umowy>
+				<DataUmowy>2026-01-08</DataUmowy>
+				<NrUmowy>UM/2026/OM-DELTA/03</NrUmowy>
+			</Umowy>
+			<Zamowienia>
+				<DataZamowienia>2026-02-19</DataZamowienia>
+				<NrZamowienia>ZAM/2026/02/771</NrZamowienia>
+			</Zamowienia>
+			<NrPartiiTowaru>PART/2026/A-14</NrPartiiTowaru>
+			<NrPartiiTowaru>PART/2026/A-15</NrPartiiTowaru>
+			<WarunkiDostawy>DAP Raszyn (Incoterms 2020)</WarunkiDostawy>
+			<KursUmowny>4.3210</KursUmowny>
+			<WalutaUmowna>EUR</WalutaUmowna>
+			<Transport>
+				<RodzajTransportu>3</RodzajTransportu>
+				<Przewoznik>
+					<DaneIdentyfikacyjne>
+						<NIP>7777777777</NIP>
+						<Nazwa>Trans-Kurier sp. z o.o.</Nazwa>
+					</DaneIdentyfikacyjne>
+					<AdresPrzewoznika>
+						<KodKraju>PL</KodKraju>
+						<AdresL1>ul. Spedycyjna 40</AdresL1>
+						<AdresL2>32-085 Modlniczka</AdresL2>
+					</AdresPrzewoznika>
+				</Przewoznik>
+				<NrZleceniaTransportu>ZLT/2026/02/455</NrZleceniaTransportu>
+				<OpisLadunku>13</OpisLadunku>
+				<JednostkaOpakowania>4 palety EUR</JednostkaOpakowania>
+				<DataGodzRozpTransportu>2026-02-27T06:30:00Z</DataGodzRozpTransportu>
+				<DataGodzZakTransportu>2026-02-27T15:45:00Z</DataGodzZakTransportu>
+				<WysylkaZ>
+					<KodKraju>PL</KodKraju>
+					<AdresL1>ul. Rynek Główny 12/4</AdresL1>
+					<AdresL2>31-042 Kraków</AdresL2>
+				</WysylkaZ>
+				<WysylkaDo>
+					<KodKraju>PL</KodKraju>
+					<AdresL1>ul. Magazynowa 7, hala B</AdresL1>
+					<AdresL2>05-090 Raszyn</AdresL2>
+				</WysylkaDo>
+			</Transport>
+		</WarunkiTransakcji>
+	</Fa>
+	<Stopka>
+		<Informacje>
+			<StopkaFaktury>Kapitał zakładowy 250 000 zł, opłacony w całości. Sąd Rejonowy dla Krakowa-Śródmieścia, XI Wydział Gospodarczy KRS.</StopkaFaktury>
+		</Informacje>
+		<Rejestry>
+			<PelnaNazwa>Kancelaria Wielobranżowa Omega spółka z ograniczoną odpowiedzialnością</PelnaNazwa>
+			<KRS>0000123456</KRS>
+			<REGON>123456785</REGON>
+			<BDO>000123456</BDO>
+		</Rejestry>
+	</Stopka>
+</Faktura>

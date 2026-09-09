@@ -1890,14 +1890,22 @@ if (faData.rodzaj.startsWith("KOR") && faData.daneKorygowane.length > 0) {
   }
 
   // Payment container
+  // Kwota do przelewu: DoZaplaty z Rozliczenia, gdy wystawca je podał — uwzględnia
+  // obciążenia i odliczenia (np. rozliczoną zaliczkę), więc to ona jest kwotą, którą
+  // nabywca ma realnie przelać. P_15 to należność ogółem sprzed tych korekt i podanie
+  // jej w danych do przelewu kazałoby zapłacić za dużo. Ta sama zasada co w torze FA_RR.
+  const kwotaDoZaplaty = (rozliczenieData && rozliczenieData.doZaplaty)
+    ? rozliczenieData.doZaplaty
+    : faData.vatSummary.p15;
+
   const paymentQrId = 'pqr-' + Date.now();
-  const paymentHtml = renderPaymentContainerHTML(p1Data, platnoscData, faData, paymentQrId);
+  const paymentHtml = renderPaymentContainerHTML(p1Data, platnoscData, faData, paymentQrId, { amount: kwotaDoZaplaty });
   if (paymentHtml) {
     const paymentEl = document.createElement('div');
     paymentEl.innerHTML = paymentHtml;
     document.getElementById("pages").appendChild(paymentEl.firstElementChild);
     if ((faData.kodWaluty || 'PLN') === 'PLN') {
-      addPaymentQR(paymentQrId, faData.vatSummary.p15 || '0', platnoscData.rachunki[0].nrRB, p1Data?.nip || '', p1Data?.nazwa || '', faData.nrFaktury || '');
+      addPaymentQR(paymentQrId, kwotaDoZaplaty || '0', platnoscData.rachunki[0].nrRB, p1Data?.nip || '', p1Data?.nazwa || '', faData.nrFaktury || '');
     }
   }
 
