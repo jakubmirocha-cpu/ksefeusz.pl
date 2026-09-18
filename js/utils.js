@@ -1,8 +1,8 @@
 // ============================================================================
-// utils.js - wersja 1.8.6 (pomocnicze funkcje UI i nawigacji)
+// utils.js - wersja 1.8.7 (pomocnicze funkcje UI i nawigacji)
 // ============================================================================
-const APP_VERSION = '1.8.6';
-const BUILD_DATE = '2026-09-09';
+const APP_VERSION = '1.8.7';
+const BUILD_DATE = '2026-09-18';
 
 // ============================================================================
 // STAŁE GLOBALNE (UI)

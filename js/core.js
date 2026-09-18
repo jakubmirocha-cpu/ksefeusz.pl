@@ -1,5 +1,5 @@
 // ============================================================================
-// core.js - wersja 1.8.6 (rdzeń aplikacji)
+// core.js - wersja 1.8.7 (rdzeń aplikacji)
 // ============================================================================
 
 // ============================================================================
@@ -181,6 +181,51 @@ function formatPrice(value, forPdf = false) {
 function fmtQty(v) {
   const n = parseFloat(v || 0);
   return Number.isInteger(n) ? n.toString() : n.toFixed(3).replace('.', ',');
+}
+
+// ============================================================================
+// ADRES — kolejność linii i nazwa kraju (v1.8.7)
+// ============================================================================
+// KodKraju pokazujemy PEŁNĄ NAZWĄ na KOŃCU adresu, po przecinku
+// („45-424 Opole, Polska"), a nie jako prefiks przed AdresL1:
+// „PL ul. Kwiatowa 1" czytało się jak „plac".
+// Kraj jest zawsze, także dla Polski — to element XML-a, nie ozdobnik.
+// Nazwa w języku wizualizacji z Intl.DisplayNames (wbudowane w przeglądarkę,
+// bez słownika krajów). Z 254 kodów KodyKrajow_v10-0E Intl nie zna trzech
+// (kody specjalne UE) — te są w _countryOverrides. Nieznany kod → sam kod.
+// AdresL1/AdresL2 to w schemacie wolny tekst — nie zgadujemy, gdzie jest kod
+// pocztowy, tylko zachowujemy linie tak, jak podał je wystawca.
+
+const _countryOverrides = {
+  XI: { pl: 'Irlandia Północna', en: 'Northern Ireland', de: 'Nordirland', fr: 'Irlande du Nord', uk: 'Північна Ірландія' },
+  XC: { pl: 'Ceuta', en: 'Ceuta', de: 'Ceuta', fr: 'Ceuta', uk: 'Сеута' },
+  XL: { pl: 'Melilla', en: 'Melilla', de: 'Melilla', fr: 'Melilla', uk: 'Мелілья' },
+};
+const _countryNamesCache = {};
+
+function countryName(code) {
+  if (!code) return '';
+  const lang = (typeof currentLang !== 'undefined' && currentLang) || 'pl';
+  const ov = _countryOverrides[code.toUpperCase()];
+  if (ov) return ov[lang] || ov.pl;
+  try {
+    if (!(lang in _countryNamesCache)) {
+      _countryNamesCache[lang] = new Intl.DisplayNames([lang], { type: 'region', fallback: 'code' });
+    }
+    return _countryNamesCache[lang].of(code.toUpperCase()) || code;
+  } catch (e) {
+    return code;
+  }
+}
+
+// Adres w jednej linii: „ul. Kwiatowa 8C/2, 01-101 Warszawa, Polska".
+// Wszędzie tak samo — w bloku podmiotu i po etykiecie („Adres:", „Wysyłka z:").
+function adresInline(adres) {
+  if (!adres) return '';
+  return [adres.linia1, adres.linia2, countryName(adres.kodKraju)]
+    .map(s => (s || '').trim())
+    .filter(Boolean)
+    .join(', ');
 }
 
 function isValidUUID(uuid) {

@@ -1,5 +1,5 @@
 // ============================================================================
-// main.js - wersja 1.8.6 (generowanie PDF i obsługa zdarzeń)
+// main.js - wersja 1.8.7 (generowanie PDF i obsługa zdarzeń)
 // ============================================================================
 // Zakładamy, że core.js, utils.js i renderer.js są załadowane przed main.js
 
@@ -13,13 +13,11 @@ function pdfRenderPodmiot(data, tytul) {
   if (data.nazwa) content.push({ text: data.nazwa, bold: true, margin: [0, 0, 0, 1] });
   if (data.nip) content.push({ text: `NIP: ${data.prefiks ? data.prefiks + ' ' : ''}${data.nip}`, margin: [0, 0, 0, 1] });
   if (data.adres) {
-    let adresTekst = `${data.adres.kodKraju || ''} ${data.adres.linia1}`;
-    if (data.adres.linia2) adresTekst += `, ${data.adres.linia2}`;
+    let adresTekst = adresInline(data.adres);
     content.push({ text: adresTekst.trim(), margin: [0, 0, 0, 1] });
   }
   if (data.adresKoresp) {
-    let adresKorespTekst = `${data.adresKoresp.kodKraju || ''} ${data.adresKoresp.linia1}`;
-    if (data.adresKoresp.linia2) adresKorespTekst += `, ${data.adresKoresp.linia2}`;
+    let adresKorespTekst = adresInline(data.adresKoresp);
     content.push({ text: `${t('Adres koresp.')}: ${adresKorespTekst.trim()}`, margin: [0, 0, 0, 1], fontSize: 7 });
   }
 
@@ -74,14 +72,12 @@ function pdfRenderPodmiotUpowazniony(puData) {
   if (puData.nrEORI) content.push({ text: `EORI: ${puData.nrEORI}`, margin: [0, 0, 0, 1] });
 
   if (puData.adres) {
-    let adresTekst = `${puData.adres.kodKraju || ''} ${puData.adres.linia1}`;
-    if (puData.adres.linia2) adresTekst += `, ${puData.adres.linia2}`;
+    let adresTekst = adresInline(puData.adres);
     content.push({ text: `${t('Adres')}: ${adresTekst.trim()}`, margin: [0, 0, 0, 1] });
   }
 
   if (puData.adresKoresp) {
-    let adresKorespTekst = `${puData.adresKoresp.kodKraju || ''} ${puData.adresKoresp.linia1}`;
-    if (puData.adresKoresp.linia2) adresKorespTekst += `, ${puData.adresKoresp.linia2}`;
+    let adresKorespTekst = adresInline(puData.adresKoresp);
     content.push({ text: `${t('Adres koresp.')}: ${adresKorespTekst.trim()}`, margin: [0, 0, 0, 1], fontSize: 8 });
   }
 
@@ -110,14 +106,12 @@ function pdfRenderPodmiot3(p3Data) {
   if (p3Data.brakID) content.push({ text: t('bez identyfikatora podatkowego'), italics: true, margin: [0, 0, 0, 1] });
 
   if (p3Data.adres) {
-    let adresTekst = `${p3Data.adres.kodKraju || ''} ${p3Data.adres.linia1}`;
-    if (p3Data.adres.linia2) adresTekst += `, ${p3Data.adres.linia2}`;
+    let adresTekst = adresInline(p3Data.adres);
     content.push({ text: adresTekst.trim(), margin: [0, 0, 0, 1] });
   }
 
   if (p3Data.adresKoresp) {
-    let adresKorespTekst = `${p3Data.adresKoresp.kodKraju || ''} ${p3Data.adresKoresp.linia1}`;
-    if (p3Data.adresKoresp.linia2) adresKorespTekst += `, ${p3Data.adresKoresp.linia2}`;
+    let adresKorespTekst = adresInline(p3Data.adresKoresp);
     content.push({ text: `${t('Adres koresp.')}: ${adresKorespTekst.trim()}`, margin: [0, 0, 0, 1], fontSize: 7 });
   }
 
@@ -161,8 +155,7 @@ function pdfRenderPodmiot1K(p1kData) {
   }
 
   if (p1kData.adres) {
-    let adresTekst = `${p1kData.adres.kodKraju || ''} ${p1kData.adres.linia1}`;
-    if (p1kData.adres.linia2) adresTekst += `, ${p1kData.adres.linia2}`;
+    let adresTekst = adresInline(p1kData.adres);
     content.push({ text: adresTekst.trim(), margin: [0, 0, 0, 1] });
     if (p1kData.adres.gln) content.push({ text: `GLN: ${p1kData.adres.gln}`, fontSize: 7, margin: [0, 0, 0, 1] });
   }
@@ -195,8 +188,7 @@ function pdfRenderPodmiot2KFull(p2kFullArray) {
     if (p2k.idNabywcy) content.push({ text: `${t('ID nabywcy')}: ${p2k.idNabywcy}`, margin: [5, 0, 0, 1], fontSize: 7 });
 
     if (p2k.adres) {
-      let adresTekst = `${p2k.adres.kodKraju || ''} ${p2k.adres.linia1}`;
-      if (p2k.adres.linia2) adresTekst += `, ${p2k.adres.linia2}`;
+      let adresTekst = adresInline(p2k.adres);
       content.push({ text: adresTekst.trim(), margin: [5, 0, 0, 1], fontSize: 7 });
       if (p2k.adres.gln) content.push({ text: `GLN: ${p2k.adres.gln}`, margin: [5, 0, 0, 1], fontSize: 7 });
     }
@@ -383,8 +375,7 @@ function pdfRenderTransport(tr) {
     if (tr.przewoznik.nip) content.push({ text: `NIP: ${tr.przewoznik.nip}`, margin: [5, 0, 0, 2], fontSize: 8 });
     if (tr.przewoznik.kodUE && tr.przewoznik.nrVatUE) content.push({ text: `${t('VAT UE')}: ${tr.przewoznik.kodUE} ${tr.przewoznik.nrVatUE}`, margin: [5, 0, 0, 2], fontSize: 8 });
     if (tr.przewoznik.adres) {
-      let adresTekst = `${tr.przewoznik.adres.kodKraju || ''} ${tr.przewoznik.adres.linia1}`;
-      if (tr.przewoznik.adres.linia2) adresTekst += `, ${tr.przewoznik.adres.linia2}`;
+      let adresTekst = adresInline(tr.przewoznik.adres);
       content.push({ text: adresTekst.trim(), margin: [0, 0, 0, 1], fontSize: 8 });
     }
   }
@@ -409,21 +400,18 @@ function pdfRenderTransport(tr) {
   }
 
   if (tr.wysylkaZ) {
-    let miejsce = `${tr.wysylkaZ.kodKraju || ''} ${tr.wysylkaZ.linia1}`;
-    if (tr.wysylkaZ.linia2) miejsce += `, ${tr.wysylkaZ.linia2}`;
+    let miejsce = adresInline(tr.wysylkaZ);
     content.push({ text: `${t('Wysyłka z')}: ${miejsce.trim()}`, margin: [0, 0, 0, 1] });
   }
 
   if (tr.wysylkaDo) {
-    let miejsce = `${tr.wysylkaDo.kodKraju || ''} ${tr.wysylkaDo.linia1}`;
-    if (tr.wysylkaDo.linia2) miejsce += `, ${tr.wysylkaDo.linia2}`;
+    let miejsce = adresInline(tr.wysylkaDo);
     content.push({ text: `${t('Wysyłka do')}: ${miejsce.trim()}`, margin: [0, 0, 0, 1] });
   }
 
   if (tr.wysylkaPrzez && tr.wysylkaPrzez.length > 0) {
     const przezList = tr.wysylkaPrzez.map((p, idx) => {
-      let miejsce = `${p.kodKraju || ''} ${p.linia1 || ''}`.trim();
-      if (p.linia2) miejsce += `, ${p.linia2}`;
+      let miejsce = adresInline(p);
       return `${idx + 1}. ${miejsce}`;
     }).join('; ');
     content.push({ text: `${t('Wysyłka przez')}: ${przezList}`, margin: [0, 0, 0, 1] });
@@ -2061,13 +2049,11 @@ function pdfRenderRRPodmiot(data, tytul) {
   if (data.nazwa) content.push({ text: data.nazwa, bold: true, margin: [0, 0, 0, 1] });
   if (data.nip) content.push({ text: `NIP: ${data.nip}`, margin: [0, 0, 0, 1] });
   if (data.adres) {
-    let a = `${data.adres.kodKraju || ''} ${data.adres.linia1 || ''}`;
-    if (data.adres.linia2) a += `, ${data.adres.linia2}`;
+    let a = adresInline(data.adres);
     content.push({ text: a.trim(), margin: [0, 0, 0, 1] });
   }
   if (data.adresKoresp) {
-    let a = `${data.adresKoresp.kodKraju || ''} ${data.adresKoresp.linia1 || ''}`;
-    if (data.adresKoresp.linia2) a += `, ${data.adresKoresp.linia2}`;
+    let a = adresInline(data.adresKoresp);
     content.push({ text: `Adres koresp.: ${a.trim()}`, margin: [0, 0, 0, 1], fontSize: 7 });
   }
 
@@ -2095,16 +2081,14 @@ function pdfRenderRRPodmiotZKorekta(przed, po, tytul) {
   if (przed.nazwa) content.push({ text: przed.nazwa, bold: true, fontSize: 7.5 });
   if (przed.nip) content.push({ text: `NIP: ${przed.nip}`, fontSize: 7.5 });
   if (przed.adres) {
-    let a = `${przed.adres.kodKraju || ''} ${przed.adres.linia1 || ''}`;
-    if (przed.adres.linia2) a += `, ${przed.adres.linia2}`;
+    let a = adresInline(przed.adres);
     content.push({ text: a.trim(), fontSize: 7.5, margin: [0, 0, 0, 3] });
   }
   content.push({ text: 'PO KOREKCIE', fontSize: 6.5, color: '#27ae60', margin: [0, 0, 0, 1] });
   if (po.nazwa) content.push({ text: po.nazwa, bold: true });
   if (po.nip) content.push({ text: `NIP: ${po.nip}` });
   if (po.adres) {
-    let a = `${po.adres.kodKraju || ''} ${po.adres.linia1 || ''}`;
-    if (po.adres.linia2) a += `, ${po.adres.linia2}`;
+    let a = adresInline(po.adres);
     content.push({ text: a.trim() });
   }
   return content;

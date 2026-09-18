@@ -1,5 +1,5 @@
 // ============================================================================
-// renderer.js - wersja 1.8.6 (renderowanie HTML faktury)
+// renderer.js - wersja 1.8.7 (renderowanie HTML faktury)
 // ============================================================================
 // Zakładamy, że core.js i utils.js są załadowane przed renderer.js
 
@@ -204,15 +204,13 @@ function renderPodmiotHTML(podmiot, tytul) {
 
   // Adres
   if (podmiot.adres) {
-    let adresTekst = `${podmiot.adres.kodKraju || ''} ${podmiot.adres.linia1}`;
-    if (podmiot.adres.linia2) adresTekst += `, ${podmiot.adres.linia2}`;
+    let adresTekst = adresInline(podmiot.adres);
     html += `<div>${adresTekst.trim()}</div>`;
   }
 
   // Adres korespondencyjny
   if (podmiot.adresKoresp) {
-    let adresKorespTekst = `${podmiot.adresKoresp.kodKraju || ''} ${podmiot.adresKoresp.linia1}`;
-    if (podmiot.adresKoresp.linia2) adresKorespTekst += `, ${podmiot.adresKoresp.linia2}`;
+    let adresKorespTekst = adresInline(podmiot.adresKoresp);
     html += `<div style="margin-top: 3px;"><strong>${t('Adres koresp.')}:</strong> ${adresKorespTekst.trim()}</div>`;
   }
 
@@ -265,14 +263,12 @@ function renderPodmiotUpowaznionyHTML(puData) {
   if (puData.nrEORI) html += `<div><strong>EORI:</strong> ${puData.nrEORI}</div>`;
 
   if (puData.adres) {
-    let adresTekst = `${puData.adres.kodKraju || ''} ${puData.adres.linia1}`;
-    if (puData.adres.linia2) adresTekst += `, ${puData.adres.linia2}`;
+    let adresTekst = adresInline(puData.adres);
     html += `<div><strong>${t('Adres')}:</strong> ${adresTekst.trim()}</div>`;
   }
 
   if (puData.adresKoresp) {
-    let adresKorespTekst = `${puData.adresKoresp.kodKraju || ''} ${puData.adresKoresp.linia1}`;
-    if (puData.adresKoresp.linia2) adresKorespTekst += `, ${puData.adresKoresp.linia2}`;
+    let adresKorespTekst = adresInline(puData.adresKoresp);
     html += `<div><strong>${t('Adres koresp.')}:</strong> ${adresKorespTekst.trim()}</div>`;
   }
 
@@ -303,14 +299,12 @@ function renderPodmiot3HTML(p3Data) {
   if (p3Data.brakID) html += `<div><em>${t('bez identyfikatora podatkowego')}</em></div>`;
 
   if (p3Data.adres) {
-    let adresTekst = `${p3Data.adres.kodKraju || ''} ${p3Data.adres.linia1}`;
-    if (p3Data.adres.linia2) adresTekst += `, ${p3Data.adres.linia2}`;
+    let adresTekst = adresInline(p3Data.adres);
     html += `<div>${adresTekst.trim()}</div>`;
   }
 
   if (p3Data.adresKoresp) {
-    let adresKorespTekst = `${p3Data.adresKoresp.kodKraju || ''} ${p3Data.adresKoresp.linia1}`;
-    if (p3Data.adresKoresp.linia2) adresKorespTekst += `, ${p3Data.adresKoresp.linia2}`;
+    let adresKorespTekst = adresInline(p3Data.adresKoresp);
     html += `<div style="margin-top: 3px;"><strong>${t('Adres koresp.')}:</strong> ${adresKorespTekst.trim()}</div>`;
   }
 
@@ -357,8 +351,7 @@ function renderPodmiot1KHTML(p1kData) {
   }
 
   if (p1kData.adres) {
-    let adresTekst = `${p1kData.adres.kodKraju || ''} ${p1kData.adres.linia1}`;
-    if (p1kData.adres.linia2) adresTekst += `, ${p1kData.adres.linia2}`;
+    let adresTekst = adresInline(p1kData.adres);
     html += `<div><strong>${t('Adres')}:</strong> ${adresTekst.trim()}</div>`;
     if (p1kData.adres.gln) html += `<div><small>GLN: ${p1kData.adres.gln}</small></div>`;
   }
@@ -385,8 +378,7 @@ function renderPodmiot2KFullHTML(p2kFullArray) {
     if (p2k.idNabywcy) html += `<div><small>ID nabywcy: ${p2k.idNabywcy}</small></div>`;
 
     if (p2k.adres) {
-      let adresTekst = `${p2k.adres.kodKraju || ''} ${p2k.adres.linia1}`;
-      if (p2k.adres.linia2) adresTekst += `, ${p2k.adres.linia2}`;
+      let adresTekst = adresInline(p2k.adres);
       html += `<div><strong>${t('Adres')}:</strong> ${adresTekst.trim()}</div>`;
       if (p2k.adres.gln) html += `<div><small>GLN: ${p2k.adres.gln}</small></div>`;
     }
@@ -914,8 +906,7 @@ function renderWarunkiTransakcjiHTML(w) {
 	  if (tr.przewoznik.brakID) html += `<div><small>${t('bez identyfikatora podatkowego')}</small></div>`;
 
 	  if (tr.przewoznik.adres) {
-		let adresTekst = `${tr.przewoznik.adres.kodKraju || ''} ${tr.przewoznik.adres.linia1}`;
-		if (tr.przewoznik.adres.linia2) adresTekst += `, ${tr.przewoznik.adres.linia2}`;
+		let adresTekst = adresInline(tr.przewoznik.adres);
 		html += `<div><small>${t('Adres')}: ${adresTekst.trim()}</small></div>`;
 		if (tr.przewoznik.adres.gln) html += `<div><small>GLN: ${tr.przewoznik.adres.gln}</small></div>`;
 	  }
@@ -945,21 +936,18 @@ function renderWarunkiTransakcjiHTML(w) {
 
       // Miejsca
       if (tr.wysylkaZ) {
-        let miejsce = `${tr.wysylkaZ.kodKraju || ''} ${tr.wysylkaZ.linia1}`;
-        if (tr.wysylkaZ.linia2) miejsce += `, ${tr.wysylkaZ.linia2}`;
+        let miejsce = adresInline(tr.wysylkaZ);
         html += `<div><strong>${t('Wysyłka z')}:</strong> ${miejsce.trim()}</div>`;
       }
 
       if (tr.wysylkaDo) {
-        let miejsce = `${tr.wysylkaDo.kodKraju || ''} ${tr.wysylkaDo.linia1}`;
-        if (tr.wysylkaDo.linia2) miejsce += `, ${tr.wysylkaDo.linia2}`;
+        let miejsce = adresInline(tr.wysylkaDo);
         html += `<div><strong>${t('Wysyłka do')}:</strong> ${miejsce.trim()}</div>`;
       }
 
       if (tr.wysylkaPrzez && tr.wysylkaPrzez.length > 0) {
         const przezList = tr.wysylkaPrzez.map((p, idx) => {
-          let miejsce = `${p.kodKraju || ''} ${p.linia1 || ''}`.trim();
-          if (p.linia2) miejsce += `, ${p.linia2}`;
+          let miejsce = adresInline(p);
           return `${idx + 1}. ${miejsce}`;
         }).join('; ');
         html += `<div><strong>${t('Wysyłka przez')}:</strong> ${przezList}</div>`;
@@ -2129,8 +2117,7 @@ function rrPodmiotKorektaHTML(pkData) {
   if (pkData.nazwa) html += `<strong>${pkData.nazwa}</strong><br>`;
   if (pkData.nip) html += `<div><strong>NIP:</strong> ${nipHtml(pkData.nip)}</div>`;
   if (pkData.adres) {
-    let a = `${pkData.adres.kodKraju || ''} ${pkData.adres.linia1 || ''}`;
-    if (pkData.adres.linia2) a += `, ${pkData.adres.linia2}`;
+    let a = adresInline(pkData.adres);
     html += `<div>${a.trim()}</div>`;
   }
   return html;
