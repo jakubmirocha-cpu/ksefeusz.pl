@@ -1,5 +1,5 @@
 // ============================================================================
-// renderer.js - wersja 1.8.7 (renderowanie HTML faktury)
+// renderer.js - wersja 1.8.8 (renderowanie HTML faktury)
 // ============================================================================
 // Zakładamy, że core.js i utils.js są załadowane przed renderer.js
 
@@ -210,7 +210,7 @@ function renderPodmiotHTML(podmiot, tytul) {
 
   // Adres korespondencyjny
   if (podmiot.adresKoresp) {
-    let adresKorespTekst = adresInline(podmiot.adresKoresp);
+    let adresKorespTekst = adresZGln(podmiot.adresKoresp);
     html += `<div style="margin-top: 3px;"><strong>${t('Adres koresp.')}:</strong> ${adresKorespTekst.trim()}</div>`;
   }
 
@@ -263,12 +263,12 @@ function renderPodmiotUpowaznionyHTML(puData) {
   if (puData.nrEORI) html += `<div><strong>EORI:</strong> ${puData.nrEORI}</div>`;
 
   if (puData.adres) {
-    let adresTekst = adresInline(puData.adres);
+    let adresTekst = adresZGln(puData.adres);
     html += `<div><strong>${t('Adres')}:</strong> ${adresTekst.trim()}</div>`;
   }
 
   if (puData.adresKoresp) {
-    let adresKorespTekst = adresInline(puData.adresKoresp);
+    let adresKorespTekst = adresZGln(puData.adresKoresp);
     html += `<div><strong>${t('Adres koresp.')}:</strong> ${adresKorespTekst.trim()}</div>`;
   }
 
@@ -304,7 +304,7 @@ function renderPodmiot3HTML(p3Data) {
   }
 
   if (p3Data.adresKoresp) {
-    let adresKorespTekst = adresInline(p3Data.adresKoresp);
+    let adresKorespTekst = adresZGln(p3Data.adresKoresp);
     html += `<div style="margin-top: 3px;"><strong>${t('Adres koresp.')}:</strong> ${adresKorespTekst.trim()}</div>`;
   }
 
@@ -390,6 +390,70 @@ function renderPodmiot2KFullHTML(p2kFullArray) {
   return html;
 }
 
+// ============================================================================
+// PŁATNOŚĆ — teksty wspólne dla HTML i PDF
+// ============================================================================
+// Te same zdania buduje tor HTML (renderPaymentInfoHTML) i tor PDF
+// (pdfRenderPaymentInfo w main.js). Jedna funkcja zamiast dwóch kopii, żeby tory
+// nie mogły się rozjechać — do v1.8.7 PDF nie pokazywał m.in. znacznika zapłaty
+// ani opisu rachunku, które HTML miał.
+
+// Jeden TerminPlatnosci jako tekst: „2026-03-16 (14 dni od wystawienia faktury)".
+// Data i opis należą do tego samego terminu, więc stoją w jednym wierszu — przy
+// kilku terminach (raty) nie dałoby się ich inaczej sparować.
+function terminPlatnosciText(termin) {
+  let opis = '';
+  if (termin.opis) {
+    const { ilosc, jednostka, zdarzenie } = termin.opis;
+    const czesci = [ilosc, jednostka].filter(Boolean);
+    // Wystawcy wpisują zdarzenie z przyimkiem („od wystawienia faktury" — tak jest
+    // w przykładzie z broszury MF) albo bez („wystawienie faktury"). Własne „od"
+    // doklejamy tylko w drugim przypadku, inaczej wychodziło „14 dni od od …".
+    if (zdarzenie) czesci.push(/^od\s/i.test(zdarzenie) ? zdarzenie : `${t('od')} ${zdarzenie}`);
+    opis = czesci.join(' ');
+  }
+  if (termin.data && opis) return `${termin.data} (${opis})`;
+  return termin.data || opis;
+}
+
+// ZnacznikZaplatyCzesciowej: "1" — zapłacono w części, "2" — zapłacono w całości
+// (w dwóch lub więcej częściach, ostatnia płatność była końcowa).
+function znacznikZaplatyText(p) {
+  if (p.znacznikZaplatyCzesciowej === "1") return t('zapłacono w części');
+  if (p.znacznikZaplatyCzesciowej === "2") return t('zapłacono w całości');
+  return p.znacznikZaplatyCzesciowej || '';
+}
+
+// Jedna ZaplataCzesciowa jako tekst: „500,00 z 2026-01-20 (Gotówka)".
+// Forma to albo kod ze słownika, albo opis „innej formy" (PlatnoscInna + OpisPlatnosci).
+function zaplataCzesciowaText(z, forPdf = false) {
+  let s = `${formatPrice(z.kwota, forPdf)} ${t('z')} ${z.data}`;
+  if (z.forma) s += ` (${t(paymentMap[z.forma]) || z.forma})`;
+  if (z.platnoscInna && z.opisPlatnosci) s += ` - ${z.opisPlatnosci}`;
+  return s;
+}
+
+// Rachunek bankowy — ten sam układ dla rachunku zwykłego i rachunku faktora
+// (do v1.8.7 kopia dla faktora nie miała opisu rachunku).
+function rachunekHTML(rach, etykieta) {
+  if (!rach.nrRB) return '';
+  let html = `<div style="margin-top: 5px;"><strong>${etykieta}:</strong> ${formatujRachunek(rach.nrRB)}`;
+  if (rach.swift) html += ` (SWIFT: ${rach.swift})`;
+  if (rach.typWlasny) html += `<br><small>${t(bankAccountTypeMap[rach.typWlasny]) || t('rachunek własny')}</small>`;
+  if (rach.nazwaBanku) html += `<br>${rach.nazwaBanku}`;
+  if (rach.opis) html += `<br><small>${rach.opis}</small>`;
+  return html + `</div>`;
+}
+
+// Link do płatności z XML (wartość po escDeep). Klikalny tylko zwykły adres http(s);
+// wszystko inne — javascript:, data:, adres względny — zostaje tekstem. Tekstem linku
+// jest sam adres: widać, dokąd prowadzi, także na wydruku.
+function linkDoPlatnosciHTML(url) {
+  return isHttpUrl(url)
+    ? `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: #3498db;">${url}</a>`
+    : url;
+}
+
 function renderPaymentInfoHTML(p) {
   if (!p) return "—";
 
@@ -399,58 +463,24 @@ function renderPaymentInfoHTML(p) {
   if (p.formaPlatnosci) html += `<div><strong>${t('Forma')}:</strong> ${t(paymentMap[p.formaPlatnosci]) || p.formaPlatnosci}</div>`;
   if (p.platnoscInna && p.opisPlatnosci) html += `<div><strong>${t('Inna forma')}:</strong> ${p.opisPlatnosci}</div>`;
 
-  // Termin
-  if (p.terminData) html += `<div><strong>${t('Termin')}:</strong> ${p.terminData}</div>`;
-  if (p.terminOpis) {
-    const { ilosc, jednostka, zdarzenie } = p.terminOpis;
-    if (ilosc && jednostka && zdarzenie) {
-      html += `<div><strong>${t('Termin')}:</strong> ${ilosc} ${jednostka} ${t('od')} ${zdarzenie}</div>`;
-    } else if (ilosc && jednostka) {
-      html += `<div><strong>${t('Termin')}:</strong> ${ilosc} ${jednostka}</div>`;
-    }
+  // Terminy — każdy TerminPlatnosci w osobnym wierszu
+  for (const termin of p.terminy) {
+    const tekst = terminPlatnosciText(termin);
+    if (tekst) html += `<div><strong>${t('Termin')}:</strong> ${tekst}</div>`;
   }
 
   // Rachunki
-  for (const rach of p.rachunki) {
-    if (rach.nrRB) {
-      let rachunekInfo = `<div style="margin-top: 5px;"><strong>${t('Rachunek')}:</strong> ${formatujRachunek(rach.nrRB)}`;
-      if (rach.swift) rachunekInfo += ` (SWIFT: ${rach.swift})`;
-
-      if (rach.typWlasny) rachunekInfo += `<br><small>${t(bankAccountTypeMap[rach.typWlasny]) || t('rachunek własny')}</small>`;
-      if (rach.nazwaBanku) rachunekInfo += `<br>${rach.nazwaBanku}`;
-      if (rach.opis) rachunekInfo += `<br><small>${rach.opis}</small>`;
-      rachunekInfo += `</div>`;
-      html += rachunekInfo;
-    }
-  }
-
-  for (const rach of p.rachunkiFaktora) {
-    if (rach.nrRB) {
-      let rachunekInfo = `<div style="margin-top: 5px;"><strong>${t('Rachunek faktora')}:</strong> ${formatujRachunek(rach.nrRB)}`;
-      if (rach.swift) rachunekInfo += ` (SWIFT: ${rach.swift})`;
-      if (rach.typWlasny) rachunekInfo += `<br><small>${t(bankAccountTypeMap[rach.typWlasny]) || t('rachunek własny')}</small>`;
-      if (rach.nazwaBanku) rachunekInfo += `<br>${rach.nazwaBanku}`;
-      rachunekInfo += `</div>`;
-      html += rachunekInfo;
-    }
-  }
+  for (const rach of p.rachunki) html += rachunekHTML(rach, t('Rachunek'));
+  for (const rach of p.rachunkiFaktora) html += rachunekHTML(rach, t('Rachunek faktora'));
 
   // Zapłacono
   if (p.zaplacono) html += `<div><strong>${t('Zapłacono')}:</strong> ${t('Tak, dnia')} ${p.dataZaplaty}</div>`;
 
   // Zapłaty częściowe
   if (p.znacznikZaplatyCzesciowej || p.zaplatyCzesciowe.length > 0) {
-    let zaplatyText = `<div><strong>${t('Zapłaty częściowe')}:</strong> `;
-    if (p.znacznikZaplatyCzesciowej === "1") zaplatyText += `${t('(częściowa)')} `;
-    if (p.znacznikZaplatyCzesciowej === "2") zaplatyText += `${t('(wieloczęściowa)')} `;
-    zaplatyText += `</div>`;
-    html += zaplatyText;
-
+    html += `<div><strong>${t('Zapłaty częściowe')}:</strong> ${znacznikZaplatyText(p)}</div>`;
     for (const z of p.zaplatyCzesciowe) {
-      html += `<div style="margin-left: 10px;"><small>- ${formatPrice(z.kwota)} ${t('z')} ${z.data}`;
-      if (z.forma) html += ` (${t(paymentMap[z.forma]) || z.forma})`;
-      if (z.platnoscInna && z.opisPlatnosci) html += ` - ${z.opisPlatnosci}`;
-      html += `</small></div>`;
+      html += `<div style="margin-left: 10px;"><small>- ${zaplataCzesciowaText(z)}</small></div>`;
     }
   }
 
@@ -460,7 +490,7 @@ function renderPaymentInfoHTML(p) {
   }
 
   // Link i IPKSeF
-  if (p.linkDoPlatnosci) html += `<div><strong>${t('Link do płatności')}:</strong> <a href="${p.linkDoPlatnosci}" target="_blank" style="color: #3498db;">${t('płatność online')}</a></div>`;
+  if (p.linkDoPlatnosci) html += `<div><strong>${t('Link do płatności')}:</strong> ${linkDoPlatnosciHTML(p.linkDoPlatnosci)}</div>`;
   if (p.ipksef) html += `<div><strong>IPKSeF:</strong> ${p.ipksef}</div>`;
 
   return html || "—";
@@ -591,12 +621,12 @@ function hasVatSummaryData(faData) {
   return Object.keys(v).some(k => (parseFloat(v[k]) || 0) !== 0);
 }
 
-function vatSummaryHTML(faData) {
-  if (!hasVatSummaryData(faData)) return "";
-
-  const v = faData.vatSummary;
-
-  const fields = [
+// Wiersze tabeli podsumowania VAT: n — netto (P_13_x), v — VAT (P_14_x), w — VAT
+// przeliczony na złote (P_14_xW, tylko przy fakturze w walucie obcej), l — etykieta.
+// Jedna lista dla HTML i PDF. Do v1.8.7 każdy tor miał własną kopię i w kopii PDF
+// nie było pola `w` — faktura walutowa w PDF nie pokazywała VAT-u w złotych.
+function vatSummaryFields(v) {
+  return [
     { n: v.p13_1, v: v.p14_1, w: v.p14_1w, l: "23% / 22%" },
     { n: v.p13_2, v: v.p14_2, w: v.p14_2w, l: "8% / 7%" },
     { n: v.p13_3, v: v.p14_3, w: v.p14_3w, l: "5%" },
@@ -610,32 +640,45 @@ function vatSummaryHTML(faData) {
     { n: v.p13_9, l: t("art. 100") },
     { n: v.p13_10, l: t("odwrotne obciążenie") },
     { n: v.p13_11, l: t("marża") }
-  ];
+  ].map(f => ({
+    l: f.l,
+    n: parseFloat(f.n) || 0,
+    v: parseFloat(f.v) || 0,
+    w: parseFloat(f.w) || 0
+  })).filter(f => f.n !== 0 || f.v !== 0 || f.w !== 0);
+}
 
-  let tn = 0, tv = 0;
-  let czyKolumnaW = fields.some(f => f.w && parseFloat(f.w || 0) !== 0);
+// Czy tabela ma kolumnę „VAT w PLN" — pojawia się tylko wtedy, gdy wystawca
+// podał którekolwiek P_14_xW. Wspólne dla HTML i PDF.
+function vatSummaryHasPln(faData) {
+  return vatSummaryFields((faData && faData.vatSummary) || {}).some(f => f.w !== 0);
+}
 
-  let html = `<table class="vat-summary no-break""><tr><th>${t('Kategoria')}</th><th class="right">${t('Netto')}</th><th class="right">${t('VAT')}</th>`;
-  if (czyKolumnaW) html += `<th class="right">${t('VAT(przel.)')}</th>`;
+function vatSummaryHTML(faData) {
+  if (!hasVatSummaryData(faData)) return "";
+
+  const v = faData.vatSummary;
+  const fields = vatSummaryFields(v);
+  const czyKolumnaW = vatSummaryHasPln(faData);
+
+  let html = `<table class="vat-summary no-break"><tr><th>${t('Kategoria')}</th><th class="right">${t('Netto')}</th><th class="right">${t('VAT')}</th>`;
+  if (czyKolumnaW) html += `<th class="right">${t('VAT w PLN')}</th>`;
   html += `<th class="right">${t('Brutto')}</th></tr>`;
 
+  let tn = 0, tv = 0, tw = 0;
   fields.forEach(f => {
-    const n = parseFloat(f.n || 0);
-    const vatVal = parseFloat(f.v || 0);
-    const w = f.w ? parseFloat(f.w || 0) : null;
-
-    if (n !== 0 || vatVal !== 0 || (w && w !== 0)) {
-      html += `<tr><td>${f.l}</td><td class="right">${formatPrice(n)}</td><td class="right">${formatPrice(vatVal)}</td>`;
-      if (czyKolumnaW) html += `<td class="right">${w ? formatPrice(w) : '—'}</td>`;
-      html += `<td class="right">${formatPrice(n + vatVal)}</td></tr>`;
-      tn += n;
-      tv += vatVal;
-    }
+    html += `<tr><td>${f.l}</td><td class="right">${formatPrice(f.n)}</td><td class="right">${formatPrice(f.v)}</td>`;
+    if (czyKolumnaW) html += `<td class="right">${f.w !== 0 ? formatPrice(f.w) : '—'}</td>`;
+    html += `<td class="right">${formatPrice(f.n + f.v)}</td></tr>`;
+    tn += f.n;
+    tv += f.v;
+    tw += f.w;
   });
 
+  // RAZEM: netto, VAT i VAT w PLN to sumy pól; brutto to P_15 z XML.
   const p15 = parseFloat(v.p15 || 0);
   html += `<tr><th>${t('RAZEM')}</th><th class="right">${formatPrice(tn)}</th><th class="right">${formatPrice(tv)}</th>`;
-  if (czyKolumnaW) html += `<th class="right">—</th>`;
+  if (czyKolumnaW) html += `<th class="right">${formatPrice(tw)}</th>`;
   html += `<th class="right">${formatPrice(p15)}</th></tr></table>`;
 
   return html;
@@ -906,9 +949,8 @@ function renderWarunkiTransakcjiHTML(w) {
 	  if (tr.przewoznik.brakID) html += `<div><small>${t('bez identyfikatora podatkowego')}</small></div>`;
 
 	  if (tr.przewoznik.adres) {
-		let adresTekst = adresInline(tr.przewoznik.adres);
+		let adresTekst = adresZGln(tr.przewoznik.adres);
 		html += `<div><small>${t('Adres')}: ${adresTekst.trim()}</small></div>`;
-		if (tr.przewoznik.adres.gln) html += `<div><small>GLN: ${tr.przewoznik.adres.gln}</small></div>`;
 	  }
 	}
 
@@ -936,18 +978,18 @@ function renderWarunkiTransakcjiHTML(w) {
 
       // Miejsca
       if (tr.wysylkaZ) {
-        let miejsce = adresInline(tr.wysylkaZ);
+        let miejsce = adresZGln(tr.wysylkaZ);
         html += `<div><strong>${t('Wysyłka z')}:</strong> ${miejsce.trim()}</div>`;
       }
 
       if (tr.wysylkaDo) {
-        let miejsce = adresInline(tr.wysylkaDo);
+        let miejsce = adresZGln(tr.wysylkaDo);
         html += `<div><strong>${t('Wysyłka do')}:</strong> ${miejsce.trim()}</div>`;
       }
 
       if (tr.wysylkaPrzez && tr.wysylkaPrzez.length > 0) {
         const przezList = tr.wysylkaPrzez.map((p, idx) => {
-          let miejsce = adresInline(p);
+          let miejsce = adresZGln(p);
           return `${idx + 1}. ${miejsce}`;
         }).join('; ');
         html += `<div><strong>${t('Wysyłka przez')}:</strong> ${przezList}</div>`;
@@ -1122,6 +1164,7 @@ function renderDodatkoweInformacjeHTML(faData, p1Data) {
   if (faData.zwrotAkcyzy) infoItems.push({ label: t("Zwrot akcyzy"), value: t("Tak") });
   if (faData.kursWalutyZ) infoItems.push({ label: t("Kurs waluty"), value: faData.kursWalutyZ });
   if (faData.p15zk) infoItems.push({ label: t("Kwota przed korektą"), value: formatPrice(faData.p15zk) });
+  if (faData.kursWalutyZK) infoItems.push({ label: t("Kurs waluty przed korektą"), value: faData.kursWalutyZK });
 
   // Status sprzedawcy
   if (p1Data?.status) {
@@ -1312,6 +1355,12 @@ function renderZalacznikHTML(zalacznikData) {
     for (let tabela of blok.tabele) {
       if (tabela.opis) html += `<p><strong>${tabela.opis}</strong></p>`;
 
+      // Metadane tabeli (TMetaDane) — np. „Nr gazomierza", „Typ odczytu" w rozliczeniu
+      // paliwa gazowego (przykład z broszury MF). Do v1.8.7 nie były wyświetlane.
+      for (let meta of tabela.metaDane) {
+        html += `<p style="margin:2px 0;"><strong>${meta.klucz}:</strong> ${meta.wartosc}</p>`;
+      }
+
       if (tabela.kolumny.length > 0 && tabela.wiersze.length > 0) {
         html += '<table style="width:100%; border-collapse:collapse; font-size: 8px; margin:5px 0; border:1px solid #bdc3c7;">';
 
@@ -1355,6 +1404,29 @@ function renderZalacznikHTML(zalacznikData) {
   return html;
 }
 
+// Dodatki pod opisem wiersza zamówienia — wspólne dla HTML i PDF. Do v1.8.7 PDF miał
+// własną, krótszą listę (bez PKOB, akcyzy, stawki OSS i „Zał.15").
+function zamowienieDodatki(w, forPdf = false) {
+  const d = [];
+  if (w.gtin) d.push(`GTIN: ${w.gtin}`);
+  if (w.pkwiu) d.push(`PKWiU: ${w.pkwiu}`);
+  if (w.cn) d.push(`CN: ${w.cn}`);
+  if (w.pkob) d.push(`PKOB: ${w.pkob}`);
+  if (w.kwotaAkcyzy && w.kwotaAkcyzy !== "0") d.push(`${t('Akcyza')}: ${formatPrice(w.kwotaAkcyzy, forPdf)}`);
+  if (w.stawkaOSS) d.push(`OSS: ${w.stawkaOSS}%`);
+  if (w.gtu) d.push(w.gtuDisplay);
+  if (w.procedura) d.push(w.proceduraDisplay);
+  if (w.zal15) d.push(t('Zał.15'));
+  return d;
+}
+
+// Kolumna „VAT" w tabeli zamówienia pokazuje wyłącznie P_11VatZ z XML — gdy wystawca
+// go nie podał, parser wylicza kwotę ze stawki (kwotaVat), ale tej liczby nie
+// pokazujemy jako danej z faktury. Kolumna jest, gdy choć jeden wiersz ma to pole.
+function zamowienieMaKwotyVat(zamowienieData) {
+  return !!(zamowienieData && zamowienieData.wiersze.some(w => w.kwotaVatXml));
+}
+
 function renderZamowienieHTML(zamowienieData) {
   if (!zamowienieData || !zamowienieData.wiersze || zamowienieData.wiersze.length === 0) return "";
 
@@ -1365,24 +1437,17 @@ function renderZamowienieHTML(zamowienieData) {
   }
 
   if (zamowienieData.wiersze.length > 0) {
+    const kolumnaVat = zamowienieMaKwotyVat(zamowienieData);
+
     html += '<table style="width:100%; margin-top:5px;"><tr>';
     html += `<th>${t('Lp.')}</th><th>${t('Opis')}</th><th>${t('Indeks')}</th><th>${t('Ilość')}</th><th>${t('JM')}</th><th>${t('Cena')}</th><th>${t('Netto')}</th><th>${t('VAT%')}</th>`;
-    html += `<th>${t('Numer umowy/UUID')}</th>`;  // DODANA KOLUMNA
+    if (kolumnaVat) html += `<th>${t('VAT')}</th>`;
+    html += `<th>${t('Numer umowy/UUID')}</th>`;  // UU_IDZ — bywa nośnikiem numeru zamówienia/umowy
     html += '</tr>';
 
     for (let w of zamowienieData.wiersze) {
       let opisPelny = w.opis || '';
-      let dodatki = [];
-
-      if (w.gtin) dodatki.push(`GTIN: ${w.gtin}`);
-      if (w.pkwiu) dodatki.push(`PKWiU: ${w.pkwiu}`);
-      if (w.cn) dodatki.push(`CN: ${w.cn}`);
-      if (w.pkob) dodatki.push(`PKOB: ${w.pkob}`);
-      if (w.kwotaAkcyzy && w.kwotaAkcyzy !== "0") dodatki.push(`${t('Akcyza')}: ${formatPrice(w.kwotaAkcyzy)}`);
-      if (w.stawkaOSS) dodatki.push(`OSS: ${w.stawkaOSS}%`);
-      if (w.gtu) dodatki.push(w.gtuDisplay);
-      if (w.procedura) dodatki.push(w.proceduraDisplay);
-      if (w.zal15) dodatki.push(t('Zał.15'));
+      const dodatki = zamowienieDodatki(w);
 
       if (dodatki.length > 0) {
         opisPelny += '<br><small>' + dodatki.join(' | ') + '</small>';
@@ -1401,7 +1466,8 @@ function renderZamowienieHTML(zamowienieData) {
       html += `<td class="right">${formatPrice(w.cenaNetto)}</td>`;
       html += `<td class="right">${formatPrice(w.kwotaNetto)}</td>`;
       html += `<td class="center">${w.stawkaVatDisplay || ''}</td>`;
-      html += `<td class="center"><small>${w.uuid}</small></td>`;  // DODANE
+      if (kolumnaVat) html += `<td class="right">${w.kwotaVatXml ? formatPrice(w.kwotaVatXml) : '—'}</td>`;
+      html += `<td class="center"><small>${w.uuid}</small></td>`;
       html += '</tr>';
     }
 
@@ -1457,12 +1523,14 @@ function addQRCode(containerId, nip, dataWystawienia, hash) {
     container.appendChild(canvas);
     const infoDiv = document.createElement('div');
     infoDiv.className = 'qr-info';
+    // nip i data przychodzą tu surowe (ten sam adres trafia do kodu QR), więc
+    // adres escapujemy dopiero przy wstawianiu do HTML.
     infoDiv.innerHTML = `
       <strong>${t('Weryfikacja faktury w KSeF')}</strong>
       <div>${t('Zeskanuj kod QR lub kliknij link poniżej:')}</div>
-      <div class="qr-hash"><strong>${t('Hash dokumentu')}:</strong> ${hash}</div>
+      <div class="qr-hash"><strong>${t('Hash dokumentu')}:</strong> ${escHtml(hash)}</div>
       <div class="qr-link">
-        <a href="${url}" target="_blank">${url}</a>
+        <a href="${escHtml(url)}" target="_blank" rel="noopener noreferrer">${escHtml(url)}</a>
       </div>
       <small>${t('Strona weryfikacyjna Ministerstwa Finansów')}</small>
     `;
@@ -1474,8 +1542,10 @@ function addQRCode(containerId, nip, dataWystawienia, hash) {
 // PAYMENT CONTAINER (dane do przelewu)
 // ============================================================================
 
+// Boks „Dane do przelewu" dostaje dane SUROWE (te same wartości idą do schowka
+// i do kodu QR), więc każde wstawienie do HTML przechodzi tu przez escAttr.
 function escAttr(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return escHtml(s);
 }
 
 function formatNRB(nrb) {
@@ -1484,11 +1554,39 @@ function formatNRB(nrb) {
   return nrb;
 }
 
+// Kwota do przelewu dla boksu „Dane do przelewu". naleznosc to P_15 (w FA_RR: P_12_1).
+//  1. DoZaplaty z Rozliczenia, gdy wystawca je podał — uwzględnia obciążenia
+//     i odliczenia (np. rozliczoną zaliczkę). To jego własna liczba, ma pierwszeństwo.
+//  2. Faktura oznaczona jako zapłacona w części (ZnacznikZaplatyCzesciowej = 1):
+//     należność pomniejszona o zadeklarowane zapłaty częściowe. Odejmujemy tylko
+//     wtedy, gdy 0 < suma zapłat < należność. W każdym innym układzie zostaje pełna
+//     należność, a boks mówi wprost, ile wystawca wykazał jako zapłacone — nie zgadujemy.
+//     W obu wariantach rozbicie jest widoczne w boksie (nota).
+//  3. Należność ogółem.
+// Do v1.8.7 boks pokazywał zawsze pełną należność, także przy fakturze częściowo
+// opłaconej — z kodem QR na całą kwotę.
+function kwotaDoPrzelewu(naleznosc, platnosc, rozliczenie) {
+  if (rozliczenie && rozliczenie.doZaplaty) return { kwota: rozliczenie.doZaplaty, nota: null };
+
+  if (platnosc && platnosc.znacznikZaplatyCzesciowej === "1") {
+    const nal = parseFloat(naleznosc) || 0;
+    const zapl = (platnosc.zaplatyCzesciowe || []).reduce((s, z) => s + (parseFloat(z.kwota) || 0), 0);
+    if (zapl > 0 && zapl < nal) {
+      return { kwota: (nal - zapl).toFixed(2), nota: { naleznosc: nal, zaplacono: zapl, odjeto: true } };
+    }
+    return { kwota: naleznosc, nota: { naleznosc: nal, zaplacono: zapl, odjeto: false } };
+  }
+  return { kwota: naleznosc, nota: null };
+}
+
 // opts pozwala obsłużyć FA_RR, gdzie te same dane leżą gdzie indziej:
 //   rachunki      — w RR przelew idzie na RachunekBankowy1 (rachunek rolnika)
 //   formaPrzelewu — w RR "1" znaczy przelew, w FA(3) "1" to gotówka (kolizja numeracji)
-//   amount        — w RR kwotą jest DoZaplaty lub P_12_1, nie P_15
+//   amount        — kwota z kwotaDoPrzelewu()
+//   nota          — rozbicie kwoty z kwotaDoPrzelewu(), gdy faktura jest zapłacona w części
 //   whiteList     — w RR wyłączona (uzasadnienie przy wywołaniu w renderRR)
+// UWAGA: funkcja dostaje dane SUROWE, nie po escDeep() — wartości idą stąd także do
+// schowka (data-copy) i do kodu QR. Każde wstawienie do HTML musi przejść przez escAttr.
 function renderPaymentContainerHTML(p1Data, platnoscData, faData, qrId, opts = {}) {
   const rachunki = opts.rachunki || (platnoscData && platnoscData.rachunki);
   const formaPrzelewu = opts.formaPrzelewu || "6";
@@ -1497,11 +1595,13 @@ function renderPaymentContainerHTML(p1Data, platnoscData, faData, qrId, opts = {
   if (!platnoscData || !rachunki || rachunki.length === 0) return null;
   const forma = platnoscData.formaPlatnosci;
   if (forma && forma !== formaPrzelewu) return null;
-  if (platnoscData.zaplacono) return null;
+  // Faktura opłacona: Zaplacono = 1 albo ZnacznikZaplatyCzesciowej = 2 (zapłacono
+  // w całości, w częściach) — nie ma czego przelewać.
+  if (platnoscData.zaplacono || platnoscData.znacznikZaplatyCzesciowej === "2") return null;
 
-  const amount = (opts.amount !== undefined && opts.amount !== null && opts.amount !== ''
-                    ? opts.amount : faData.vatSummary.p15) || "0";
-  if (parseFloat(amount) <= 0) return null;
+  const amount = String((opts.amount !== undefined && opts.amount !== null && opts.amount !== ''
+                    ? opts.amount : (faData.vatSummary ? faData.vatSummary.p15 : '')) || "0");
+  if (!(parseFloat(amount) > 0)) return null;
 
   const currency = faData.kodWaluty || "PLN";
   const title = faData.nrFaktury || "";
@@ -1522,8 +1622,11 @@ function renderPaymentContainerHTML(p1Data, platnoscData, faData, qrId, opts = {
   rachunki.forEach((r, i) => {
     const label = rachunki.length > 1 ? `Nr rachunku ${i + 1}` : 'Nr rachunku';
     const cleanNrb = r.nrRB.replace(/\s/g, '').replace(/^PL/i, '');
+    // NIP i numer rachunku idą przez atrybuty data-*, nie jako argumenty wpisane w kod
+    // onclick: wewnątrz atrybutu on* encje HTML są dekodowane PRZED wykonaniem JS, więc
+    // apostrof w wartości z XML zamykałby napis i dopisywał własny kod.
     const blRow = (nip && pokazBialaListe) ? `<div class="payment-bl-row">
-      <button class="payment-bl-check" onclick="checkWhiteList(this,'${escAttr(nip)}','${escAttr(cleanNrb)}')">Sprawdź białą listę</button>
+      <button class="payment-bl-check" data-nip="${escAttr(nip)}" data-nrb="${escAttr(cleanNrb)}" onclick="checkWhiteList(this, this.dataset.nip, this.dataset.nrb)">Sprawdź białą listę</button>
       <span class="payment-bl-result"></span>
     </div>` : '';
     accountsHtml += `<div class="payment-field-row">
@@ -1534,8 +1637,24 @@ function renderPaymentContainerHTML(p1Data, platnoscData, faData, qrId, opts = {
     ${blRow}`;
   });
 
-  const formattedAmountHtml = `${formatPrice(amount)}&nbsp;${currency}`;
+  const formattedAmountHtml = `${formatPrice(amount)}&nbsp;${escAttr(currency)}`;
   const formattedAmountCopy = amount.replace('.', ',');
+
+  // Rozbicie kwoty przy fakturze zapłaconej w części — żeby było widać, skąd liczba.
+  let notaHtml = '';
+  if (opts.nota) {
+    const kw = (x) => `${formatPrice(x)}&nbsp;${escAttr(currency)}`;
+    const n = opts.nota;
+    let tekst;
+    if (n.odjeto) {
+      tekst = `Należność ${kw(n.naleznosc)} − zapłacono ${kw(n.zaplacono)}`;
+    } else if (n.zaplacono > 0) {
+      tekst = `Wystawca oznaczył fakturę jako zapłaconą w części (zapłacono ${kw(n.zaplacono)}). Kwota powyżej to pełna należność.`;
+    } else {
+      tekst = `Wystawca oznaczył fakturę jako zapłaconą w części, ale nie podał kwot zapłat. Kwota powyżej to pełna należność.`;
+    }
+    notaHtml = `<div class="payment-amount-note">${tekst}</div>`;
+  }
 
   let adresHtml = '';
   if (adres && (adres.linia1 || adres.linia2)) {
@@ -1565,6 +1684,7 @@ function renderPaymentContainerHTML(p1Data, platnoscData, faData, qrId, opts = {
         ${nipHtml}
         ${accountsHtml}
         ${copyRow('Kwota', formattedAmountHtml, formattedAmountCopy)}
+        ${notaHtml}
         ${copyRow('Tytuł przelewu', escAttr(title), title)}
       </div>
       ${qrSection}
@@ -1618,11 +1738,16 @@ function render(xml, fileName, xmlContent) {
   if (!faNode) { showError("Brak elementu Fa w fakturze"); return; }
 
   // ===== PARSOWANIE DANYCH =====
+  // KAŻDY wynik parsowania, który trafia do HTML, przechodzi przez escDeep() — tekst
+  // z XML nie może stać się kodem strony (opis przy escHtml w core.js). Dodając tu
+  // kolejne wywołanie parsera, owiń je tak samo.
+  // Wersje *Raw zostają tylko dla miejsc, w których HTML nie powstaje albo które
+  // escapują same: boks „Dane do przelewu", jego kod QR i link weryfikacyjny KSeF.
   const naglowekNode = fakturaNode.getElementsByTagNameNS(ns, "Naglowek")[0];
-  const naglowekData = naglowekNode ? {
+  const naglowekData = naglowekNode ? escDeep({
     dataWytworzenia: getText(naglowekNode, "DataWytworzeniaFa"),
     systemInfo: getText(naglowekNode, "SystemInfo")
-  } : null;
+  }) : null;
 
   const p1Node = fakturaNode.getElementsByTagNameNS(ns, "Podmiot1")[0];
   const p2Node = fakturaNode.getElementsByTagNameNS(ns, "Podmiot2")[0];
@@ -1630,28 +1755,32 @@ function render(xml, fileName, xmlContent) {
   const puNode = fakturaNode.getElementsByTagNameNS(ns, "PodmiotUpowazniony")[0];
   const p2kNode = faNode.getElementsByTagNameNS(ns, "Podmiot2K")[0];
 
-  const p1Data = parsePodmiot(p1Node, 'podmiot1');
-  const p2Data = parsePodmiot(p2Node, 'podmiot2');
-  const p3DataArray = Array.from(p3Nodes).map(node => parsePodmiot(node, 'podmiot3'));
-  const puData = parsePodmiotUpowazniony(puNode);
-  const p2kData = p2kNode ? parsePodmiot(p2kNode, 'podmiot2') : null;
+  const p1Raw = parsePodmiot(p1Node, 'podmiot1');
+  const p1Data = escDeep(p1Raw);
+  const p2Data = escDeep(parsePodmiot(p2Node, 'podmiot2'));
+  const p3DataArray = escDeep(Array.from(p3Nodes).map(node => parsePodmiot(node, 'podmiot3')));
+  const puData = escDeep(parsePodmiotUpowazniony(puNode));
+  const p2kData = p2kNode ? escDeep(parsePodmiot(p2kNode, 'podmiot2')) : null;
 
-  const faData = parseFa(faNode);
-  const platnoscData = parsePlatnosc(faNode.getElementsByTagNameNS(ns, "Platnosc")[0]);
-  const rozliczenieData = parseRozliczenie(faNode.getElementsByTagNameNS(ns, "Rozliczenie")[0]);
-  const adnotacjeData = parseAdnotacje(faNode.getElementsByTagNameNS(ns, "Adnotacje")[0]);
+  const faRaw = parseFa(faNode);
+  const faData = escDeep(faRaw);
+  const platnoscRaw = parsePlatnosc(faNode.getElementsByTagNameNS(ns, "Platnosc")[0]);
+  const platnoscData = escDeep(platnoscRaw);
+  const rozliczenieRaw = parseRozliczenie(faNode.getElementsByTagNameNS(ns, "Rozliczenie")[0]);
+  const rozliczenieData = escDeep(rozliczenieRaw);
+  const adnotacjeData = escDeep(parseAdnotacje(faNode.getElementsByTagNameNS(ns, "Adnotacje")[0]));
   const warunkiNode = faNode.getElementsByTagNameNS(ns, "WarunkiTransakcji")[0] || fakturaNode.getElementsByTagNameNS(ns, "WarunkiTransakcji")[0];
-  const warunkiData = parseWarunkiTransakcji(warunkiNode);
-  const stopkaData = parseStopka(fakturaNode.getElementsByTagNameNS(ns, "Stopka")[0]);
-  const zalacznikData = parseZalacznik(fakturaNode.getElementsByTagNameNS(ns, "Zalacznik")[0]);
+  const warunkiData = escDeep(parseWarunkiTransakcji(warunkiNode));
+  const stopkaData = escDeep(parseStopka(fakturaNode.getElementsByTagNameNS(ns, "Stopka")[0]));
+  const zalacznikData = escDeep(parseZalacznik(fakturaNode.getElementsByTagNameNS(ns, "Zalacznik")[0]));
 
   const wierszeNodes = faNode.getElementsByTagNameNS(ns, "FaWiersz");
-  const wierszeArray = Array.from(wierszeNodes).map(node => parseFaWiersz(node));
-  if (wierszeArray.length > 5000) { showError("Faktura zawiera zbyt wiele wierszy (max 5000)"); return; }
+  if (wierszeNodes.length > 5000) { showError("Faktura zawiera zbyt wiele wierszy (max 5000)"); return; }
+  const wierszeArray = escDeep(Array.from(wierszeNodes).map(node => parseFaWiersz(node)));
 
   const xmlHash = calculateXmlHash(xmlContent);
   const unknownElements = findUnknownFakturaElements(xml);
-  const nipSprzedawcy = p1Data?.nip;
+  const nipSprzedawcy = p1Raw?.nip;
 
   // ===== BUDOWANIE HTML =====
   let containerContent = renderNaglowekHTML(faData, fileName, naglowekData);
@@ -1713,6 +1842,12 @@ if (faData.rodzaj.startsWith("KOR") && faData.daneKorygowane.length > 0) {
   if (faData.typKorekty) {
     korygowaneInfo += `<strong>${t('Typ korekty').replace(/ /g, '&nbsp;')}:</strong>&nbsp;${faData.typKorektyDisplay}<br>`;
   }
+}
+// NrFaKorygowany — POPRAWNY numer faktury korygowanej, gdy powodem korekty jest błędny
+// numer (błędny stoi w NrFaKorygowanej, na liście wyżej). Przy takiej korekcie to pole
+// jest całą jej treścią, więc pokazujemy je niezależnie od listy korygowanych faktur.
+if (faData.nrFaKorygowany) {
+  korygowaneInfo += `<strong>${t('Poprawny numer faktury korygowanej')}:</strong> ${faData.nrFaKorygowany}<br>`;
 }
 
   let przyczynaInfo = faData.przyczynaKorekty ? `<strong>${t('Przyczyna korekty')}:</strong> ${faData.przyczynaKorekty}<br>` : "";
@@ -1827,7 +1962,7 @@ if (faData.rodzaj.startsWith("KOR") && faData.daneKorygowane.length > 0) {
   containerContent += renderFakturyZaliczkoweHTML(faData);
 
     // Zamówienie
-  const zamowienieData = parseZamowienie(faNode.getElementsByTagNameNS(ns, "Zamowienie")[0]);
+  const zamowienieData = escDeep(parseZamowienie(faNode.getElementsByTagNameNS(ns, "Zamowienie")[0]));
   containerContent += renderZamowienieHTML(zamowienieData);
   containerContent += renderZalacznikHTML(zalacznikData);
   containerContent += renderFooterHTML(stopkaData);
@@ -1873,27 +2008,24 @@ if (faData.rodzaj.startsWith("KOR") && faData.daneKorygowane.length > 0) {
   container.innerHTML = containerContent;
   document.getElementById("pages").appendChild(container);
 
-  if (unknownElements.length === 0 && nipSprzedawcy && faData.dataWystawienia) {
-    addQRCode(qrContainerId, nipSprzedawcy, faData.dataWystawienia, xmlHash);
+  if (unknownElements.length === 0 && nipSprzedawcy && faRaw.dataWystawienia) {
+    addQRCode(qrContainerId, nipSprzedawcy, faRaw.dataWystawienia, xmlHash);
   }
 
-  // Payment container
-  // Kwota do przelewu: DoZaplaty z Rozliczenia, gdy wystawca je podał — uwzględnia
-  // obciążenia i odliczenia (np. rozliczoną zaliczkę), więc to ona jest kwotą, którą
-  // nabywca ma realnie przelać. P_15 to należność ogółem sprzed tych korekt i podanie
-  // jej w danych do przelewu kazałoby zapłacić za dużo. Ta sama zasada co w torze FA_RR.
-  const kwotaDoZaplaty = (rozliczenieData && rozliczenieData.doZaplaty)
-    ? rozliczenieData.doZaplaty
-    : faData.vatSummary.p15;
+  // Payment container — dostaje dane SUROWE (*Raw): te same wartości idą do schowka
+  // i do kodu QR, a wstawiając je do HTML funkcja escapuje je sama.
+  // Kwota: DoZaplaty z Rozliczenia, potem P_15 pomniejszone o zapłaty częściowe,
+  // na końcu samo P_15 — reguły opisane przy kwotaDoPrzelewu().
+  const przelew = kwotaDoPrzelewu(faRaw.vatSummary.p15, platnoscRaw, rozliczenieRaw);
 
   const paymentQrId = 'pqr-' + Date.now();
-  const paymentHtml = renderPaymentContainerHTML(p1Data, platnoscData, faData, paymentQrId, { amount: kwotaDoZaplaty });
+  const paymentHtml = renderPaymentContainerHTML(p1Raw, platnoscRaw, faRaw, paymentQrId, { amount: przelew.kwota, nota: przelew.nota });
   if (paymentHtml) {
     const paymentEl = document.createElement('div');
     paymentEl.innerHTML = paymentHtml;
     document.getElementById("pages").appendChild(paymentEl.firstElementChild);
-    if ((faData.kodWaluty || 'PLN') === 'PLN') {
-      addPaymentQR(paymentQrId, kwotaDoZaplaty || '0', platnoscData.rachunki[0].nrRB, p1Data?.nip || '', p1Data?.nazwa || '', faData.nrFaktury || '');
+    if ((faRaw.kodWaluty || 'PLN') === 'PLN') {
+      addPaymentQR(paymentQrId, przelew.kwota || '0', platnoscRaw.rachunki[0].nrRB, p1Raw?.nip || '', p1Raw?.nazwa || '', faRaw.nrFaktury || '');
     }
   }
 
@@ -2073,21 +2205,21 @@ function renderRRPaymentInfoHTML(pl) {
     html += `<strong>Forma:</strong> ${pl.formaPlatnosciDisplay}<br>`;
   }
 
-  for (const r of pl.rachunkiRolnika) {
-    html += `<strong>Rachunek rolnika:</strong> <span class="payment-nrb">${formatNRB(r.nrRB)}</span>`;
-    if (r.nazwaBanku) html += ` <small>(${r.nazwaBanku})</small>`;
-    html += '<br>';
-    if (r.swift) html += `<small>SWIFT: ${r.swift}</small><br>`;
-    if (r.opis) html += `<small>${r.opis}</small><br>`;
-  }
-  for (const r of pl.rachunkiNabywcy) {
-    html += `<span class="hide-in-simplified"><strong>Rachunek nabywcy:</strong> <span class="payment-nrb">${formatNRB(r.nrRB)}</span>`;
-    if (r.nazwaBanku) html += ` <small>(${r.nazwaBanku})</small>`;
-    html += '</span><br>';
-  }
+  // Ten sam komplet pól dla obu rachunków (do v1.8.7 rachunek nabywcy nie miał SWIFT-u
+  // ani opisu). Rachunek nabywcy jest informacyjny — w widoku uproszczonym go nie ma.
+  const rachunek = (r, etykieta, tylkoPelny) => {
+    let h = `<strong>${etykieta}:</strong> <span class="payment-nrb">${formatNRB(r.nrRB)}</span>`;
+    if (r.nazwaBanku) h += ` <small>(${r.nazwaBanku})</small>`;
+    h += '<br>';
+    if (r.swift) h += `<small>SWIFT: ${r.swift}</small><br>`;
+    if (r.opis) h += `<small>${r.opis}</small><br>`;
+    return tylkoPelny ? `<span class="hide-in-simplified">${h}</span>` : h;
+  };
+  for (const r of pl.rachunkiRolnika) html += rachunek(r, 'Rachunek rolnika', false);
+  for (const r of pl.rachunkiNabywcy) html += rachunek(r, 'Rachunek nabywcy', true);
 
   if (pl.ipksef) html += `<small>IPKSeF: ${pl.ipksef}</small><br>`;
-  if (pl.linkDoPlatnosci) html += `<small>Link do płatności: ${escAttr(pl.linkDoPlatnosci)}</small><br>`;
+  if (pl.linkDoPlatnosci) html += `<small>Link do płatności: ${linkDoPlatnosciHTML(pl.linkDoPlatnosci)}</small><br>`;
 
   return html || '<em>Brak danych o płatności</em>';
 }
@@ -2117,7 +2249,7 @@ function rrPodmiotKorektaHTML(pkData) {
   if (pkData.nazwa) html += `<strong>${pkData.nazwa}</strong><br>`;
   if (pkData.nip) html += `<div><strong>NIP:</strong> ${nipHtml(pkData.nip)}</div>`;
   if (pkData.adres) {
-    let a = adresInline(pkData.adres);
+    let a = adresZGln(pkData.adres);
     html += `<div>${a.trim()}</div>`;
   }
   return html;
@@ -2178,30 +2310,38 @@ function renderRRDokument(xml, fileName, xmlContent) {
   if (!frrNode) { showError("Brak elementu FakturaRR w dokumencie"); return; }
 
   // ===== PARSOWANIE =====
+  // Jak w render(): wszystko, co trafia do HTML, przechodzi przez escDeep();
+  // wersje *Raw służą tylko boksowi „Dane do przelewu", jego kodowi QR i linkowi
+  // weryfikacyjnemu, które escapują same w miejscu wstawienia.
   const naglowekNode = fakturaNode.getElementsByTagNameNS(ns, "Naglowek")[0];
-  const naglowekData = naglowekNode ? {
+  const naglowekData = naglowekNode ? escDeep({
     dataWytworzenia: getText(naglowekNode, "DataWytworzeniaFa"),
     systemInfo: getText(naglowekNode, "SystemInfo")
-  } : null;
+  }) : null;
 
   // UWAGA na kierunek: Podmiot1 = rolnik (dostawca), Podmiot2 = nabywca (wystawca)
-  const p1Data = parsePodmiot(fakturaNode.getElementsByTagNameNS(ns, "Podmiot1")[0], 'podmiot1');
-  const p2Data = parsePodmiot(fakturaNode.getElementsByTagNameNS(ns, "Podmiot2")[0], 'podmiot2');
-  const p3DataArray = Array.from(fakturaNode.getElementsByTagNameNS(ns, "Podmiot3")).map(n => parsePodmiot(n, 'podmiot3'));
+  const p1Raw = parsePodmiot(fakturaNode.getElementsByTagNameNS(ns, "Podmiot1")[0], 'podmiot1');
+  const p1Data = escDeep(p1Raw);
+  const p2Raw = parsePodmiot(fakturaNode.getElementsByTagNameNS(ns, "Podmiot2")[0], 'podmiot2');
+  const p2Data = escDeep(p2Raw);
+  const p3DataArray = escDeep(Array.from(fakturaNode.getElementsByTagNameNS(ns, "Podmiot3")).map(n => parsePodmiot(n, 'podmiot3')));
 
-  const rrData = parseFakturaRR(frrNode);
-  const platnoscData = parsePlatnoscRR(frrNode.getElementsByTagNameNS(ns, "Platnosc")[0]);
-  const rozliczenieData = parseRozliczenie(frrNode.getElementsByTagNameNS(ns, "Rozliczenie")[0]);
-  const stopkaData = parseStopka(fakturaNode.getElementsByTagNameNS(ns, "Stopka")[0]);
+  if (frrNode.getElementsByTagNameNS(ns, "FakturaRRWiersz").length > 5000) { showError("Faktura zawiera zbyt wiele wierszy (max 5000)"); return; }
+  const rrRaw = parseFakturaRR(frrNode);
+  const rrData = escDeep(rrRaw);
+  const platnoscRaw = parsePlatnoscRR(frrNode.getElementsByTagNameNS(ns, "Platnosc")[0]);
+  const platnoscData = escDeep(platnoscRaw);
+  const rozliczenieRaw = parseRozliczenie(frrNode.getElementsByTagNameNS(ns, "Rozliczenie")[0]);
+  const rozliczenieData = escDeep(rozliczenieRaw);
+  const stopkaData = escDeep(parseStopka(fakturaNode.getElementsByTagNameNS(ns, "Stopka")[0]));
 
   const wierszeArray = rrData.wiersze;
-  if (wierszeArray.length > 5000) { showError("Faktura zawiera zbyt wiele wierszy (max 5000)"); return; }
 
   const xmlHash = calculateXmlHash(xmlContent);
   const unknownElements = findUnknownFakturaElements(xml);
   // Numer KSeF i link weryfikacyjny odnoszą się do WYSTAWCY, a w VAT RR
   // wystawcą jest nabywca (Podmiot2) — nie rolnik.
-  const nipWystawcy = p2Data && p2Data.nip;
+  const nipWystawcy = p2Raw && p2Raw.nip;
 
   const jestKorekta = rrData.rodzaj === 'KOR_VAT_RR';
 
@@ -2235,7 +2375,9 @@ function renderRRDokument(xml, fileName, xmlContent) {
     korygowaneInfo = `<strong>Korygowane faktury:</strong>&nbsp;${lista.join('<br>')}<br>`;
     if (rrData.typKorekty) korygowaneInfo += `<strong>Typ&nbsp;korekty:</strong>&nbsp;${rrData.typKorektyDisplay}<br>`;
   }
-  if (rrData.nrFaKorygowany) korygowaneInfo += `<strong>Nr faktury korygowanej:</strong> ${rrData.nrFaKorygowany}<br>`;
+  // NrFaKorygowany to POPRAWNY numer przy korekcie błędnego numeru (błędny stoi
+  // w NrFaKorygowanej) — etykieta „Nr faktury korygowanej" sugerowała odwrotnie.
+  if (rrData.nrFaKorygowany) korygowaneInfo += `<strong>Poprawny numer faktury korygowanej:</strong> ${rrData.nrFaKorygowany}<br>`;
   const przyczynaInfo = rrData.przyczynaKorekty ? `<strong>Przyczyna korekty:</strong> ${rrData.przyczynaKorekty}<br>` : '';
 
   c += `
@@ -2358,8 +2500,8 @@ function renderRRDokument(xml, fileName, xmlContent) {
   container.innerHTML = c;
   document.getElementById("pages").appendChild(container);
 
-  if (unknownElements.length === 0 && nipWystawcy && rrData.dataWystawienia) {
-    addQRCode(qrContainerId, nipWystawcy, rrData.dataWystawienia, xmlHash);
+  if (unknownElements.length === 0 && nipWystawcy && rrRaw.dataWystawienia) {
+    addQRCode(qrContainerId, nipWystawcy, rrRaw.dataWystawienia, xmlHash);
   }
 
   // ===== PAYMENT CONTAINER =====
@@ -2370,24 +2512,24 @@ function renderRRDokument(xml, fileName, xmlContent) {
   // art. 43 ust. 1 pkt 3 i z reguły nie figuruje w wykazie podatników VAT. Odpowiedź
   // "rachunek nieprzypisany" byłaby regułą, nie ostrzeżeniem — czerwony krzyżyk przy
   // poprawnej fakturze wprowadzałby w błąd.
-  const kwotaDoZaplaty = (rozliczenieData && rozliczenieData.doZaplaty)
-    ? rozliczenieData.doZaplaty
-    : rrData.naleznoscOgolem;
+  // Dane SUROWE (*Raw) — boks escapuje je sam, a do schowka i kodu QR idą bez encji.
+  // W RR nie ma zapłat częściowych, więc kwotaDoPrzelewu() zwraca DoZaplaty albo P_12_1.
+  const przelew = kwotaDoPrzelewu(rrRaw.naleznoscOgolem, platnoscRaw, rozliczenieRaw);
 
   const paymentQrId = 'pqr-' + Date.now();
-  const paymentHtml = renderPaymentContainerHTML(p1Data, platnoscData, rrData, paymentQrId, {
-    rachunki: platnoscData ? platnoscData.rachunkiRolnika : null,
+  const paymentHtml = renderPaymentContainerHTML(p1Raw, platnoscRaw, rrRaw, paymentQrId, {
+    rachunki: platnoscRaw ? platnoscRaw.rachunkiRolnika : null,
     formaPrzelewu: "1",
-    amount: kwotaDoZaplaty,
+    amount: przelew.kwota,
     whiteList: false
   });
   if (paymentHtml) {
     const el = document.createElement('div');
     el.innerHTML = paymentHtml;
     document.getElementById("pages").appendChild(el.firstElementChild);
-    if ((rrData.kodWaluty || 'PLN') === 'PLN') {
-      addPaymentQR(paymentQrId, kwotaDoZaplaty || '0', platnoscData.rachunkiRolnika[0].nrRB,
-                   (p1Data && p1Data.nip) || '', (p1Data && p1Data.nazwa) || '', rrData.nrFaktury || '');
+    if ((rrRaw.kodWaluty || 'PLN') === 'PLN') {
+      addPaymentQR(paymentQrId, przelew.kwota || '0', platnoscRaw.rachunkiRolnika[0].nrRB,
+                   (p1Raw && p1Raw.nip) || '', (p1Raw && p1Raw.nazwa) || '', rrRaw.nrFaktury || '');
     }
   }
 

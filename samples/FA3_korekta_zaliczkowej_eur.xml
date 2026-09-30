@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Faktura testowa FA(3) — korekta faktury zaliczkowej w walucie obcej (KOR_ZAL, EUR).
+  Powstała w v1.8.8, bo waluta jest cechą całego dokumentu i pól walutowych nie da się
+  dopisać do próbek w PLN.
+
+  Stan faktyczny: zaliczka 12 300,00 EUR (FZ/2026/05/017) — po zmianie zakresu zamówienia
+  sprzedawca zwraca nabywcy 2 460,00 EUR. Kwoty w nagłówku to różnice:
+    P_13_1  = -2 000,00 EUR   (netto)
+    P_14_1  =   -460,00 EUR   (VAT)
+    P_14_1W = -1 955,00 PLN   (VAT w złotych: -460,00 × 4,2500)
+    P_15    = -2 460,00 EUR
+    P_15ZK  = 12 300,00 EUR   (kwota zaliczki przed korektą)
+    KursWalutyZ / KursWalutyZK = 4,2500
+
+  Co ta faktura pokrywa:
+    - kolumna "VAT w PLN" w podsumowaniu (HTML i PDF) wraz z sumą w wierszu RAZEM
+    - kurs waluty i kurs sprzed korekty, kwota przed korektą
+    - zamówienie: kwota VAT wiersza (P_11VatZ), UU_IDZ jako numer pozycji zamówienia,
+      GTIN, PKWiU, indeks, znacznik załącznika nr 15
+    - korekta bez wierszy FaWiersz (faktury zaliczkowe ich nie mają)
+
+  Dane są fikcyjne, NIP-y mają poprawne sumy kontrolne.
+  Plik zwalidowany przeciwko documentations/schemat.xsd.
+-->
+<Faktura xmlns:etd="http://crd.gov.pl/xml/schematy/dziedzinowe/mf/2022/01/05/eD/DefinicjeTypy/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">
+	<Naglowek>
+		<KodFormularza kodSystemowy="FA (3)" wersjaSchemy="1-0E">FA</KodFormularza>
+		<WariantFormularza>3</WariantFormularza>
+		<DataWytworzeniaFa>2026-06-03T10:20:00Z</DataWytworzeniaFa>
+		<SystemInfo>KSeFeusz — próbka testowa</SystemInfo>
+	</Naglowek>
+	<Podmiot1>
+		<DaneIdentyfikacyjne>
+			<NIP>9999999999</NIP>
+			<Nazwa>Maszyny Pakujące Omega sp. z o.o.</Nazwa>
+		</DaneIdentyfikacyjne>
+		<Adres>
+			<KodKraju>PL</KodKraju>
+			<AdresL1>ul. Fabryczna 18</AdresL1>
+			<AdresL2>60-101 Poznań</AdresL2>
+		</Adres>
+		<DaneKontaktowe>
+			<Email>faktury@omega-maszyny.example</Email>
+		</DaneKontaktowe>
+	</Podmiot1>
+	<Podmiot2>
+		<DaneIdentyfikacyjne>
+			<NIP>1111111111</NIP>
+			<Nazwa>Przetwórnia Owoców Delta S.A.</Nazwa>
+		</DaneIdentyfikacyjne>
+		<Adres>
+			<KodKraju>PL</KodKraju>
+			<AdresL1>ul. Sadownicza 4</AdresL1>
+			<AdresL2>05-600 Grójec</AdresL2>
+		</Adres>
+		<JST>2</JST>
+		<GV>2</GV>
+	</Podmiot2>
+	<Fa>
+		<KodWaluty>EUR</KodWaluty>
+		<P_1>2026-06-03</P_1>
+		<P_1M>Poznań</P_1M>
+		<P_2>FKZ/2026/06/004</P_2>
+		<P_13_1>-2000.00</P_13_1>
+		<P_14_1>-460.00</P_14_1>
+		<P_14_1W>-1955.00</P_14_1W>
+		<P_15>-2460.00</P_15>
+		<KursWalutyZ>4.2500</KursWalutyZ>
+		<Adnotacje>
+			<P_16>2</P_16>
+			<P_17>2</P_17>
+			<P_18>2</P_18>
+			<P_18A>2</P_18A>
+			<Zwolnienie>
+				<P_19N>1</P_19N>
+			</Zwolnienie>
+			<NoweSrodkiTransportu>
+				<P_22N>1</P_22N>
+			</NoweSrodkiTransportu>
+			<P_23>2</P_23>
+			<PMarzy>
+				<P_PMarzyN>1</P_PMarzyN>
+			</PMarzy>
+		</Adnotacje>
+		<RodzajFaktury>KOR_ZAL</RodzajFaktury>
+		<PrzyczynaKorekty>Zmiana zakresu zamówienia — zwrot części zaliczki</PrzyczynaKorekty>
+		<TypKorekty>2</TypKorekty>
+		<DaneFaKorygowanej>
+			<DataWystFaKorygowanej>2026-05-12</DataWystFaKorygowanej>
+			<NrFaKorygowanej>FZ/2026/05/017</NrFaKorygowanej>
+			<NrKSeF>1</NrKSeF>
+			<NrKSeFFaKorygowanej>9999999999-20260512-4A7C21E9B3D0-5F</NrKSeFFaKorygowanej>
+		</DaneFaKorygowanej>
+		<P_15ZK>12300.00</P_15ZK>
+		<KursWalutyZK>4.2500</KursWalutyZK>
+		<Platnosc>
+			<TerminPlatnosci>
+				<Termin>2026-06-10</Termin>
+			</TerminPlatnosci>
+			<FormaPlatnosci>6</FormaPlatnosci>
+		</Platnosc>
+		<Zamowienie>
+			<WartoscZamowienia>21525.00</WartoscZamowienia>
+			<ZamowienieWiersz>
+				<NrWierszaZam>1</NrWierszaZam>
+				<UU_IDZ>ZAM/2026/0417/1</UU_IDZ>
+				<P_7Z>Maszyna pakująca MX-200 z montażem</P_7Z>
+				<IndeksZ>MX-200</IndeksZ>
+				<GTINZ>05901234123525</GTINZ>
+				<PKWiUZ>28.29.22.0</PKWiUZ>
+				<P_8AZ>szt.</P_8AZ>
+				<P_8BZ>1</P_8BZ>
+				<P_9AZ>16000.00</P_9AZ>
+				<P_11NettoZ>16000.00</P_11NettoZ>
+				<P_11VatZ>3680.00</P_11VatZ>
+				<P_12Z>23</P_12Z>
+			</ZamowienieWiersz>
+			<ZamowienieWiersz>
+				<NrWierszaZam>2</NrWierszaZam>
+				<UU_IDZ>ZAM/2026/0417/2</UU_IDZ>
+				<P_7Z>Laptop serwisowy do sterownika maszyny</P_7Z>
+				<IndeksZ>LT-5</IndeksZ>
+				<P_8AZ>szt.</P_8AZ>
+				<P_8BZ>1</P_8BZ>
+				<P_9AZ>1500.00</P_9AZ>
+				<P_11NettoZ>1500.00</P_11NettoZ>
+				<P_11VatZ>345.00</P_11VatZ>
+				<P_12Z>23</P_12Z>
+				<P_12Z_Zal_15>1</P_12Z_Zal_15>
+			</ZamowienieWiersz>
+		</Zamowienie>
+	</Fa>
+	<Stopka>
+		<Informacje>
+			<StopkaFaktury>Kapitał zakładowy 500 000 zł. Sąd Rejonowy Poznań-Nowe Miasto i Wilda, VIII Wydział Gospodarczy KRS.</StopkaFaktury>
+		</Informacje>
+	</Stopka>
+</Faktura>

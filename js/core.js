@@ -1,5 +1,5 @@
 // ============================================================================
-// core.js - wersja 1.8.7 (rdzeń aplikacji)
+// core.js - wersja 1.8.8 (rdzeń aplikacji)
 // ============================================================================
 
 // ============================================================================
@@ -131,11 +131,71 @@ const bankAccountTypeMap = { // TRachunekWlasnyBanku
 // FUNKCJE POMOCNICZE (getText, fmtPrice, fmtQty, isValidUUID)
 // ============================================================================
 
+// UWAGA: szuka na DOWOLNEJ głębokości i zwraca pierwsze trafienie. Tam, gdzie ta sama
+// nazwa występuje w kontenerze także głębiej (Platnosc → ZaplataCzesciowa), trzeba
+// użyć getChildText — patrz niżej.
 function getText(node, tag) {
   if (!node) return "";
   const el = node.getElementsByTagNameNS(ns, tag)[0];
   if (!el) return "";
   return el.textContent.trim();
+}
+
+// Tekst BEZPOŚREDNIEGO dziecka. W Platnosc element ZaplataCzesciowa ma własne
+// FormaPlatnosci / PlatnoscInna / OpisPlatnosci i stoi w XML przed polami o tych samych
+// nazwach należącymi do całej faktury — getText zwracał więc formę płatności pierwszej
+// zapłaty częściowej jako formę płatności faktury (do v1.8.7).
+function getChildText(node, tag) {
+  if (!node) return "";
+  for (const el of node.children) {
+    if (el.localName === tag && el.namespaceURI === ns) return el.textContent.trim();
+  }
+  return "";
+}
+
+// ============================================================================
+// TEKST Z XML A HTML (v1.8.8)
+// ============================================================================
+// Wszystko, co pochodzi z pliku XML, jest tekstem wystawcy faktury. Schemat
+// ogranicza większość pól tylko co do długości, więc nazwa, adres czy opis mogą
+// zawierać znaki < > & " ' — a plik spoza KSeF może je mieć w każdym polu.
+// Wstawione do strony bez zamiany stałyby się kodem HTML.
+//
+// Zasada: tor HTML dostaje dane po escDeep(), a funkcje budujące HTML wstawiają je
+// bez dalszych zabiegów. Wyjątki, które biorą dane SUROWE i escapują je same
+// w miejscu wstawienia: boks „Dane do przelewu" (renderPaymentContainerHTML),
+// link weryfikacyjny (addQRCode) i tabela panelu „Wiele faktur" (renderBatchTable)
+// — bo te same wartości trafiają też tam, gdzie encji HTML być nie może: do schowka,
+// do kodu QR i do PDF.
+// Tor PDF niczego nie escapuje: pdfmake drukuje tekst dosłownie.
+
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Kopia danych, w której każdy napis przeszedł przez escHtml. Liczby, wartości
+// logiczne i null zostają bez zmian, więc parseFloat, porównania z kodami
+// ("1", "KOR", "PLN") i wyszukiwanie w słownikach działają jak na danych surowych.
+function escDeep(v) {
+  if (typeof v === 'string') return escHtml(v);
+  if (Array.isArray(v)) return v.map(escDeep);
+  if (v && typeof v === 'object') {
+    const out = {};
+    for (const k of Object.keys(v)) out[k] = escDeep(v[k]);
+    return out;
+  }
+  return v;
+}
+
+// Adres z XML wolno zamienić w klikalny link tylko wtedy, gdy jest zwykłym adresem
+// http(s). Inaczej (javascript:, data:, adres względny) pokazujemy go jako tekst.
+function isHttpUrl(url) {
+  return /^https?:\/\//i.test(String(url || ''));
 }
 
 function formatPrice(value, forPdf = false) {
@@ -226,6 +286,18 @@ function adresInline(adres) {
     .map(s => (s || '').trim())
     .filter(Boolean)
     .join(', ');
+}
+
+// Adres z numerem GLN, gdy wystawca go podał: „ul. X, 00-000 Y, Polska (GLN: 5901234567890)".
+// Dla adresów stojących po etykiecie: korespondencyjnego, podmiotu upoważnionego,
+// miejsc wysyłki, przewoźnika, danych sprzed korekty w FA_RR. Do v1.8.7 GLN z tych
+// miejsc nie trafiał do wizualizacji. W bloku głównym podmiotu GLN ma własną pozycję
+// w siatce danych, więc tam zostaje adresInline.
+function adresZGln(adres) {
+  if (!adres) return '';
+  const tekst = adresInline(adres);
+  if (!adres.gln) return tekst;
+  return tekst ? `${tekst} (GLN: ${adres.gln})` : `GLN: ${adres.gln}`;
 }
 
 function isValidUUID(uuid) {
@@ -345,10 +417,21 @@ function parsePodmiotUpowazniony(node) {
 
 function parsePlatnosc(node) {
   if (!node) return null;
-  
-  const terminElement = node.getElementsByTagNameNS(ns, "TerminPlatnosci")[0];
-  const terminOpis = terminElement ? terminElement.getElementsByTagNameNS(ns, "TerminOpis")[0] : null;
-  
+
+  // TerminPlatnosci może wystąpić do 100 razy (płatność w ratach) — czytamy listę.
+  // Do v1.8.7 parser brał [0] i kolejne terminy nie trafiały do wizualizacji.
+  const terminy = Array.from(node.getElementsByTagNameNS(ns, "TerminPlatnosci")).map(te => {
+    const opisNode = te.getElementsByTagNameNS(ns, "TerminOpis")[0];
+    return {
+      data: getText(te, "Termin"),
+      opis: opisNode ? {
+        ilosc: getText(opisNode, "Ilosc"),
+        jednostka: getText(opisNode, "Jednostka"),
+        zdarzenie: getText(opisNode, "ZdarzeniePoczatkowe")
+      } : null
+    };
+  });
+
   // Rachunki bankowe
   const rachunki = Array.from(node.getElementsByTagNameNS(ns, "RachunekBankowy")).map(rach => ({
     nrRB: getText(rach, "NrRB"),
@@ -357,11 +440,12 @@ function parsePlatnosc(node) {
     opis: getText(rach, "OpisRachunku"),
     typWlasny: getText(rach, "RachunekWlasnyBanku")
   }));
-  
+
   const rachunkiFaktora = Array.from(node.getElementsByTagNameNS(ns, "RachunekBankowyFaktora")).map(rach => ({
     nrRB: getText(rach, "NrRB"),
     swift: getText(rach, "SWIFT"),
     nazwaBanku: getText(rach, "NazwaBanku"),
+    opis: getText(rach, "OpisRachunku"),
     typWlasny: getText(rach, "RachunekWlasnyBanku")
   }));
   
@@ -379,20 +463,18 @@ function parsePlatnosc(node) {
   return {
     zaplacono: getText(node, "Zaplacono") === "1",
     dataZaplaty: getText(node, "DataZaplaty"),
+    // "1" — zapłacono w części; "2" — zapłacono w CAŁOŚCI, w dwóch lub więcej częściach
     znacznikZaplatyCzesciowej: getText(node, "ZnacznikZaplatyCzesciowej"),
     zaplatyCzesciowe: zaplatyCzesciowe,
-    
-    terminData: terminElement ? getText(terminElement, "Termin") : null,
-    terminOpis: terminOpis ? {
-      ilosc: getText(terminOpis, "Ilosc"),
-      jednostka: getText(terminOpis, "Jednostka"),
-      zdarzenie: getText(terminOpis, "ZdarzeniePoczatkowe")
-    } : null,
-    
-    formaPlatnosci: getText(node, "FormaPlatnosci"),
-    platnoscInna: getText(node, "PlatnoscInna") === "1",
-    opisPlatnosci: getText(node, "OpisPlatnosci"),
-    
+
+    terminy: terminy,
+
+    // getChildText, nie getText: te trzy nazwy występują także w ZaplataCzesciowa,
+    // która stoi w XML wcześniej (opis przy getChildText).
+    formaPlatnosci: getChildText(node, "FormaPlatnosci"),
+    platnoscInna: getChildText(node, "PlatnoscInna") === "1",
+    opisPlatnosci: getChildText(node, "OpisPlatnosci"),
+
     rachunki: rachunki,
     rachunkiFaktora: rachunkiFaktora,
     
@@ -1009,7 +1091,8 @@ function parseZamowienie(node) {
       
       cenaNetto: getText(w, "P_9AZ"),
       kwotaNetto: netto,
-      kwotaVat: vat,
+      kwotaVat: vat,              // P_11VatZ albo wyliczone ze stawki — do obliczeń
+      kwotaVatXml: vatZ,          // tylko P_11VatZ z XML — to trafia do wizualizacji
       
       stawkaVat: stawka,
       stawkaVatDisplay: t(vatRateMap[stawka]) || (stawka ? stawka + "%" : ""),

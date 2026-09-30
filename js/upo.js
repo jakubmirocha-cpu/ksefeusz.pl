@@ -1,5 +1,5 @@
 // ============================================================================
-// upo.js - wersja 1.8.7 (wizualizator UPO KSeF)
+// upo.js - wersja 1.8.8 (wizualizator UPO KSeF)
 // ============================================================================
 
 const UPO_NS = "http://upo.schematy.mf.gov.pl/KSeF/v4-3";
@@ -158,7 +158,9 @@ function clearUpoFile() {
 // ============================================================================
 
 function renderUpo(xmlDom, fileName) {
-  const data = parseUpo(xmlDom);
+  // escDeep: tekst z XML nie może stać się kodem strony (opis przy escHtml w core.js).
+  // generateUpoPdf parsuje plik osobno i dostaje dane surowe.
+  const data = escDeep(parseUpo(xmlDom));
   const container = document.getElementById("upo-pages");
 
   // Sekcja OpisPotwierdzenia

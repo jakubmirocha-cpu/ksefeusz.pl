@@ -1,5 +1,5 @@
 // ============================================================================
-// i18n.js - wersja 1.8.7 (tłumaczenie szablonu wizualizacji)
+// i18n.js - wersja 1.8.8 (tłumaczenie szablonu wizualizacji)
 // ============================================================================
 // Wspólne źródło prawdy dla obu torów renderowania (renderer.js = HTML,
 // main.js = PDF) oraz dla słowników kodów w core.js.
@@ -168,6 +168,7 @@ I18N.en = {
   'Korygowane faktury': 'Corrected invoices',
   'Typ korekty': 'Correction type',
   'Przyczyna korekty': 'Reason for correction',
+  'Poprawny numer faktury korygowanej': 'Correct number of the corrected invoice',
   'z dnia': 'dated',
   '(poza KSeF)': '(outside KSeF)',
   'Przed korektą': 'Before correction',
@@ -196,12 +197,11 @@ I18N.en = {
   'Zapłacono': 'Paid',
   'Tak, dnia': 'Yes, on',
   'Zapłaty częściowe': 'Partial payments',
-  '(częściowa)': '(partial)',
-  '(wieloczęściowa)': '(multi-instalment)',
+  'zapłacono w części': 'partially paid',
+  'zapłacono w całości': 'paid in full',
   'z': 'of',
   'Skonto': 'Early payment discount',
   'Link do płatności': 'Payment link',
-  'płatność online': 'pay online',
   'Link': 'Link',
 
   // --- paymentMap ---
@@ -256,7 +256,7 @@ I18N.en = {
 
   // --- podsumowanie VAT / stawki (vatRateMap) ---
   'Kategoria': 'Category',
-  'VAT(przel.)': 'VAT (conv.)',
+  'VAT w PLN': 'VAT in PLN',
   'RAZEM': 'TOTAL',
   'ryczałt taxi': 'taxi lump sum',
   '0% (kraj)': '0% (domestic)',
@@ -399,6 +399,7 @@ I18N.en = {
   'Powiązania': 'Related parties',
   'Zwrot akcyzy': 'Excise duty refund',
   'Kwota przed korektą': 'Amount before correction',
+  'Kurs waluty przed korektą': 'Exchange rate before correction',
   'Status sprzedawcy': 'Seller status',
   'Okres korekty': 'Correction period',
   'Informacje ogólne': 'General information',
@@ -521,6 +522,7 @@ I18N.de = {
   'Korygowane faktury': 'Korrigierte Rechnungen',
   'Typ korekty': 'Korrekturart',
   'Przyczyna korekty': 'Korrekturgrund',
+  'Poprawny numer faktury korygowanej': 'Richtige Nummer der korrigierten Rechnung',
   'z dnia': 'vom',
   '(poza KSeF)': '(außerhalb KSeF)',
   'Przed korektą': 'Vor der Korrektur',
@@ -549,12 +551,11 @@ I18N.de = {
   'Zapłacono': 'Bezahlt',
   'Tak, dnia': 'Ja, am',
   'Zapłaty częściowe': 'Teilzahlungen',
-  '(częściowa)': '(Teilzahlung)',
-  '(wieloczęściowa)': '(mehrere Teilzahlungen)',
+  'zapłacono w części': 'teilweise bezahlt',
+  'zapłacono w całości': 'vollständig bezahlt',
   'z': 'vom',
   'Skonto': 'Skonto',
   'Link do płatności': 'Zahlungslink',
-  'płatność online': 'online bezahlen',
   'Link': 'Link',
 
   // --- paymentMap ---
@@ -609,7 +610,7 @@ I18N.de = {
 
   // --- podsumowanie VAT / stawki (vatRateMap) ---
   'Kategoria': 'Kategorie',
-  'VAT(przel.)': 'USt (umger.)',
+  'VAT w PLN': 'USt in PLN',
   'RAZEM': 'GESAMT',
   'ryczałt taxi': 'Taxi-Pauschale',
   '0% (kraj)': '0% (Inland)',
@@ -752,6 +753,7 @@ I18N.de = {
   'Powiązania': 'Verbundene Parteien',
   'Zwrot akcyzy': 'Verbrauchsteuererstattung',
   'Kwota przed korektą': 'Betrag vor der Korrektur',
+  'Kurs waluty przed korektą': 'Wechselkurs vor der Korrektur',
   'Status sprzedawcy': 'Status des Verkäufers',
   'Okres korekty': 'Korrekturzeitraum',
   'Informacje ogólne': 'Allgemeine Angaben',
@@ -876,6 +878,7 @@ I18N.fr = {
   'Korygowane faktury': 'Factures rectifiées',
   'Typ korekty': 'Type de rectification',
   'Przyczyna korekty': 'Motif de la rectification',
+  'Poprawny numer faktury korygowanej': 'Numéro correct de la facture rectifiée',
   'z dnia': 'du',
   '(poza KSeF)': '(hors KSeF)',
   'Przed korektą': 'Avant rectification',
@@ -904,12 +907,11 @@ I18N.fr = {
   'Zapłacono': 'Payée',
   'Tak, dnia': 'Oui, le',
   'Zapłaty częściowe': 'Paiements partiels',
-  '(częściowa)': '(partiel)',
-  '(wieloczęściowa)': '(échelonné)',
+  'zapłacono w części': 'payé partiellement',
+  'zapłacono w całości': 'payé intégralement',
   'z': 'du',
   'Skonto': 'Escompte',
   'Link do płatności': 'Lien de paiement',
-  'płatność online': 'payer en ligne',
   'Link': 'Lien',
 
   // --- paymentMap ---
@@ -964,7 +966,7 @@ I18N.fr = {
 
   // --- podsumowanie VAT / stawki (vatRateMap) ---
   'Kategoria': 'Catégorie',
-  'VAT(przel.)': 'TVA (convertie)',
+  'VAT w PLN': 'TVA en PLN',
   'RAZEM': 'TOTAL',
   'ryczałt taxi': 'forfait taxi',
   '0% (kraj)': '0% (national)',
@@ -1107,6 +1109,7 @@ I18N.fr = {
   'Powiązania': 'Parties liées',
   'Zwrot akcyzy': 'Remboursement d’accise',
   'Kwota przed korektą': 'Montant avant rectification',
+  'Kurs waluty przed korektą': 'Taux de change avant rectification',
   'Status sprzedawcy': 'Statut du vendeur',
   'Okres korekty': 'Période de rectification',
   'Informacje ogólne': 'Informations générales',
@@ -1229,6 +1232,7 @@ I18N.uk = {
   'Korygowane faktury': 'Скориговані фактури',
   'Typ korekty': 'Тип коригування',
   'Przyczyna korekty': 'Причина коригування',
+  'Poprawny numer faktury korygowanej': 'Правильний номер скоригованої фактури',
   'z dnia': 'від',
   '(poza KSeF)': '(поза KSeF)',
   'Przed korektą': 'До коригування',
@@ -1257,12 +1261,11 @@ I18N.uk = {
   'Zapłacono': 'Оплачено',
   'Tak, dnia': 'Так, дня',
   'Zapłaty częściowe': 'Часткові платежі',
-  '(częściowa)': '(часткова)',
-  '(wieloczęściowa)': '(багаточасткова)',
+  'zapłacono w części': 'оплачено частково',
+  'zapłacono w całości': 'оплачено повністю',
   'z': 'від',
   'Skonto': 'Знижка за дострокову оплату',
   'Link do płatności': 'Посилання на оплату',
-  'płatność online': 'оплатити онлайн',
   'Link': 'Посилання',
 
   // --- paymentMap ---
@@ -1317,7 +1320,7 @@ I18N.uk = {
 
   // --- podsumowanie VAT / stawki (vatRateMap) ---
   'Kategoria': 'Категорія',
-  'VAT(przel.)': 'ПДВ (перерах.)',
+  'VAT w PLN': 'ПДВ у PLN',
   'RAZEM': 'РАЗОМ',
   'ryczałt taxi': 'фіксована ставка таксі',
   '0% (kraj)': '0% (внутрішня)',
@@ -1460,6 +1463,7 @@ I18N.uk = {
   'Powiązania': 'Повʼязані сторони',
   'Zwrot akcyzy': 'Повернення акцизу',
   'Kwota przed korektą': 'Сума до коригування',
+  'Kurs waluty przed korektą': 'Курс валюти до коригування',
   'Status sprzedawcy': 'Статус продавця',
   'Okres korekty': 'Період коригування',
   'Informacje ogólne': 'Загальна інформація',

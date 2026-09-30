@@ -20,8 +20,16 @@
     - rozliczenie: obciazenia i odliczenia, kwota do zaplaty
     - DodatkowyOpis ogolny i przypisany do wierszy (przelacznik szczegolow)
 
+  Dopisane w v1.8.8 (pola, ktore do tej wersji nie trafialy do wizualizacji):
+    - GLN w adresach korespondencyjnych, w adresie podmiotu upowaznionego,
+      u przewoznika i w miejscach wysylki
+    - drugi TerminPlatnosci (raty; pierwszy ma zdarzenie z przyimkiem "od", drugi bez —
+      wizualizacja dokleja "od" tylko w drugim przypadku)
+    - drugi transport: przewoznik zagraniczny (KodKraju + NrID)
+    - Zalacznik: blok danych z tabela i metadanymi tabeli (TMetaDane)
+
   Arytmetyka jest spojna (P_15 = suma P_13_* + P_14_*), zeby walidator spojnosci
-  naglowka milczal. Dane sa fikcyjne, NIP-y maja poprawne sumy kontrolne.
+  naglowka milczal. Dane sa fikcyjne, NIP-y i GLN-y maja poprawne sumy kontrolne.
   Plik zwalidowany przeciwko documentations/schemat.xsd.
 -->
 <Faktura xmlns:etd="http://crd.gov.pl/xml/schematy/dziedzinowe/mf/2022/01/05/eD/DefinicjeTypy/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -49,6 +57,7 @@ xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">
 			<KodKraju>PL</KodKraju>
 			<AdresL1>skr. poczt. 118</AdresL1>
 			<AdresL2>30-960 Kraków 1</AdresL2>
+			<GLN>5901234123471</GLN>
 		</AdresKoresp>
 		<DaneKontaktowe>
 			<Email>faktury@omega-kancelaria.example</Email>
@@ -72,6 +81,7 @@ xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">
 			<KodKraju>PL</KodKraju>
 			<AdresL1>ul. Magazynowa 7, hala B</AdresL1>
 			<AdresL2>05-090 Raszyn</AdresL2>
+			<GLN>5901234123488</GLN>
 		</AdresKoresp>
 		<DaneKontaktowe>
 			<Email>zobowiazania@delta-sa.example</Email>
@@ -127,6 +137,7 @@ xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">
 			<KodKraju>PL</KodKraju>
 			<AdresL1>ul. Skarbowa 5</AdresL1>
 			<AdresL2>00-020 Warszawa</AdresL2>
+			<GLN>5901234123495</GLN>
 		</Adres>
 		<DaneKontaktowe>
 			<EmailPU>kontakt@sigma-pp.example</EmailPU>
@@ -339,6 +350,14 @@ xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">
 					<ZdarzeniePoczatkowe>od daty wystawienia faktury</ZdarzeniePoczatkowe>
 				</TerminOpis>
 			</TerminPlatnosci>
+			<TerminPlatnosci>
+				<Termin>2026-04-15</Termin>
+				<TerminOpis>
+					<Ilosc>44</Ilosc>
+					<Jednostka>dni</Jednostka>
+					<ZdarzeniePoczatkowe>dnia dostawy towaru</ZdarzeniePoczatkowe>
+				</TerminOpis>
+			</TerminPlatnosci>
 			<FormaPlatnosci>6</FormaPlatnosci>
 			<RachunekBankowy>
 				<NrRB>11109010140000071219812874</NrRB>
@@ -382,6 +401,7 @@ xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">
 						<KodKraju>PL</KodKraju>
 						<AdresL1>ul. Spedycyjna 40</AdresL1>
 						<AdresL2>32-085 Modlniczka</AdresL2>
+						<GLN>5901234123501</GLN>
 					</AdresPrzewoznika>
 				</Przewoznik>
 				<NrZleceniaTransportu>ZLT/2026/02/455</NrZleceniaTransportu>
@@ -393,12 +413,33 @@ xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">
 					<KodKraju>PL</KodKraju>
 					<AdresL1>ul. Rynek Główny 12/4</AdresL1>
 					<AdresL2>31-042 Kraków</AdresL2>
+					<GLN>5901234123457</GLN>
 				</WysylkaZ>
 				<WysylkaDo>
 					<KodKraju>PL</KodKraju>
 					<AdresL1>ul. Magazynowa 7, hala B</AdresL1>
 					<AdresL2>05-090 Raszyn</AdresL2>
+					<GLN>5901234123488</GLN>
 				</WysylkaDo>
+			</Transport>
+			<Transport>
+				<RodzajTransportu>2</RodzajTransportu>
+				<Przewoznik>
+					<DaneIdentyfikacyjne>
+						<KodKraju>DE</KodKraju>
+						<NrID>DE811234567</NrID>
+						<Nazwa>Rhein-Spedition GmbH</Nazwa>
+					</DaneIdentyfikacyjne>
+					<AdresPrzewoznika>
+						<KodKraju>DE</KodKraju>
+						<AdresL1>Hafenstraße 12</AdresL1>
+						<AdresL2>47119 Duisburg</AdresL2>
+						<GLN>4001234567891</GLN>
+					</AdresPrzewoznika>
+				</Przewoznik>
+				<NrZleceniaTransportu>ZLT/2026/02/461</NrZleceniaTransportu>
+				<OpisLadunku>13</OpisLadunku>
+				<JednostkaOpakowania>2 palety EUR</JednostkaOpakowania>
 			</Transport>
 		</WarunkiTransakcji>
 	</Fa>
@@ -413,4 +454,58 @@ xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">
 			<BDO>000123456</BDO>
 		</Rejestry>
 	</Stopka>
+	<Zalacznik>
+		<BlokDanych>
+			<ZNaglowek>Specyfikacja usług transportowych — luty 2026</ZNaglowek>
+			<MetaDane>
+				<ZKlucz>Okres rozliczeniowy</ZKlucz>
+				<ZWartosc>2026-02-01 – 2026-02-28</ZWartosc>
+			</MetaDane>
+			<Tekst>
+				<Akapit>Zestawienie kursów wykonanych w ramach umowy UM/2026/OM-DELTA/03 (wiersz 2 faktury).</Akapit>
+			</Tekst>
+			<Tabela>
+				<TMetaDane>
+					<TKlucz>Zlecenie zbiorcze</TKlucz>
+					<TWartosc>ZLT/2026/02/455</TWartosc>
+				</TMetaDane>
+				<TMetaDane>
+					<TKlucz>Pojazd</TKlucz>
+					<TWartosc>KR 4H221 (ciągnik siodłowy)</TWartosc>
+				</TMetaDane>
+				<Opis>Kursy na trasie Kraków — Raszyn</Opis>
+				<TNaglowek>
+					<Kol Typ="date">
+						<NKom>Data kursu</NKom>
+					</Kol>
+					<Kol Typ="int">
+						<NKom>Liczba palet</NKom>
+					</Kol>
+					<Kol Typ="dec">
+						<NKom>Wartość netto</NKom>
+					</Kol>
+				</TNaglowek>
+				<Wiersz>
+					<WKom>2026-02-12</WKom>
+					<WKom>4</WKom>
+					<WKom>400.00</WKom>
+				</Wiersz>
+				<Wiersz>
+					<WKom>2026-02-19</WKom>
+					<WKom>4</WKom>
+					<WKom>280.00</WKom>
+				</Wiersz>
+				<Wiersz>
+					<WKom>2026-02-27</WKom>
+					<WKom>4</WKom>
+					<WKom>400.00</WKom>
+				</Wiersz>
+				<Suma>
+					<SKom></SKom>
+					<SKom>12</SKom>
+					<SKom>1080.00</SKom>
+				</Suma>
+			</Tabela>
+		</BlokDanych>
+	</Zalacznik>
 </Faktura>

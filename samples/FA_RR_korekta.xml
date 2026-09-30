@@ -17,6 +17,12 @@ xmlns="http://crd.gov.pl/wzor/2026/03/06/14189/">
 			<AdresL1>ul. Polna 1</AdresL1>
 			<AdresL2>00-001 Warszawa</AdresL2>
 		</Adres>
+		<AdresKoresp>
+			<KodKraju>PL</KodKraju>
+			<AdresL1>skr. poczt. 12</AdresL1>
+			<AdresL2>05-500 Piaseczno</AdresL2>
+			<GLN>5901234123532</GLN>
+		</AdresKoresp>
 		<DaneKontaktowe>
 			<Email>jan.kowalski@example.pl</Email>
 			<Telefon>912345678</Telefon>
@@ -48,7 +54,7 @@ xmlns="http://crd.gov.pl/wzor/2026/03/06/14189/">
 		<P_12_1>-1016.50</P_12_1>
 		<P_12_2>minus jeden tysiąc szesnaście złotych 50/100</P_12_2>
 		<RodzajFaktury>KOR_VAT_RR</RodzajFaktury>
-		<PrzyczynaKorekty>Korekta ilości pszenicy po ponownym ważeniu przy rozładunku — 14 t zamiast 15 t.</PrzyczynaKorekty>
+		<PrzyczynaKorekty>Korekta ilości pszenicy po ponownym ważeniu przy rozładunku — 14 t zamiast 15 t. Przy okazji aktualizacja adresu gospodarstwa.</PrzyczynaKorekty>
 		<TypKorekty>2</TypKorekty>
 		<DaneFaKorygowanej>
 			<DataWystFaKorygowanej>2026-03-10</DataWystFaKorygowanej>
@@ -56,6 +62,18 @@ xmlns="http://crd.gov.pl/wzor/2026/03/06/14189/">
 			<NrKSeF>1</NrKSeF>
 			<NrKSeFFaKorygowanej>2222222222-20260310-0A1B2C-0A1B2C-3F</NrKSeFFaKorygowanej>
 		</DaneFaKorygowanej>
+		<Podmiot1K>
+			<DaneIdentyfikacyjne>
+				<NIP>1111111111</NIP>
+				<Nazwa>Gospodarstwo Rolne Jan Kowalski</Nazwa>
+			</DaneIdentyfikacyjne>
+			<Adres>
+				<KodKraju>PL</KodKraju>
+				<AdresL1>Kolonia Stara 7</AdresL1>
+				<AdresL2>05-510 Konstancin-Jeziorna</AdresL2>
+				<GLN>5901234123549</GLN>
+			</Adres>
+		</Podmiot1K>
 		<DokumentZaplaty>
 			<NrDokumentu>PRZ/2026/03/0088</NrDokumentu>
 			<DataDokumentu>2026-03-12</DataDokumentu>
@@ -129,6 +147,12 @@ xmlns="http://crd.gov.pl/wzor/2026/03/06/14189/">
 				<NazwaBanku>Bank Spółdzielczy w Swarzędzu</NazwaBanku>
 				<OpisRachunku>Rachunek rolnika</OpisRachunku>
 			</RachunekBankowy1>
+			<RachunekBankowy2>
+				<NrRB>22333344445555666677778888</NrRB>
+				<SWIFT>AGRIPLPR</SWIFT>
+				<NazwaBanku>Bank Rolny S.A.</NazwaBanku>
+				<OpisRachunku>Rachunek skupu, z którego wychodzą płatności</OpisRachunku>
+			</RachunekBankowy2>
 		</Platnosc>
 	</FakturaRR>
 	<Stopka>

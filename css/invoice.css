@@ -1,4 +1,4 @@
-/* ===== KSeFeusz.pl - invoice.css - wersja 1.8.7 (2026-09-18) ===== */
+/* ===== KSeFeusz.pl - invoice.css - wersja 1.8.8 (2026-09-30) ===== */
 /* Style podglądu faktury HTML oraz drukowania */
 
 /* ===== KONTENER FAKTURY ===== */
@@ -506,6 +506,17 @@
 .payment-bl-result.ok      { color: #27ae60; }
 .payment-bl-result.fail    { color: #e74c3c; }
 .payment-bl-result.error   { color: #e67e22; }
+
+/* Rozbicie kwoty pod polem "Kwota" — gdy faktura jest zapłacona w części (v1.8.8).
+   Wcięcie jak .payment-bl-row: tekst stoi pod wartością, nie pod etykietą. */
+.payment-amount-note {
+  padding-left: 98px;
+  margin-top: -4px;
+  margin-bottom: 9px;
+  font-size: 11px;
+  color: #b9521a;
+  line-height: 1.4;
+}
 
 .payment-qr-section {
   display: flex;

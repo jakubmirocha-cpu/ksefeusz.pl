@@ -1,5 +1,5 @@
 // ============================================================================
-// main.js - wersja 1.8.7 (generowanie PDF i obsługa zdarzeń)
+// main.js - wersja 1.8.8 (generowanie PDF i obsługa zdarzeń)
 // ============================================================================
 // Zakładamy, że core.js, utils.js i renderer.js są załadowane przed main.js
 
@@ -17,7 +17,7 @@ function pdfRenderPodmiot(data, tytul) {
     content.push({ text: adresTekst.trim(), margin: [0, 0, 0, 1] });
   }
   if (data.adresKoresp) {
-    let adresKorespTekst = adresInline(data.adresKoresp);
+    let adresKorespTekst = adresZGln(data.adresKoresp);
     content.push({ text: `${t('Adres koresp.')}: ${adresKorespTekst.trim()}`, margin: [0, 0, 0, 1], fontSize: 7 });
   }
 
@@ -72,12 +72,12 @@ function pdfRenderPodmiotUpowazniony(puData) {
   if (puData.nrEORI) content.push({ text: `EORI: ${puData.nrEORI}`, margin: [0, 0, 0, 1] });
 
   if (puData.adres) {
-    let adresTekst = adresInline(puData.adres);
+    let adresTekst = adresZGln(puData.adres);
     content.push({ text: `${t('Adres')}: ${adresTekst.trim()}`, margin: [0, 0, 0, 1] });
   }
 
   if (puData.adresKoresp) {
-    let adresKorespTekst = adresInline(puData.adresKoresp);
+    let adresKorespTekst = adresZGln(puData.adresKoresp);
     content.push({ text: `${t('Adres koresp.')}: ${adresKorespTekst.trim()}`, margin: [0, 0, 0, 1], fontSize: 8 });
   }
 
@@ -111,7 +111,7 @@ function pdfRenderPodmiot3(p3Data) {
   }
 
   if (p3Data.adresKoresp) {
-    let adresKorespTekst = adresInline(p3Data.adresKoresp);
+    let adresKorespTekst = adresZGln(p3Data.adresKoresp);
     content.push({ text: `${t('Adres koresp.')}: ${adresKorespTekst.trim()}`, margin: [0, 0, 0, 1], fontSize: 7 });
   }
 
@@ -119,6 +119,7 @@ function pdfRenderPodmiot3(p3Data) {
 
   let gridItems = [];
   if (p3Data.nrEORI) gridItems.push({ text: `EORI: ${p3Data.nrEORI}`, fontSize: 7 });
+  if (p3Data.adres?.gln) gridItems.push({ text: `GLN: ${p3Data.adres.gln}`, fontSize: 7 });
   if (p3Data.nrKlienta) gridItems.push({ text: `${t('Nr klienta')}: ${p3Data.nrKlienta}`, fontSize: 7 });
   if (p3Data.idNabywcy) gridItems.push({ text: `${t('ID nabywcy')}: ${p3Data.idNabywcy}`, fontSize: 7 });
   if (p3Data.udzial) gridItems.push({ text: `${t('Udział')}: ${parseFloat(p3Data.udzial).toFixed(2)}%`, fontSize: 7 });
@@ -206,44 +207,37 @@ function pdfRenderPaymentInfo(p) {
   if (p.formaPlatnosci) rows.push([lbl(t('Forma') + ':'), { text: t(paymentMap[p.formaPlatnosci]) || p.formaPlatnosci }]);
   if (p.platnoscInna && p.opisPlatnosci) rows.push([lbl(t('Inna forma') + ':'), { text: p.opisPlatnosci }]);
 
-  if (p.terminData) rows.push([lbl(t('Termin') + ':'), { text: p.terminData }]);
-  if (p.terminOpis) {
-    const { ilosc, jednostka, zdarzenie } = p.terminOpis;
-    if (ilosc && jednostka && zdarzenie) rows.push([lbl(t('Termin') + ':'), { text: `${ilosc} ${jednostka} ${t('od')} ${zdarzenie}` }]);
-    else if (ilosc && jednostka) rows.push([lbl(t('Termin') + ':'), { text: `${ilosc} ${jednostka}` }]);
+  // Terminy — każdy TerminPlatnosci w osobnym wierszu (tekst wspólny z HTML)
+  for (const termin of p.terminy) {
+    const tekst = terminPlatnosciText(termin);
+    if (tekst) rows.push([lbl(t('Termin') + ':'), { text: tekst }]);
   }
 
-  for (let rach of p.rachunki) {
-    if (rach.nrRB) {
-      const sub = [];
-      if (rach.swift) sub.push(`SWIFT: ${rach.swift}`);
-      if (rach.typWlasny) sub.push(t(bankAccountTypeMap[rach.typWlasny]) || t('rachunek własny'));
-      if (rach.nazwaBanku) sub.push(rach.nazwaBanku);
-      const val = sub.length ? { stack: [{ text: formatujRachunek(rach.nrRB) }, { text: sub.join(' • '), fontSize: 7, color: '#555555' }] } : { text: formatujRachunek(rach.nrRB) };
-      rows.push([lbl(t('Rachunek') + ':'), val]);
-    }
-  }
-
-  for (let rach of p.rachunkiFaktora) {
-    if (rach.nrRB) {
-      const sub = [];
-      if (rach.swift) sub.push(`SWIFT: ${rach.swift}`);
-      if (rach.typWlasny) sub.push(t(bankAccountTypeMap[rach.typWlasny]) || t('rachunek własny'));
-      if (rach.nazwaBanku) sub.push(rach.nazwaBanku);
-      const val = sub.length ? { stack: [{ text: formatujRachunek(rach.nrRB) }, { text: sub.join(' • '), fontSize: 7, color: '#555555' }] } : { text: formatujRachunek(rach.nrRB) };
-      rows.push([lbl(t('Rachunek faktora') + ':'), val]);
-    }
-  }
+  // Rachunek zwykły i rachunek faktora — ten sam komplet dopisków pod numerem
+  const rachunek = (rach, etykieta) => {
+    if (!rach.nrRB) return;
+    const sub = [];
+    if (rach.swift) sub.push(`SWIFT: ${rach.swift}`);
+    if (rach.typWlasny) sub.push(t(bankAccountTypeMap[rach.typWlasny]) || t('rachunek własny'));
+    if (rach.nazwaBanku) sub.push(rach.nazwaBanku);
+    if (rach.opis) sub.push(rach.opis);
+    const val = sub.length ? { stack: [{ text: formatujRachunek(rach.nrRB) }, { text: sub.join(' • '), fontSize: 7, color: '#555555' }] } : { text: formatujRachunek(rach.nrRB) };
+    rows.push([lbl(etykieta + ':'), val]);
+  };
+  for (const rach of p.rachunki) rachunek(rach, t('Rachunek'));
+  for (const rach of p.rachunkiFaktora) rachunek(rach, t('Rachunek faktora'));
 
   if (p.zaplacono) rows.push([lbl(t('Zapłacono') + ':'), { text: p.dataZaplaty }]);
 
-  if (p.zaplatyCzesciowe.length > 0) {
-    const lista = p.zaplatyCzesciowe.map(z => {
-      let s = `${formatPrice(z.kwota, true)} ${t('z')} ${z.data}`;
-      if (z.forma) s += ` (${t(paymentMap[z.forma]) || z.forma})`;
-      return s;
-    }).join('\n');
-    rows.push([lbl(t('Zapłaty częściowe') + ':'), { text: lista, fontSize: 7 }]);
+  // Zapłaty częściowe — znacznik (zapłacono w części / w całości) i lista zapłat
+  if (p.znacznikZaplatyCzesciowej || p.zaplatyCzesciowe.length > 0) {
+    const stack = [];
+    const znacznik = znacznikZaplatyText(p);
+    if (znacznik) stack.push({ text: znacznik });
+    if (p.zaplatyCzesciowe.length > 0) {
+      stack.push({ text: p.zaplatyCzesciowe.map(z => zaplataCzesciowaText(z, true)).join('\n'), fontSize: 7 });
+    }
+    rows.push([lbl(t('Zapłaty częściowe') + ':'), { stack: stack }]);
   }
 
   if (p.skonto) {
@@ -251,7 +245,12 @@ function pdfRenderPaymentInfo(p) {
     rows.push([lbl(t('Skonto') + ':'), { text: skontoVal }]);
   }
 
-  if (p.linkDoPlatnosci) rows.push([lbl(t('Link') + ':'), { text: p.linkDoPlatnosci, fontSize: 7 }]);
+  // Klikalny tylko zwykły adres http(s) — jak w HTML
+  if (p.linkDoPlatnosci) {
+    const linkCell = { text: p.linkDoPlatnosci, fontSize: 7 };
+    if (isHttpUrl(p.linkDoPlatnosci)) Object.assign(linkCell, { link: p.linkDoPlatnosci, color: '#3498db', decoration: 'underline' });
+    rows.push([lbl(t('Link') + ':'), linkCell]);
+  }
   if (p.ipksef) rows.push([lbl('IPKSeF:'), { text: p.ipksef, fontSize: 7 }]);
 
   if (rows.length === 0) return { text: "—" };
@@ -371,11 +370,15 @@ function pdfRenderTransport(tr) {
   }
 
   if (tr.przewoznik) {
+    // Ten sam komplet danych co w HTML: identyfikator krajowy, unijny albo zagraniczny
+    // (albo informacja, że go nie ma) i adres z GLN
     if (tr.przewoznik.nazwa) content.push({ text: `${t('Przewoźnik')}: ${tr.przewoznik.nazwa}`, margin: [5, 0, 0, 2], fontSize: 8 });
     if (tr.przewoznik.nip) content.push({ text: `NIP: ${tr.przewoznik.nip}`, margin: [5, 0, 0, 2], fontSize: 8 });
     if (tr.przewoznik.kodUE && tr.przewoznik.nrVatUE) content.push({ text: `${t('VAT UE')}: ${tr.przewoznik.kodUE} ${tr.przewoznik.nrVatUE}`, margin: [5, 0, 0, 2], fontSize: 8 });
+    if (tr.przewoznik.kodKrajuId && tr.przewoznik.nrID) content.push({ text: `${t('ID zagraniczny')}: ${tr.przewoznik.kodKrajuId} ${tr.przewoznik.nrID}`, margin: [5, 0, 0, 2], fontSize: 8 });
+    if (tr.przewoznik.brakID) content.push({ text: t('bez identyfikatora podatkowego'), italics: true, margin: [5, 0, 0, 2], fontSize: 8 });
     if (tr.przewoznik.adres) {
-      let adresTekst = adresInline(tr.przewoznik.adres);
+      let adresTekst = adresZGln(tr.przewoznik.adres);
       content.push({ text: adresTekst.trim(), margin: [0, 0, 0, 1], fontSize: 8 });
     }
   }
@@ -400,18 +403,18 @@ function pdfRenderTransport(tr) {
   }
 
   if (tr.wysylkaZ) {
-    let miejsce = adresInline(tr.wysylkaZ);
+    let miejsce = adresZGln(tr.wysylkaZ);
     content.push({ text: `${t('Wysyłka z')}: ${miejsce.trim()}`, margin: [0, 0, 0, 1] });
   }
 
   if (tr.wysylkaDo) {
-    let miejsce = adresInline(tr.wysylkaDo);
+    let miejsce = adresZGln(tr.wysylkaDo);
     content.push({ text: `${t('Wysyłka do')}: ${miejsce.trim()}`, margin: [0, 0, 0, 1] });
   }
 
   if (tr.wysylkaPrzez && tr.wysylkaPrzez.length > 0) {
     const przezList = tr.wysylkaPrzez.map((p, idx) => {
-      let miejsce = adresInline(p);
+      let miejsce = adresZGln(p);
       return `${idx + 1}. ${miejsce}`;
     }).join('; ');
     content.push({ text: `${t('Wysyłka przez')}: ${przezList}`, margin: [0, 0, 0, 1] });
@@ -554,6 +557,7 @@ function pdfRenderDodatkoweInformacje(faData, p1Data) {
   if (faData.zwrotAkcyzy) infoItems.push({ text: `${t('Zwrot akcyzy')}: ${t('Tak')}`, fontSize: 7 });
   if (faData.kursWalutyZ) infoItems.push({ text: `${t('Kurs waluty')}: ${faData.kursWalutyZ}`, fontSize: 7 });
   if (faData.p15zk) infoItems.push({ text: `${t('Kwota przed korektą')}: ${formatPrice(faData.p15zk, true)}`, fontSize: 7 });
+  if (faData.kursWalutyZK) infoItems.push({ text: `${t('Kurs waluty przed korektą')}: ${faData.kursWalutyZK}`, fontSize: 7 });
   if (p1Data?.status) infoItems.push({ text: `${t('Status sprzedawcy')}: ${t(taxpayerStatusMap[p1Data.status]) || p1Data.status}`, fontSize: 7 });
   if (faData.okresFaKorygowanej) infoItems.push({ text: `${t('Okres korekty')}: ${faData.okresFaKorygowanej}`, fontSize: 7 });
 
@@ -677,6 +681,11 @@ function pdfRenderZalacznik(zalacznikData) {
 
     for (let tabela of blok.tabele) {
       if (tabela.opis) content.push({ text: tabela.opis, margin: [5, 3, 0, 2], fontSize: 9 });
+
+      // Metadane tabeli (TMetaDane) — jak w HTML
+      for (let meta of tabela.metaDane) {
+        content.push({ text: `${meta.klucz}: ${meta.wartosc}`, margin: [10, 0, 0, 1], fontSize: 8 });
+      }
 
       if (tabela.kolumny.length > 0 && tabela.wiersze.length > 0) {
         const tableBody = [];
@@ -980,59 +989,41 @@ function pdfRowArray(w, isBefore, showRabatCol = false) {
 
 function pdfVatSummary(faData) {
   const v = faData.vatSummary;
+  // Wiersze i decyzja o kolumnie "VAT w PLN" — wspólne z HTML (renderer.js)
+  const fields = vatSummaryFields(v);
+  const czyKolumnaW = vatSummaryHasPln(faData);
+  const kwota = (x, bold) => ({ text: formatPrice(x, true), alignment: 'right', preserveWhiteSpace: true, bold: !!bold });
 
-  let tn = 0;
-  let tv = 0;
-
-  const body = [
-    [{ text: t('Kategoria'), style: 'tableHeader' }, { text: t('Netto'), style: 'tableHeader', alignment: 'right' }, { text: t('VAT'), style: 'tableHeader', alignment: 'right' }, { text: t('Brutto'), style: 'tableHeader', alignment: 'right' }]
+  const naglowek = [
+    { text: t('Kategoria'), style: 'tableHeader' },
+    { text: t('Netto'), style: 'tableHeader', alignment: 'right' },
+    { text: t('VAT'), style: 'tableHeader', alignment: 'right' }
   ];
+  if (czyKolumnaW) naglowek.push({ text: t('VAT w PLN'), style: 'tableHeader', alignment: 'right' });
+  naglowek.push({ text: t('Brutto'), style: 'tableHeader', alignment: 'right' });
+  const body = [naglowek];
 
-  const fields = [
-    { n: v.p13_1, v: v.p14_1, l: "23% / 22%" },
-    { n: v.p13_2, v: v.p14_2, l: "8% / 7%" },
-    { n: v.p13_3, v: v.p14_3, l: "5%" },
-    { n: v.p13_4, v: v.p14_4, l: t("ryczałt taxi") },
-    { n: v.p13_5, v: v.p14_5, l: "OSS" },
-    { n: v.p13_6_1, l: t("0% (kraj)") },
-    { n: v.p13_6_2, l: t("0% (WDT)") },
-    { n: v.p13_6_3, l: t("0% (eksport)") },
-    { n: v.p13_7, l: t("zwolnione") },
-    { n: v.p13_8, l: t("niepodlegające") },
-    { n: v.p13_9, l: t("art. 100") },
-    { n: v.p13_10, l: t("odwrotne obciążenie") },
-    { n: v.p13_11, l: t("marża") }
-  ];
-
+  let tn = 0, tv = 0, tw = 0;
   fields.forEach(f => {
-    // Proste parsowanie - po prostu konwertuj na liczbę
-    const n = parseFloat(f.n) || 0;
-    const vatVal = parseFloat(f.v) || 0;
-
-    if (n !== 0 || vatVal !== 0) {
-      body.push([
-        f.l,
-        { text: formatPrice(n, true), alignment: 'right', preserveWhiteSpace: true },
-        { text: formatPrice(vatVal, true), alignment: 'right', preserveWhiteSpace: true },
-        { text: formatPrice(n + vatVal, true), alignment: 'right', preserveWhiteSpace: true }
-      ]);
-
-	  tn += n;
-      tv += vatVal
-    }
+    const wiersz = [f.l, kwota(f.n), kwota(f.v)];
+    if (czyKolumnaW) wiersz.push(f.w !== 0 ? kwota(f.w) : { text: '—', alignment: 'right' });
+    wiersz.push(kwota(f.n + f.v));
+    body.push(wiersz);
+    tn += f.n;
+    tv += f.v;
+    tw += f.w;
   });
 
+  // RAZEM: netto, VAT i VAT w PLN to sumy pól; brutto to P_15 z XML.
   const p15 = parseFloat(v.p15) || 0;
-  body.push([
-    { text: t('RAZEM'), bold: true },
-    { text: formatPrice(tn, true), alignment: 'right', bold: true, preserveWhiteSpace: true },
-    { text: formatPrice(tv, true), alignment: 'right', bold: true, preserveWhiteSpace: true },
-    { text: formatPrice(p15, true), alignment: 'right', bold: true, preserveWhiteSpace: true }
-  ]);
+  const razem = [{ text: t('RAZEM'), bold: true }, kwota(tn, true), kwota(tv, true)];
+  if (czyKolumnaW) razem.push(kwota(tw, true));
+  razem.push(kwota(p15, true));
+  body.push(razem);
 
   return {
     table: {
-      widths: ['*', 45, 45, 45],
+      widths: czyKolumnaW ? ['*', 45, 45, 50, 45] : ['*', 45, 45, 45],
       body: body
     },
     layout: {
@@ -1105,19 +1096,16 @@ function pdfRenderZamowienie(zamowienieData) {
     content.push({ text: `${t('Wartość zamówienia')}: ${formatPrice(zamowienieData.wartoscZamowienia, true)}`, margin: [0, 0, 0, 4] });
   }
 
-  const tableBody = [
-    [t('Lp.'), t('Opis'), t('Indeks'), t('Ilość'), t('JM'), t('Cena'), t('Netto'), t('VAT%'), t('Numer umowy/UUID')]  // DODANA KOLUMNA
-  ];
+  // Kolumna "VAT" tylko z P_11VatZ, lista dodatków wspólna z HTML (renderer.js)
+  const kolumnaVat = zamowienieMaKwotyVat(zamowienieData);
+  const naglowek = [t('Lp.'), t('Opis'), t('Indeks'), t('Ilość'), t('JM'), t('Cena'), t('Netto'), t('VAT%')];
+  if (kolumnaVat) naglowek.push(t('VAT'));
+  naglowek.push(t('Numer umowy/UUID'));   // UU_IDZ — bywa nośnikiem numeru zamówienia/umowy
+  const tableBody = [naglowek];
 
   for (let w of zamowienieData.wiersze) {
     let opis = w.opis || '';
-    let dodatki = [];
-
-    if (w.gtin) dodatki.push(`GTIN: ${w.gtin}`);
-    if (w.pkwiu) dodatki.push(`PKWiU: ${w.pkwiu}`);
-    if (w.cn) dodatki.push(`CN: ${w.cn}`);
-    if (w.gtu) dodatki.push(w.gtuDisplay);
-    if (w.procedura) dodatki.push(w.proceduraDisplay);
+    const dodatki = zamowienieDodatki(w, true);
 
     if (dodatki.length > 0) {
       opis += ' (' + dodatki.join(' | ') + ')';
@@ -1127,7 +1115,7 @@ function pdfRenderZamowienie(zamowienieData) {
       opis += ' ' + t('(przed korektą)');
     }
 
-    tableBody.push([
+    const wiersz = [
       w.nrWiersza || '',
       opis,
       w.indeks || '—',
@@ -1135,14 +1123,16 @@ function pdfRenderZamowienie(zamowienieData) {
       w.jednostka || '',
       formatPrice(w.cenaNetto, true),
       formatPrice(w.kwotaNetto, true),
-      w.stawkaVatDisplay || '',
-      w.uuid
-    ]);
+      w.stawkaVatDisplay || ''
+    ];
+    if (kolumnaVat) wiersz.push(w.kwotaVatXml ? formatPrice(w.kwotaVatXml, true) : '—');
+    wiersz.push(w.uuid);
+    tableBody.push(wiersz);
   }
 
   content.push({
     table: {
-      widths: ['auto', '*', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto'],  // DODANA KOLUMNA
+      widths: ['auto', '*'].concat(Array(naglowek.length - 2).fill('auto')),
       body: tableBody
     },
     layout: 'lightHorizontalLines',
@@ -1353,6 +1343,8 @@ function generatePdfWithPdfMake(action = 'download') {
     if (faData.rodzaj.startsWith("KOR") && faData.daneKorygowane.length > 0) {
       if (faData.typKorekty) faKvRows.push([{ text: t('Typ korekty') + ':', color: '#555555' }, { text: faData.typKorektyDisplay }]);
     }
+    // Poprawny numer przy korekcie błędnego numeru faktury — jak w HTML
+    if (faData.nrFaKorygowany) faKvRows.push([{ text: t('Poprawny numer faktury korygowanej') + ':', color: '#555555' }, { text: faData.nrFaKorygowany }]);
 
     if (faData.przyczynaKorekty) faKvRows.push([{ text: t('Przyczyna korekty') + ':', color: '#555555' }, { text: faData.przyczynaKorekty }]);
 
@@ -1423,10 +1415,12 @@ function generatePdfWithPdfMake(action = 'download') {
 
     // Podsumowanie VAT - wyrównane do prawej. Bez danych (brak P_13/P_14, P_15 = 0)
     // pomijamy — hasVatSummaryData w renderer.js, wspólne źródło prawdy z HTML.
+    // Z kolumną "VAT w PLN" tabela ma pięć kolumn — przy 45% szerokości kolumna
+    // z nazwą kategorii zostałaby ściśnięta do kilku znaków.
     if (hasVatSummaryData(faData)) docDefinition.content.push({
       columns: [
         { width: '*', text: '' },
-        { width: '45%', stack: [pdfVatSummary(faData)] }
+        { width: vatSummaryHasPln(faData) ? '58%' : '45%', stack: [pdfVatSummary(faData)] }
       ],
       margin: [0, 0, 0, 4]
     });
@@ -1824,11 +1818,13 @@ function renderBatchTable() {
   const done = batchQueue.filter(e => e.done || e.printed).length;
   count.textContent = `${done} / ${batchQueue.length} gotowych`;
 
+  // Wpisy kolejki trzymają dane surowe (idą do PDF), więc numer, nazwa i waluta
+  // z XML są escapowane dopiero tutaj, przy wstawianiu do tabeli.
   tbody.innerHTML = batchQueue.map((entry, i) => `
     <tr class="${entry.done || entry.printed ? 'batch-done' : ''}">
-      <td class="batch-nr">${entry.rodzajDisplay} ${entry.nrFaktury}</td>
-      <td>${entry.dostawca}</td>
-      <td>${formatPrice(entry.kwotaBrutto)} ${entry.kodWaluty}</td>
+      <td class="batch-nr">${escHtml(entry.rodzajDisplay)} ${escHtml(entry.nrFaktury)}</td>
+      <td>${escHtml(entry.dostawca)}</td>
+      <td>${formatPrice(entry.kwotaBrutto)} ${escHtml(entry.kodWaluty)}</td>
       <td style="white-space:nowrap;">${
         !entry.done && !entry.printed
           ? '<span class="batch-status-chip batch-status-pending">Oczekuje</span>'
@@ -2053,7 +2049,7 @@ function pdfRenderRRPodmiot(data, tytul) {
     content.push({ text: a.trim(), margin: [0, 0, 0, 1] });
   }
   if (data.adresKoresp) {
-    let a = adresInline(data.adresKoresp);
+    let a = adresZGln(data.adresKoresp);
     content.push({ text: `Adres koresp.: ${a.trim()}`, margin: [0, 0, 0, 1], fontSize: 7 });
   }
 
@@ -2081,16 +2077,14 @@ function pdfRenderRRPodmiotZKorekta(przed, po, tytul) {
   if (przed.nazwa) content.push({ text: przed.nazwa, bold: true, fontSize: 7.5 });
   if (przed.nip) content.push({ text: `NIP: ${przed.nip}`, fontSize: 7.5 });
   if (przed.adres) {
-    let a = adresInline(przed.adres);
+    let a = adresZGln(przed.adres);
     content.push({ text: a.trim(), fontSize: 7.5, margin: [0, 0, 0, 3] });
   }
-  content.push({ text: 'PO KOREKCIE', fontSize: 6.5, color: '#27ae60', margin: [0, 0, 0, 1] });
-  if (po.nazwa) content.push({ text: po.nazwa, bold: true });
-  if (po.nip) content.push({ text: `NIP: ${po.nip}` });
-  if (po.adres) {
-    let a = adresInline(po.adres);
-    content.push({ text: a.trim() });
-  }
+  content.push({ text: 'PO KOREKCIE', fontSize: 6.5, color: '#27ae60', margin: [0, 2, 0, 1] });
+  // Stan po korekcie w pełnym zakresie — jak w HTML i jak w FA(3). Do v1.8.7 PDF
+  // pokazywał tu tylko nazwę, NIP i adres; adres korespondencyjny, GLN, kontakt,
+  // nr kontrahenta i status podmiotu znikały.
+  content.push(...pdfRenderRRPodmiot(po, '').slice(1));
   return content;
 }
 
@@ -2105,17 +2099,24 @@ function pdfRenderRRPaymentInfo(pl) {
 
   // formatNRB (renderer.js) grupuje po cztery cyfry — numer przepisuje się do
   // przelewu ręcznie, więc czytelność ma tu realne znaczenie.
-  for (const r of pl.rachunkiRolnika) {
-    rows.push(['Rachunek rolnika:', formatNRB(r.nrRB) + (r.nazwaBanku ? ` (${r.nazwaBanku})` : '')]);
+  // Ten sam komplet pól dla obu rachunków, jak w HTML (renderRRPaymentInfoHTML).
+  const rachunek = (r, etykieta) => {
+    rows.push([etykieta, formatNRB(r.nrRB) + (r.nazwaBanku ? ` (${r.nazwaBanku})` : '')]);
     if (r.swift) rows.push(['SWIFT:', r.swift]);
-  }
-  for (const r of pl.rachunkiNabywcy) {
-    rows.push(['Rachunek nabywcy:', formatNRB(r.nrRB) + (r.nazwaBanku ? ` (${r.nazwaBanku})` : '')]);
-  }
+    if (r.opis) rows.push(['Opis rachunku:', r.opis]);
+  };
+  for (const r of pl.rachunkiRolnika) rachunek(r, 'Rachunek rolnika:');
+  for (const r of pl.rachunkiNabywcy) rachunek(r, 'Rachunek nabywcy:');
   if (pl.ipksef) rows.push(['IPKSeF:', pl.ipksef]);
+  // Klikalny tylko zwykły adres http(s) — jak w HTML
+  if (pl.linkDoPlatnosci) {
+    rows.push(['Link do płatności:', isHttpUrl(pl.linkDoPlatnosci)
+      ? { text: pl.linkDoPlatnosci, link: pl.linkDoPlatnosci, color: '#3498db', decoration: 'underline', fontSize: 7 }
+      : { text: pl.linkDoPlatnosci, fontSize: 7 }]);
+  }
 
   if (rows.length === 0) return [{ text: 'Brak danych o płatności', italics: true, color: '#888888' }];
-  return [pdfKvTable(rows.map(([k, v]) => [{ text: k, color: '#555555' }, { text: v }]))];
+  return [pdfKvTable(rows.map(([k, v]) => [{ text: k, color: '#555555' }, typeof v === 'string' ? { text: v } : v]))];
 }
 
 // Wiersz tabeli pozycji RR — 10 kolumn (lustro rrRowHTML).
@@ -2504,7 +2505,9 @@ function generateRRPdfWithPdfMake(action = 'download') {
     ];
     if (rrData.dataNabycia) faKvRows.push([{ text: 'Data nabycia:', color: '#555555' }, { text: rrData.dataNabycia }]);
     if (rrData.typKorekty) faKvRows.push([{ text: 'Typ korekty:', color: '#555555' }, { text: rrData.typKorektyDisplay }]);
-    if (rrData.nrFaKorygowany) faKvRows.push([{ text: 'Nr faktury korygowanej:', color: '#555555' }, { text: rrData.nrFaKorygowany }]);
+    // NrFaKorygowany to POPRAWNY numer przy korekcie błędnego numeru (błędny stoi
+    // w NrFaKorygowanej) — etykieta „Nr faktury korygowanej" sugerowała odwrotnie.
+    if (rrData.nrFaKorygowany) faKvRows.push([{ text: 'Poprawny numer faktury korygowanej:', color: '#555555' }, { text: rrData.nrFaKorygowany }]);
     if (rrData.przyczynaKorekty) faKvRows.push([{ text: 'Przyczyna korekty:', color: '#555555' }, { text: rrData.przyczynaKorekty }]);
 
     docDefinition.content.push(pdfTwoBox(
