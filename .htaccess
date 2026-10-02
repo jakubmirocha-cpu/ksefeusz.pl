@@ -48,6 +48,23 @@ RewriteRule ^index\.html$ https://ksefeusz.pl/ [R=301,L]
     <FilesMatch "\.(html|htm)$">
         Header set Cache-Control "public, max-age=3600, must-revalidate"
     </FilesMatch>
+
+    # ------------------------------------------------------------
+    # Content-Security-Policy — egzekwowany od 2026-10-02
+    # ------------------------------------------------------------
+    # Druga bariera po escapowaniu tekstu z XML: przeglądarka odmawia wczytania
+    # i wysłania wszystkiego, czego ta polityka nie dopuszcza. Nowy zasób spoza
+    # ksefeusz.pl (skrypt z CDN, font, zewnętrzne API) trzeba tu dopisać, inaczej
+    # przeglądarka go zablokuje.
+    #  - script-src / style-src 'unsafe-inline': strona używa onclick="…"
+    #    i atrybutów style; wersja pełna wymaga przeniesienia ich do plików JS
+    #  - connect-src: jedyne połączenie na zewnątrz to API białej listy MF —
+    #    przeglądarka nie pozwoli wysłać danych nigdzie indziej
+    #  - object-src blob:: pdfmake otwiera PDF do druku w nowej karcie z adresu
+    #    blob:, a ta karta dziedziczy politykę strony. Chrome/Edge pokazują PDF
+    #    także przy object-src 'none' (sprawdzone); blob: zostaje dla Firefoksa
+    #    i Safari, w których tego nie sprawdzono
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self'; font-src 'self'; connect-src 'self' https://wl-api.mf.gov.pl; object-src blob:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
 </IfModule>
 
 # Kompresja gzip
