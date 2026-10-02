@@ -10,7 +10,7 @@ Poprawki bezpieczeństwa są wdrażane tylko do najnowszej wersji aplikacji dost
 
 Jeśli odkryłeś lukę bezpieczeństwa, napisz bezpośrednio na **kontakt@ksefeusz.pl** z tematem `[SECURITY]`. W wiadomości opisz:
 
-- Rodzaj podatności (np. XSS, wyciек danych, błąd przetwarzania XML)
+- Rodzaj podatności (np. XSS, wyciek danych, błąd przetwarzania XML)
 - Kroki do reprodukcji
 - Potencjalny wpływ
 

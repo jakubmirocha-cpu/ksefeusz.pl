@@ -8,3 +8,11 @@ tools/
 
 # Temp
 ico.jfif
+
+# Notatki i plany (*.md) oraz dokumentacja źródłowa (schematy i PDF-y z MF) zostają
+# lokalnie — publiczne repozytorium to kod strony. Wyjątki: README (strona główna
+# repozytorium na GitHubie) i SECURITY (zakładka „Security": jak zgłosić lukę).
+*.md
+!/README.md
+!/.github/SECURITY.md
+documentations/

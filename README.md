@@ -54,7 +54,6 @@ js/
   lib/              — biblioteki zewnętrzne (pdfmake, qrcode, crypto-js)
 samples/            — przykładowe faktury FA(3)
 assets/             — grafiki (podgląd na stronie głównej)
-documentations/     — schemat XSD i dokumentacja FA(3) z Ministerstwa Finansów
 
 ## Technologie
 
