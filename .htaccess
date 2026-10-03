@@ -50,26 +50,25 @@ RewriteRule ^index\.html$ https://ksefeusz.pl/ [R=301,L]
     </FilesMatch>
 
     # ------------------------------------------------------------
-    # Content-Security-Policy — egzekwowany od 2026-10-02
+    # Content-Security-Policy — egzekwowany od 2026-10-02,
+    # bez 'unsafe-inline' w script-src od wersji 1.9.0
     # ------------------------------------------------------------
     # Druga bariera po escapowaniu tekstu z XML: przeglądarka odmawia wczytania
     # i wysłania wszystkiego, czego ta polityka nie dopuszcza. Nowy zasób spoza
     # ksefeusz.pl (skrypt z CDN, font, zewnętrzne API) trzeba tu dopisać, inaczej
     # przeglądarka go zablokuje.
-    #  - script-src / style-src 'unsafe-inline': strona używa onclick="…"
-    #    i atrybutów style; wersja pełna wymaga przeniesienia ich do plików JS
+    #  - script-src 'self': żadnego kodu wpisanego w HTML (onclick="…", <script>
+    #    bez src) — przeglądarka go nie wykona, nawet gdyby trafił na stronę.
+    #    Cała obsługa strony jest w plikach .js
+    #  - style-src 'unsafe-inline': atrybuty style w HTML; wstrzyknięty styl nie
+    #    uruchamia kodu, a img-src 'self' nie pozwala nim niczego wysłać
     #  - connect-src: jedyne połączenie na zewnątrz to API białej listy MF —
     #    przeglądarka nie pozwoli wysłać danych nigdzie indziej
     #  - object-src blob:: pdfmake otwiera PDF do druku w nowej karcie z adresu
     #    blob:, a ta karta dziedziczy politykę strony. Chrome/Edge pokazują PDF
     #    także przy object-src 'none' (sprawdzone); blob: zostaje dla Firefoksa
     #    i Safari, w których tego nie sprawdzono
-    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self'; font-src 'self'; connect-src 'self' https://wl-api.mf.gov.pl; object-src blob:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
-    #
-    # Próba polityki docelowej (od wersji 1.9.0 strona nie ma kodu wpisanego w HTML):
-    # script-src bez 'unsafe-inline'. Przeglądarka tylko ZGŁASZA, co by zablokowała,
-    # niczego nie blokuje. Po próbie zastąpi nagłówek powyżej.
-    Header always set Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; font-src 'self'; connect-src 'self' https://wl-api.mf.gov.pl; object-src blob:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; font-src 'self'; connect-src 'self' https://wl-api.mf.gov.pl; object-src blob:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
 </IfModule>
 
 # Kompresja gzip
