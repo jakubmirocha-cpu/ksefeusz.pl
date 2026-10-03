@@ -449,7 +449,7 @@
       <div class="filebar-actions">
 
         <label class="view-toggle-label toggle-row" style="cursor:pointer;gap:8px;">
-          <input type="checkbox" id="viewToggle" onchange="toggleViewMode(this.checked)" style="display:none;">
+          <input type="checkbox" id="viewToggle" data-change="view-mode" style="display:none;">
           <span class="view-toggle-track"><span class="view-toggle-thumb"></span></span>
           <span style="font-size:13px;color:var(--text);">Wszystkie sekcje</span>
         </label>
@@ -467,7 +467,7 @@
 
         <span id="rowDetailsToggleGroup" style="display:none;align-items:center;gap:8px;">
           <label class="view-toggle-label toggle-row" style="cursor:pointer;gap:8px;">
-            <input type="checkbox" id="rowDetailsToggle" onchange="toggleRowDetails(!this.checked)" style="display:none;">
+            <input type="checkbox" id="rowDetailsToggle" data-change="row-details" style="display:none;">
             <span class="view-toggle-track"><span class="view-toggle-thumb"></span></span>
             <span style="font-size:13px;color:var(--text);">Ukryj dodatkowe info</span>
           </label>
@@ -483,7 +483,7 @@
 
         <span class="lang-group">
           <label for="invoiceLang" class="lang-label"><i class="fas fa-language"></i></label>
-          <select id="invoiceLang" class="lang-select" onchange="changeInvoiceLang(this.value)" title="Język wizualizacji faktury">
+          <select id="invoiceLang" class="lang-select" data-change="lang" title="Język wizualizacji faktury">
             <option value="pl" selected>Polski</option>
             <option value="en">English</option>
             <option value="de">Deutsch</option>
@@ -541,7 +541,7 @@
     <div class="lang-bar">
       <i class="fas fa-language lang-bar-icon"></i>
       <label for="invoiceLangPdf" class="lang-bar-text">Język PDF-a:</label>
-      <select id="invoiceLangPdf" class="lang-select" onchange="changeInvoiceLang(this.value)">
+      <select id="invoiceLangPdf" class="lang-select" data-change="lang">
         <option value="pl" selected>Polski</option>
         <option value="en">English</option>
         <option value="de">Deutsch</option>
@@ -592,7 +592,7 @@
     <div class="lang-bar">
       <i class="fas fa-language lang-bar-icon"></i>
       <label for="invoiceLangBatch" class="lang-bar-text">Język PDF-ów:</label>
-      <select id="invoiceLangBatch" class="lang-select" onchange="changeInvoiceLang(this.value)">
+      <select id="invoiceLangBatch" class="lang-select" data-change="lang">
         <option value="pl" selected>Polski</option>
         <option value="en">English</option>
         <option value="de">Deutsch</option>
