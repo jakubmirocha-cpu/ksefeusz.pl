@@ -317,84 +317,84 @@
       <p class="section-desc">To, o co pytają najczęściej. Nie znalazłeś odpowiedzi? <a href="mailto:kontakt@ksefeusz.pl" class="faq-contact-link">Napisz do nas.</a></p>
       <div class="faq-wrap">
         <div class="faq-item open">
-          <button class="faq-q" onclick="toggleFaq(this)">
+          <button class="faq-q" data-action="faq">
             <span>Czy moje dane są wysyłane na serwer?</span>
             <i class="fas fa-chevron-down faq-chev"></i>
           </button>
           <div class="faq-a">Nie. Cały proces odbywa się w Twojej przeglądarce — plik XML nigdy nie opuszcza urządzenia. KSeFeusz działa w 100% offline po załadowaniu strony. Nie zbieramy żadnych danych, nie używamy ciasteczek, nie mamy analityki.</div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" onclick="toggleFaq(this)">
+          <button class="faq-q" data-action="faq">
             <span>Jakie formaty faktur KSeF są obsługiwane?</span>
             <i class="fas fa-chevron-down faq-chev"></i>
           </button>
           <div class="faq-a">Obsługujemy schemat FA(3) — aktualny wzór Ministerstwa Finansów — oraz FA_RR(1), czyli faktury VAT RR wystawiane rolnikom ryczałtowym. W FA(3) renderujemy wszystkie typy faktur: VAT, korygujące, zaliczkowe, końcowe, faktury do paragonu; faktury z załącznikami również. Typ dokumentu rozpoznajemy automatycznie po wczytaniu pliku — nie trzeba nic wybierać. Osobna zakładka obsługuje pliki UPO.</div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" onclick="toggleFaq(this)">
+          <button class="faq-q" data-action="faq">
             <span>Czy KSeFeusz obsługuje faktury VAT RR?</span>
             <i class="fas fa-chevron-down faq-chev"></i>
           </button>
           <div class="faq-a">Tak. Faktura VAT RR dokumentuje skup produktów rolnych lub usług rolniczych od rolnika ryczałtowego. W odróżnieniu od zwykłej faktury wystawia ją <strong>nabywca</strong>, a nie sprzedawca — tak nakazuje art. 116 ustawy o VAT. Dlatego opis nagłówków jest zmieniony na następujący: „Sprzedawca (rolnik ryczałtowy)” i „Nabywca (wystawca faktury)”. Zryczałtowany zwrot podatku — w skrócie ZZP, 6,5% albo 7% — pokazujemy osobno przy każdej pozycji. Dane do przelewu prowadzą na rachunek rolnika, bo to on dostaje pieniądze. Faktury VAT RR wizualizujemy tylko po polsku.</div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" onclick="toggleFaq(this)">
+          <button class="faq-q" data-action="faq">
             <span>Czy PDF generowany przez KSeFeusz jest zgodny z wymogami?</span>
             <i class="fas fa-chevron-down faq-chev"></i>
           </button>
           <div class="faq-a">PDF zawiera te same dane co oryginalny plik XML: dane sprzedawcy i nabywcy, numer faktury, daty, pozycje, podsumowanie VAT, numer KSeF, kod QR weryfikacyjny. Może służyć do podglądu i archiwizacji, jednak oficjalnym dokumentem w systemie KSeF pozostaje plik XML.</div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" onclick="toggleFaq(this)">
+          <button class="faq-q" data-action="faq">
             <span>Czy mogę pokazać fakturę zagranicznemu kontrahentowi?</span>
             <i class="fas fa-chevron-down faq-chev"></i>
           </button>
           <div class="faq-a">Tak. Po wczytaniu faktury wybierz język w belce nad podglądem — do wyboru polski, angielski, niemiecki, francuski i ukraiński. Zmiana działa jednocześnie na podglądzie i na generowanym PDF-ie. Tłumaczeniu podlegają jedynie statyczne elementy szablonu dokumentu (etykiety, nagłówki sekcji, nazwy kolumn). Treść merytoryczna faktury — nazwy towarów i usług, adresy, opisy, przyczyna korekty — pozostaje w języku oryginalnym, bo to dane wystawcy, których wizualizator nie zmienia. Kwoty i daty również zachowują format z pliku XML.</div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" onclick="toggleFaq(this)">
+          <button class="faq-q" data-action="faq">
             <span>Czy mogę wizualizować wiele faktur na raz?</span>
             <i class="fas fa-chevron-down faq-chev"></i>
           </button>
           <div class="faq-a">Tak. W zakładce „Wiele faktur" wrzucasz dowolną liczbę plików XML i generujesz wszystkie PDF-y jednym kliknięciem — także tutaj nic nie jest wysyłane na zewnątrz.</div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" onclick="toggleFaq(this)">
+          <button class="faq-q" data-action="faq">
             <span>Czy to naprawdę darmowe? Gdzie haczyk?</span>
             <i class="fas fa-chevron-down faq-chev"></i>
           </button>
           <div class="faq-a">Nie ma haczyka. Projekt jest open source (licencja AGPL v3), rozwijany jako narzędzie pomocnicze. Nie wymagamy konta, nie mamy wersji płatnej, nie sprzedajemy danych (bo ich nie mamy).</div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" onclick="toggleFaq(this)">
+          <button class="faq-q" data-action="faq">
             <span>Dlaczego nie używać wizualizatora rządowego?</span>
             <i class="fas fa-chevron-down faq-chev"></i>
           </button>
           <div class="faq-a">Możesz używać. KSeFeusz powstał, bo rządowy wzorzec jest rozwlekły przy większej liczbie pozycji i słabo drukuje się na A4. Stworzyliśmy własny, kompaktowy układ zoptymalizowany pod codzienną pracę.</div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" onclick="toggleFaq(this)">
+          <button class="faq-q" data-action="faq">
             <span>W jakich przeglądarkach to działa?</span>
             <i class="fas fa-chevron-down faq-chev"></i>
           </button>
           <div class="faq-a">We wszystkich nowoczesnych przeglądarkach: Chrome, Firefox, Edge, Safari, Opera. Zalecamy aktualną wersję. Nie działamy na Internet Explorer — ale jeśli nadal z niego korzystasz, mamy nadzieję, że to przejściowy stan.</div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" onclick="toggleFaq(this)">
+          <button class="faq-q" data-action="faq">
             <span>Czy mogę od razu zapłacić fakturę po jej wczytaniu?</span>
             <i class="fas fa-chevron-down faq-chev"></i>
           </button>
           <div class="faq-a">Tak. Dla faktur przelewowych pod wizualizacją pojawia się przycisk <strong>„Pokaż dane do przelewu"</strong>. Po kliknięciu rozwijają się gotowe dane: odbiorca, adres, NIP, numer rachunku, kwota i tytuł — każde pole z przyciskiem „Kopiuj". Obok wyświetla się kod QR zgodny ze standardem ZBP, który większość aplikacji bankowych odczytuje bezpośrednio (wystarczy zeskanować telefon).<br><br>Pod numerem rachunku znajdziesz też przycisk <strong>„Sprawdź białą listę"</strong> — weryfikuje on w czasie rzeczywistym, czy konto widnieje w rejestrze czynnych podatników VAT Ministerstwa Finansów. To szczególnie ważne przy płatnościach powyżej 15 000 zł: przelew na konto spoza białej listy może pozbawić Cię prawa do odliczenia VAT. Sekcja nie pojawi się gdy faktura jest już oznaczona jako opłacona lub kwota jest ujemna (korekty).</div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" onclick="toggleFaq(this)">
+          <button class="faq-q" data-action="faq">
             <span>Jak mogę zgłosić błąd lub pomysł?</span>
             <i class="fas fa-chevron-down faq-chev"></i>
           </button>
           <div class="faq-a">Napisz na <a href="mailto:kontakt@ksefeusz.pl" class="faq-contact-link">kontakt@ksefeusz.pl</a>. Każdy e-mail czytamy osobiście. Wiele funkcji pojawiło się w aplikacji dzięki sugestiom użytkowników.</div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" onclick="toggleFaq(this)">
+          <button class="faq-q" data-action="faq">
             <span>Czy KSeFeusz obsługuje pliki UPO?</span>
             <i class="fas fa-chevron-down faq-chev"></i>
           </button>
