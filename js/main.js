@@ -1580,18 +1580,20 @@ function changeInvoiceLang(code) {
   // przy zmianie języka nic by nie zmienił, a przełącznik i tak jest wtedy ukryty.
   if (detectDocType(currentXml) === "FA_RR") return;
 
-  // Re-render TYLKO gdy faktura jest faktycznie wyświetlona. render() kończy się
-  // switchTab('faktura'), więc bez tego warunku zmiana języka w panelu "Eksport PDF"
-  // (gdzie plik bywa już wczytany) wyrzuciłaby użytkownika do wizualizatora.
-  // Sam PDF i tak parsuje XML od nowa i czyta aktualny currentLang.
+  // Re-render TYLKO gdy w wizualizatorze jest faktura (#pages ma zawartość). Sam PDF
+  // i tak parsuje XML od nowa i czyta aktualny currentLang.
   const pagesEl = document.getElementById('pages');
   if (!pagesEl || pagesEl.children.length === 0) return;
 
-  // Stan przełączników i pozycję strony zachowujemy — zmiana języka nie powinna
-  // zwijać sekcji ani przewijać widoku na górę.
+  // Stan przełączników, pozycję strony i AKTYWNY PANEL zachowujemy. render() kończy się
+  // switchTab('faktura'), a język zmienia się też w panelach „Eksport PDF" i „Wiele
+  // faktur" — do v1.9.0 wyrzucało to użytkownika do wizualizatora, gdy wisiała w nim
+  // faktura. Podgląd przerysowujemy w tle, żeby po powrocie był w wybranym języku.
   const rdToggle = document.getElementById('rowDetailsToggle');
   const rdWasChecked = rdToggle ? rdToggle.checked : false;
   const scrollY = window.scrollY;
+  const aktywny = document.querySelector('.panel.active');
+  const zakladka = aktywny ? aktywny.id.replace(/^panel-/, '') : 'faktura';
 
   render(currentXml, currentFileName, currentXmlContent);
 
@@ -1599,6 +1601,7 @@ function changeInvoiceLang(code) {
     rdToggle.checked = true;
     toggleRowDetails(false);
   }
+  if (zakladka !== 'faktura') switchTab(zakladka);
   window.scrollTo(0, scrollY);
 }
 
@@ -1651,9 +1654,12 @@ function applyLangVisibility(typ) {
 // ============================================================================
 // PRZYKŁADOWE FAKTURY
 // ============================================================================
+// Przykład na telefonie trafia do panelu „Eksport PDF", nie do wizualizatora — trzymamy go
+// osobno, żeby nie nadpisać faktury z podglądu (patrz pdfZPliku).
+let przykladDoPdf = null;
+
 function loadSampleFile(url, name) {
   showLoading();
-  currentFileName = name;
   fetch(url)
     .then(r => {
       if (!r.ok) throw new Error('Nie można pobrać pliku przykładowego.');
@@ -1661,22 +1667,24 @@ function loadSampleFile(url, name) {
     })
     .then(xmlContent => {
       const { xml, typ } = loadInvoiceXml(xmlContent);
-      currentXml = xml;
-      currentXmlContent = xmlContent;
-      applyLangVisibility(typ);
 
       if (window.innerWidth <= 768) {
+        przykladDoPdf = { xml, xmlContent, fileName: name };
         switchTab('pdf');
         window.scrollTo({ top: 0, behavior: 'smooth' });
         document.getElementById('pdfUploadArea').style.display = 'none';
         document.getElementById('pdfStatus').style.display = 'none';
-        document.getElementById('pdfSampleFileName').textContent = currentFileName;
+        document.getElementById('pdfSampleFileName').textContent = name;
         document.getElementById('pdfSampleReady').style.display = 'block';
         hideLoading();
       } else {
+        currentXml = xml;
+        currentXmlContent = xmlContent;
+        currentFileName = name;
+        applyLangVisibility(typ);
         switchTab('faktura');
         window.scrollTo({ top: 0, behavior: 'smooth' });
-        renderAny(xml, typ, currentFileName, xmlContent);
+        renderAny(xml, typ, name, xmlContent);
       }
     })
     .catch(err => {
@@ -1686,8 +1694,30 @@ function loadSampleFile(url, name) {
 }
 
 function downloadSamplePdf() {
-  generateAnyPdf('download');
+  if (przykladDoPdf) pdfZPliku(przykladDoPdf.xml, przykladDoPdf.xmlContent, przykladDoPdf.fileName, 'download');
   clearPdfTab();
+}
+
+// PDF z pliku, który NIE jest fakturą w wizualizatorze („Eksport PDF", „Wiele faktur",
+// przykład na telefonie). generateAnyPdf czyta wspólne currentXml / currentXmlContent /
+// currentFileName, a te opisują fakturę w podglądzie. Podstawiamy plik tylko na czas
+// jednego PDF-a i przywracamy w finally. Do v1.9.0 panele nadpisywały je na stałe:
+// przycisk PDF w wizualizatorze pobierał potem PDF innej faktury niż widoczna, a zmiana
+// języka podmieniała podgląd na fakturę z innego panelu.
+function pdfZPliku(xml, xmlContent, fileName, action) {
+  const zapis = { xml: currentXml, xmlContent: currentXmlContent, fileName: currentFileName };
+  currentXml = xml;
+  currentXmlContent = xmlContent;
+  currentFileName = fileName;
+  try {
+    generateAnyPdf(action);
+  } finally {
+    currentXml = zapis.xml;
+    currentXmlContent = zapis.xmlContent;
+    currentFileName = zapis.fileName;
+    // detectDocType przestawia globalne `ns` (pułapka 30) — wraca do faktury z podglądu
+    if (currentXml) detectDocType(currentXml);
+  }
 }
 
 // ============================================================================
@@ -1735,7 +1765,7 @@ document.getElementById("fileInputPdf").addEventListener("change", function() {
   statusDiv.style.display = 'block';
   statusMsg.textContent = '⏳ Generowanie PDF...';
 
-  currentFileName = f.name.replace(/\.xml$/i, "");
+  const fileName = f.name.replace(/\.xml$/i, "");
   const r = new FileReader();
 
   r.onload = function(e) {
@@ -1743,10 +1773,8 @@ document.getElementById("fileInputPdf").addEventListener("change", function() {
       const xmlContent = e.target.result;
       const { xml } = loadInvoiceXml(xmlContent);
 
-      currentXml = xml;
-      currentXmlContent = xmlContent;
-
-      generateAnyPdf();
+      // plik z tego panelu nie zastępuje faktury z wizualizatora (patrz pdfZPliku)
+      pdfZPliku(xml, xmlContent, fileName, 'download');
 
       statusMsg.textContent = '✅ PDF pobrany. Możesz wczytać kolejną fakturę.';
       setTimeout(() => clearPdfTab(), 3000);
@@ -1848,14 +1876,12 @@ function renderBatchTable() {
   `).join('');
 }
 
+// Pozycja kolejki nie zastępuje faktury z wizualizatora (patrz pdfZPliku). Tor FA(3)
+// albo FA_RR wybiera generateAnyPdf po typie dokumentu — kolejka może je mieszać.
 function generateBatchPdf(index) {
   const entry = batchQueue[index];
   if (!entry) return;
-  currentXml = entry.xml;
-  currentXmlContent = entry.xmlContent;
-  currentFileName = entry.fileName;
-  // entry.typ decyduje o torze — kolejka może mieszać FA(3) i FA_RR
-  generateAnyPdf('download');
+  pdfZPliku(entry.xml, entry.xmlContent, entry.fileName, 'download');
   batchQueue[index].done = true;
   renderBatchTable();
 }
@@ -1863,10 +1889,7 @@ function generateBatchPdf(index) {
 function printBatchPdf(index) {
   const entry = batchQueue[index];
   if (!entry) return;
-  currentXml = entry.xml;
-  currentXmlContent = entry.xmlContent;
-  currentFileName = entry.fileName;
-  generateAnyPdf('print');
+  pdfZPliku(entry.xml, entry.xmlContent, entry.fileName, 'print');
   batchQueue[index].printed = true;
   renderBatchTable();
 }
