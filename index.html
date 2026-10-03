@@ -503,13 +503,13 @@
           </span>
         </span>
 
-        <button class="action-btn" onclick="window.print()">
+        <button class="action-btn" data-action="print">
           <i class="fas fa-print"></i> Drukuj
         </button>
         <button class="action-btn primary" id="pdfBtn">
           <i class="fas fa-file-pdf"></i> PDF
         </button>
-        <button class="action-btn danger-ghost" id="newInvoiceBtn" onclick="showUploadArea()" style="display:none;">
+        <button class="action-btn danger-ghost" id="newInvoiceBtn" data-action="showUploadArea" style="display:none;">
           <i class="fas fa-undo-alt"></i> Nowa faktura
         </button>
 
@@ -566,7 +566,7 @@
       <i class="fas fa-file-invoice" style="font-size:44px;color:var(--accent);display:block;margin-bottom:18px;"></i>
       <p style="font-size:18px;font-weight:600;color:var(--brand-ink);margin-bottom:6px;">Faktura załadowana</p>
       <p id="pdfSampleFileName" style="font-size:13px;color:var(--text-muted);margin-bottom:28px;"></p>
-      <button type="button" class="btn-hero-primary" onclick="downloadSamplePdf()" style="font-size:15px;padding:13px 26px;">
+      <button type="button" class="btn-hero-primary" data-action="downloadSamplePdf" style="font-size:15px;padding:13px 26px;">
         <i class="fas fa-file-pdf"></i>
         Pobierz PDF
         <span class="arrow">→</span>
@@ -631,10 +631,10 @@
         <button type="button" class="batch-toolbar-btn batch-toolbar-btn-add" data-action="pick-file" data-arg="fileInputBatch">
           <i class="fas fa-plus"></i> Dodaj kolejne pliki
         </button>
-        <button type="button" class="batch-toolbar-btn batch-toolbar-btn-all" onclick="confirmGenerateAll()">
+        <button type="button" class="batch-toolbar-btn batch-toolbar-btn-all" data-action="confirmGenerateAll">
           <i class="fas fa-file-pdf"></i> Generuj wszystkie PDF
         </button>
-        <button type="button" class="batch-toolbar-btn batch-toolbar-btn-clear" onclick="clearBatchQueue()">
+        <button type="button" class="batch-toolbar-btn batch-toolbar-btn-clear" data-action="clearBatchQueue">
           <i class="fas fa-trash-alt"></i> Wyczyść listę
         </button>
         <span class="batch-count" id="batchCount"></span>
@@ -706,10 +706,10 @@
         <code id="upoCurrentFile"></code>
       </div>
       <div class="filebar-actions">
-        <button class="action-btn primary" id="upoPdfBtn" onclick="generateUpoPdf()">
+        <button class="action-btn primary" id="upoPdfBtn" data-action="generateUpoPdf">
           <i class="fas fa-file-pdf"></i> PDF
         </button>
-        <button class="action-btn danger-ghost" onclick="clearUpoFile()">
+        <button class="action-btn danger-ghost" data-action="clearUpoFile">
           <i class="fas fa-undo-alt"></i> Nowe UPO
         </button>
       </div>
@@ -785,8 +785,8 @@
     <h3 id="batchModalTitle">Generowanie PDF</h3>
     <p id="batchModalMsg"></p>
     <div class="batch-modal-buttons">
-      <button type="button" class="batch-modal-confirm" id="batchModalConfirmBtn" onclick="confirmGenerateAllYes()">Generuj</button>
-      <button type="button" class="batch-modal-cancel" onclick="closeBatchModal()">Anuluj</button>
+      <button type="button" class="batch-modal-confirm" id="batchModalConfirmBtn" data-action="confirmGenerateAllYes">Generuj</button>
+      <button type="button" class="batch-modal-cancel" data-action="closeBatchModal">Anuluj</button>
     </div>
   </div>
 </div>
