@@ -65,6 +65,11 @@ RewriteRule ^index\.html$ https://ksefeusz.pl/ [R=301,L]
     #    także przy object-src 'none' (sprawdzone); blob: zostaje dla Firefoksa
     #    i Safari, w których tego nie sprawdzono
     Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self'; font-src 'self'; connect-src 'self' https://wl-api.mf.gov.pl; object-src blob:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+    #
+    # Próba polityki docelowej (od wersji 1.9.0 strona nie ma kodu wpisanego w HTML):
+    # script-src bez 'unsafe-inline'. Przeglądarka tylko ZGŁASZA, co by zablokowała,
+    # niczego nie blokuje. Po próbie zastąpi nagłówek powyżej.
+    Header always set Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; font-src 'self'; connect-src 'self' https://wl-api.mf.gov.pl; object-src blob:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
 </IfModule>
 
 # Kompresja gzip
