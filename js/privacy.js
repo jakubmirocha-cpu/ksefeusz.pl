@@ -1,5 +1,5 @@
 // ============================================================================
-// privacy.js - wersja 1.8.8 (polityka prywatności: podświetlanie spisu treści)
+// privacy.js - wersja 1.9.0 (polityka prywatności: podświetlanie spisu treści)
 // ============================================================================
 // Do v1.8.8 blok <script> na dole privacy.html. Polityka CSP bez 'unsafe-inline'
 // nie wykona kodu wpisanego w HTML.

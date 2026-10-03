@@ -46,11 +46,14 @@ css/
   lib/              — Font Awesome (ikony)
   webfonts/         — pliki fontów
 js/
-  core.js           — parsowanie FA(3), słowniki
+  i18n.js           — tłumaczenie szablonu wizualizacji (PL, EN, DE, FR, UK)
+  core.js           — parsowanie FA(3) i FA_RR, słowniki
   utils.js          — funkcje pomocnicze, wersja aplikacji
   renderer.js       — renderowanie HTML faktury
-  main.js           — generowanie PDF, obsługa zdarzeń
-  upo.js	    - generowanie wizualizacji UPO
+  main.js           — generowanie PDF, wczytywanie plików
+  upo.js            — wizualizacja UPO
+  ui.js             — obsługa przycisków (data-action), FAQ, menu mobilne
+  privacy.js        — spis treści polityki prywatności
   lib/              — biblioteki zewnętrzne (pdfmake, qrcode, crypto-js)
 samples/            — przykładowe faktury FA(3)
 assets/             — grafiki (podgląd na stronie głównej)

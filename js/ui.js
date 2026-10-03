@@ -1,5 +1,5 @@
 // ============================================================================
-// ui.js - wersja 1.8.8 (obsługa przycisków i list strony, FAQ, menu mobilne, pole UPO)
+// ui.js - wersja 1.9.0 (obsługa przycisków i list strony, FAQ, menu mobilne, pole UPO)
 // ============================================================================
 // Polityka CSP bez 'unsafe-inline' nie wykona żadnego kodu wpisanego w HTML
 // (onclick=…, <script> bez src), więc cała obsługa strony mieszka w plikach .js.
