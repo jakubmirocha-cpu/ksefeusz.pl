@@ -36,7 +36,7 @@
 <!-- ===== NAV ===== -->
 <header class="nav">
   <div class="nav-inner">
-    <a href="#" class="brand" onclick="event.preventDefault();switchTab('info')" >
+    <a href="#" class="brand" data-action="tab" data-arg="info">
       <div class="brand-logo">
         <svg width="26" height="28" viewBox="0 0 188 201">
           <g transform="translate(0,201) scale(0.1,-0.1)">
@@ -49,19 +49,19 @@
       <span class="brand-name"><b style="color:#1A3E5F">KSeFeusz</b><b style="color:#2B6CB0">.pl</b></span>
     </a>
     <nav class="nav-links">
-      <button class="tab nav-link active" data-tab="info" onclick="switchTab('info')">
+      <button class="tab nav-link active" data-tab="info" data-action="tab" data-arg="info">
         <i class="fas fa-home"></i> Główna
       </button>
-      <button class="tab nav-link" data-tab="faktura" onclick="switchTab('faktura')">
+      <button class="tab nav-link" data-tab="faktura" data-action="tab" data-arg="faktura">
         <i class="fas fa-file-invoice"></i> Wizualizator
       </button>
-      <button class="tab nav-link" data-tab="pdf" onclick="switchTab('pdf')">
+      <button class="tab nav-link" data-tab="pdf" data-action="tab" data-arg="pdf">
         <i class="fas fa-file-pdf"></i> Eksport PDF
       </button>
-      <button class="tab nav-link" data-tab="batch" onclick="switchTab('batch')">
+      <button class="tab nav-link" data-tab="batch" data-action="tab" data-arg="batch">
         <i class="fas fa-layer-group"></i> Wiele faktur
       </button>
-      <button class="tab nav-link" data-tab="upo" onclick="switchTab('upo')">
+      <button class="tab nav-link" data-tab="upo" data-action="tab" data-arg="upo">
         <i class="fas fa-stamp"></i> Wizualizator UPO
       </button>
     </nav>
@@ -70,35 +70,35 @@
         <i class="fas fa-circle"></i>
         Lokalnie w przeglądarce
       </span>
-      <button class="btn-primary" onclick="switchTab('faktura')">
+      <button class="btn-primary" data-action="tab" data-arg="faktura">
         <i class="fas fa-upload"></i>
         Wczytaj fakturę
       </button>
-      <button class="hamburger" id="hamburger" onclick="toggleHamburger()" aria-label="Menu" aria-expanded="false" aria-controls="navMobile">
+      <button class="hamburger" id="hamburger" data-action="menu" aria-label="Menu" aria-expanded="false" aria-controls="navMobile">
         <span></span><span></span><span></span>
       </button>
     </div>
   </div>
   <div class="nav-mobile" id="navMobile" role="navigation" aria-label="Nawigacja mobilna">
-    <button type="button" class="nav-mobile-item" data-tab="info" onclick="switchTab('info');closeHamburger()">
+    <button type="button" class="nav-mobile-item" data-tab="info" data-action="tab" data-arg="info" data-close-menu>
       <i class="fas fa-home"></i> Główna
     </button>
-    <button type="button" class="nav-mobile-item" data-tab="pdf" onclick="switchTab('pdf');closeHamburger()">
+    <button type="button" class="nav-mobile-item" data-tab="pdf" data-action="tab" data-arg="pdf" data-close-menu>
       <i class="fas fa-file-pdf"></i> Eksport PDF
       <span class="nav-mobile-badge">MOBILE</span>
     </button>
-    <button type="button" class="nav-mobile-item" data-tab="faktura" onclick="switchTab('faktura');closeHamburger()">
+    <button type="button" class="nav-mobile-item" data-tab="faktura" data-action="tab" data-arg="faktura" data-close-menu>
       <i class="fas fa-file-invoice"></i> Wizualizator HTML
     </button>
-    <button type="button" class="nav-mobile-item" data-tab="batch" onclick="switchTab('batch');closeHamburger()">
+    <button type="button" class="nav-mobile-item" data-tab="batch" data-action="tab" data-arg="batch" data-close-menu>
       <i class="fas fa-layer-group"></i> Wiele faktur
     </button>
-    <button type="button" class="nav-mobile-item" data-tab="upo" onclick="switchTab('upo');closeHamburger()">
+    <button type="button" class="nav-mobile-item" data-tab="upo" data-action="tab" data-arg="upo" data-close-menu>
       <i class="fas fa-stamp"></i> Wizualizator UPO
     </button>
     <div class="nav-mobile-sep"></div>
     <div class="nav-mobile-cta">
-      <button type="button" class="btn-primary" onclick="switchTab('faktura');closeHamburger()">
+      <button type="button" class="btn-primary" data-action="tab" data-arg="faktura" data-close-menu>
         <i class="fas fa-upload"></i> Wczytaj fakturę
       </button>
     </div>
@@ -116,12 +116,12 @@
       <h1>Zamień fakturę XML w <br><span class="accent-word">czytelny PDF</span><br>gotowy do druku i archiwizacji.</h1>
       <p class="hero-lede">Otwórz plik XML z KSeF — w kilka sekund masz czytelny podgląd i PDF gotowy do druku lub archiwizacji. 100% bezpiecznie, bez wysyłania danych na serwer. Całkowicie za darmo.</p>
       <div class="hero-ctas">
-        <button class="btn-hero-primary hero-btn-desktop" onclick="switchTab('faktura')">
+        <button class="btn-hero-primary hero-btn-desktop" data-action="tab" data-arg="faktura">
           <i class="fas fa-upload"></i>
           Wczytaj fakturę XML
           <span class="arrow">→</span>
         </button>
-        <button class="btn-hero-primary hero-btn-mobile" onclick="switchTab('pdf')">
+        <button class="btn-hero-primary hero-btn-mobile" data-action="tab" data-arg="pdf">
           <i class="fas fa-file-pdf"></i>
           Generuj PDF z faktury
           <span class="arrow">→</span>
@@ -211,7 +211,7 @@
           <h5>Masz też plik UPO?</h5>
           <p>UPO (Urzędowe Potwierdzenie Odbioru) potwierdza przyjęcie faktury przez KSeF. KSeFeusz zwizualizuje go w czytelny sposób, z opcją wygenerowania pliku PDF.</p>
         </div>
-        <button class="sample-row-btn primary" onclick="switchTab('upo')"><i class="fas fa-stamp"></i> Wizualizator UPO</button>
+        <button class="sample-row-btn primary" data-action="tab" data-arg="upo"><i class="fas fa-stamp"></i> Wizualizator UPO</button>
       </div>
     </div>
 
@@ -424,7 +424,7 @@
     <div class="mobile-pdf-notice">
       <span class="mpn-icon"><i class="fas fa-mobile-alt"></i></span>
       <div class="mpn-text">Na urządzeniu mobilnym najwygodniej jest używać <strong>Eksportu PDF</strong> — plik PDF pobiera się automatycznie po wczytaniu faktury.</div>
-      <button class="action-btn primary mpn-btn" onclick="switchTab('pdf')"><i class="fas fa-file-pdf"></i> Eksport PDF</button>
+      <button class="action-btn primary mpn-btn" data-action="tab" data-arg="pdf"><i class="fas fa-file-pdf"></i> Eksport PDF</button>
     </div>
 
     <!-- Obszar wgrywania pliku -->
@@ -611,8 +611,8 @@
         <p>Na urządzeniu mobilnym skorzystaj z Eksportu PDF — wczytaj jeden plik XML i PDF pobierze się automatycznie.</p>
       </div>
       <div class="mbn-cta">
-        <button type="button" class="action-btn primary" onclick="switchTab('pdf')"><i class="fas fa-file-pdf"></i> Eksport PDF</button>
-        <button type="button" class="action-btn" onclick="switchTab('info')"><i class="fas fa-home"></i> Strona główna</button>
+        <button type="button" class="action-btn primary" data-action="tab" data-arg="pdf"><i class="fas fa-file-pdf"></i> Eksport PDF</button>
+        <button type="button" class="action-btn" data-action="tab" data-arg="info"><i class="fas fa-home"></i> Strona główna</button>
       </div>
     </div>
 
@@ -680,8 +680,8 @@
         <p>Na urządzeniu mobilnym skorzystaj z Eksportu PDF — wczytaj fakturę XML i PDF pobierze się automatycznie.</p>
       </div>
       <div class="mbn-cta">
-        <button type="button" class="action-btn primary" onclick="switchTab('pdf')"><i class="fas fa-file-pdf"></i> Eksport PDF</button>
-        <button type="button" class="action-btn" onclick="switchTab('info')"><i class="fas fa-home"></i> Strona główna</button>
+        <button type="button" class="action-btn primary" data-action="tab" data-arg="pdf"><i class="fas fa-file-pdf"></i> Eksport PDF</button>
+        <button type="button" class="action-btn" data-action="tab" data-arg="info"><i class="fas fa-home"></i> Strona główna</button>
       </div>
     </div>
 
@@ -741,11 +741,11 @@
     <div class="footer-col">
       <h5>Produkt</h5>
       <ul>
-        <li><button onclick="switchTab('faktura')">Wizualizator</button></li>
-        <li><button onclick="switchTab('pdf')">Eksport PDF</button></li>
-        <li><button onclick="switchTab('batch')">Wiele faktur</button></li>
-        <li><button onclick="switchTab('upo')">Wizualizator UPO</button></li>
-        <li><button onclick="switchTab('info');setTimeout(()=>document.getElementById('sekcja-jak').scrollIntoView({behavior:'smooth'}),50)">Jak to działa</button></li>
+        <li><button data-action="tab" data-arg="faktura">Wizualizator</button></li>
+        <li><button data-action="tab" data-arg="pdf">Eksport PDF</button></li>
+        <li><button data-action="tab" data-arg="batch">Wiele faktur</button></li>
+        <li><button data-action="tab" data-arg="upo">Wizualizator UPO</button></li>
+        <li><button data-action="tab" data-arg="info" data-scroll="sekcja-jak">Jak to działa</button></li>
       </ul>
     </div>
     <div class="footer-col">
