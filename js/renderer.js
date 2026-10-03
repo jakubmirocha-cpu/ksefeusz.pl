@@ -1614,7 +1614,7 @@ function renderPaymentContainerHTML(p1Data, platnoscData, faData, qrId, opts = {
     return `<div class="payment-field-row">
       <span class="payment-field-label">${label}</span>
       <span class="payment-field-value">${displayHtml}</span>
-      <button class="payment-field-copy" data-copy="${escAttr(copyVal)}" onclick="copyPaymentField(this)">Kopiuj</button>
+      <button class="payment-field-copy" data-copy="${escAttr(copyVal)}" data-action="copy">Kopiuj</button>
     </div>`;
   }
 
@@ -1622,17 +1622,18 @@ function renderPaymentContainerHTML(p1Data, platnoscData, faData, qrId, opts = {
   rachunki.forEach((r, i) => {
     const label = rachunki.length > 1 ? `Nr rachunku ${i + 1}` : 'Nr rachunku';
     const cleanNrb = r.nrRB.replace(/\s/g, '').replace(/^PL/i, '');
-    // NIP i numer rachunku idą przez atrybuty data-*, nie jako argumenty wpisane w kod
-    // onclick: wewnątrz atrybutu on* encje HTML są dekodowane PRZED wykonaniem JS, więc
-    // apostrof w wartości z XML zamykałby napis i dopisywał własny kod.
+    // NIP i numer rachunku idą przez atrybuty data-*, a przycisk obsługuje akcja
+    // „white-list" z js/ui.js. Nigdy jako argumenty wpisane w kod w atrybucie on*:
+    // tam encje HTML są dekodowane PRZED wykonaniem JS, więc apostrof w wartości z XML
+    // zamykałby napis i dopisywał własny kod (a CSP bez 'unsafe-inline' i tak tego nie wykona).
     const blRow = (nip && pokazBialaListe) ? `<div class="payment-bl-row">
-      <button class="payment-bl-check" data-nip="${escAttr(nip)}" data-nrb="${escAttr(cleanNrb)}" onclick="checkWhiteList(this, this.dataset.nip, this.dataset.nrb)">Sprawdź białą listę</button>
+      <button class="payment-bl-check" data-nip="${escAttr(nip)}" data-nrb="${escAttr(cleanNrb)}" data-action="white-list">Sprawdź białą listę</button>
       <span class="payment-bl-result"></span>
     </div>` : '';
     accountsHtml += `<div class="payment-field-row">
       <span class="payment-field-label">${label}</span>
       <span class="payment-field-value"><span class="payment-nrb">${escAttr(formatNRB(r.nrRB))}</span></span>
-      <button class="payment-field-copy" data-copy="${escAttr(cleanNrb)}" onclick="copyPaymentField(this)">Kopiuj</button>
+      <button class="payment-field-copy" data-copy="${escAttr(cleanNrb)}" data-action="copy">Kopiuj</button>
     </div>
     ${blRow}`;
   });
@@ -1672,7 +1673,7 @@ function renderPaymentContainerHTML(p1Data, platnoscData, faData, qrId, opts = {
     </div>` : '';
 
   return `<div class="payment-container">
-    <button class="payment-toggle-btn" onclick="togglePaymentBox(this)">
+    <button class="payment-toggle-btn" data-action="payment-box">
       <i class="fa fa-university" aria-hidden="true"></i>
       <span class="payment-toggle-text">Pokaż dane do przelewu</span>
       <span class="payment-toggle-arrow">▾</span>

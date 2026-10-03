@@ -1834,13 +1834,13 @@ function renderBatchTable() {
             ].join('<br>')
       }</td>
       <td style="white-space:nowrap; display:flex; gap:6px;">
-        <button type="button" class="batch-btn-pdf" onclick="generateBatchPdf(${i})">
+        <button type="button" class="batch-btn-pdf" data-action="batch-pdf" data-index="${i}">
           <i class="fas fa-file-pdf"></i> PDF
         </button>
-        <button type="button" class="batch-btn-print" onclick="printBatchPdf(${i})" title="Drukuj">
+        <button type="button" class="batch-btn-print" data-action="batch-print" data-index="${i}" title="Drukuj">
           <i class="fas fa-print"></i>
         </button>
-        <button type="button" class="batch-btn-remove" onclick="removeBatchEntry(${i})" title="Usuń">
+        <button type="button" class="batch-btn-remove" data-action="batch-remove" data-index="${i}" title="Usuń">
           <i class="fas fa-times"></i>
         </button>
       </td>
