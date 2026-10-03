@@ -498,22 +498,7 @@
   </div>
 </footer>
 
-<script>
-  const tocLinks = document.querySelectorAll('.toc a');
-  const sections = [...document.querySelectorAll('.section[id]')];
-  function updateToc() {
-    const y = window.scrollY + 100;
-    let activeId = sections[0]?.id;
-    for (const s of sections) {
-      if (s.offsetTop <= y) activeId = s.id;
-    }
-    tocLinks.forEach(a => {
-      a.classList.toggle('active', a.getAttribute('href') === '#' + activeId);
-    });
-  }
-  window.addEventListener('scroll', updateToc, { passive: true });
-  updateToc();
-</script>
+<script src="js/privacy.js?v=1.8.8"></script>
 
 </body>
 </html>
