@@ -176,7 +176,7 @@
           <p>FV2026/02/150 · ABC AGD sp. z o.o. · 2 051,00 zł · 3 pozycje</p>
         </div>
         <a href="samples/FA3_faktura_vat.xml" download class="sample-row-btn ghost"><i class="fas fa-download"></i> Pobierz</a>
-        <button class="sample-row-btn primary" onclick="loadSampleFile('samples/FA3_faktura_vat.xml', 'FA3_faktura_vat')"><i class="fas fa-play"></i> Pokaż</button>
+        <button class="sample-row-btn primary" data-action="sample" data-arg="FA3_faktura_vat"><i class="fas fa-play"></i> Pokaż</button>
       </div>
       <div class="sample-row">
         <div class="sample-badge kor">KOR</div>
@@ -185,7 +185,7 @@
           <p>FK2026/03/200 · Korekta do FV2026/02/150 · −200,00 zł</p>
         </div>
         <a href="samples/FA3_faktura_korekta.xml" download class="sample-row-btn ghost"><i class="fas fa-download"></i> Pobierz</a>
-        <button class="sample-row-btn primary" onclick="loadSampleFile('samples/FA3_faktura_korekta.xml', 'FA3_faktura_korekta')"><i class="fas fa-play"></i> Pokaż</button>
+        <button class="sample-row-btn primary" data-action="sample" data-arg="FA3_faktura_korekta"><i class="fas fa-play"></i> Pokaż</button>
       </div>
       <div class="sample-row">
         <div class="sample-badge zal">ZAL</div>
@@ -194,7 +194,7 @@
           <p>FZ2026/02/150 · ABC Developex sp. z o.o. · 20 000,00 zł</p>
         </div>
         <a href="samples/FA3_faktura_zaliczkowa.xml" download class="sample-row-btn ghost"><i class="fas fa-download"></i> Pobierz</a>
-        <button class="sample-row-btn primary" onclick="loadSampleFile('samples/FA3_faktura_zaliczkowa.xml', 'FA3_faktura_zaliczkowa')"><i class="fas fa-play"></i> Pokaż</button>
+        <button class="sample-row-btn primary" data-action="sample" data-arg="FA3_faktura_zaliczkowa"><i class="fas fa-play"></i> Pokaż</button>
       </div>
       <div class="sample-row">
         <div class="sample-badge rr">RR</div>
@@ -203,7 +203,7 @@
           <p>RR/2026/03/17 · Skup od rolnika ryczałtowego · 19 720,50 zł · zwrot 6,5% i 7%</p>
         </div>
         <a href="samples/FA_RR_przyklad.xml" download class="sample-row-btn ghost"><i class="fas fa-download"></i> Pobierz</a>
-        <button class="sample-row-btn primary" onclick="loadSampleFile('samples/FA_RR_przyklad.xml', 'FA_RR_przyklad')"><i class="fas fa-play"></i> Pokaż</button>
+        <button class="sample-row-btn primary" data-action="sample" data-arg="FA_RR_przyklad"><i class="fas fa-play"></i> Pokaż</button>
       </div>
       <div class="samples-upo-promo">
         <div class="samples-upo-icon"><i class="fas fa-stamp"></i></div>
@@ -428,12 +428,12 @@
     </div>
 
     <!-- Obszar wgrywania pliku -->
-    <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+    <div class="upload-area" data-action="pick-file" data-arg="fileInput">
       <i class="fas fa-folder-open" style="color:var(--accent);"></i>
       <h3>Wybierz plik faktury XML</h3>
       <p>Przeciągnij plik z KSeF lub kliknij aby wybrać</p>
-      <p class="upload-hint">Plik XML pobierzesz z portalu <a href="https://www.podatki.gov.pl/ksef/" target="_blank" rel="noopener" onclick="event.stopPropagation()">podatki.gov.pl</a> → KSeF → Pobierz fakturę</p>
-      <button class="upload-pill-btn" onclick="event.stopPropagation();document.getElementById('fileInput').click()">
+      <p class="upload-hint">Plik XML pobierzesz z portalu <a href="https://www.podatki.gov.pl/ksef/" target="_blank" rel="noopener">podatki.gov.pl</a> → KSeF → Pobierz fakturę</p>
+      <button class="upload-pill-btn" data-action="pick-file" data-arg="fileInput">
         <i class="fas fa-upload"></i> Wybierz plik
       </button>
       <input type="file" id="fileInput" accept=".xml" style="display:none;">
@@ -550,11 +550,11 @@
       </select>
       <span class="lang-bar-hint">Wybierz przed wczytaniem pliku. Tłumaczone są etykiety szablonu — treść faktury zostaje w języku oryginału. Faktury VAT RR generują się zawsze po polsku.</span>
     </div>
-    <div id="pdfUploadArea" class="upload-area" onclick="document.getElementById('fileInputPdf').click()">
+    <div id="pdfUploadArea" class="upload-area" data-action="pick-file" data-arg="fileInputPdf">
       <i class="fas fa-file-pdf" style="color:var(--danger);"></i>
       <h3>Wybierz plik faktury</h3>
       <p>PDF zostanie wygenerowany i pobrany automatycznie</p>
-      <button class="upload-pill-btn danger" onclick="event.stopPropagation();document.getElementById('fileInputPdf').click()">
+      <button class="upload-pill-btn danger" data-action="pick-file" data-arg="fileInputPdf">
         <i class="fas fa-upload"></i> Wybierz plik XML
       </button>
       <input type="file" id="fileInputPdf" accept=".xml" style="display:none;">
@@ -616,11 +616,11 @@
       </div>
     </div>
 
-    <div class="upload-area" id="batchUploadArea" onclick="document.getElementById('fileInputBatch').click()">
+    <div class="upload-area" id="batchUploadArea" data-action="pick-file" data-arg="fileInputBatch">
       <i class="fas fa-layer-group" style="color:var(--accent);"></i>
       <h3>Wybierz pliki faktur</h3>
       <p>Zaznacz wiele plików XML naraz — możesz też dorzucić kolejne później</p>
-      <button class="upload-pill-btn" onclick="event.stopPropagation();document.getElementById('fileInputBatch').click()">
+      <button class="upload-pill-btn" data-action="pick-file" data-arg="fileInputBatch">
         <i class="fas fa-upload"></i> Wybierz pliki
       </button>
       <input type="file" id="fileInputBatch" accept=".xml" multiple style="display:none;">
@@ -628,7 +628,7 @@
 
     <div id="batchPanel" style="display:none;">
       <div class="batch-toolbar">
-        <button type="button" class="batch-toolbar-btn batch-toolbar-btn-add" onclick="document.getElementById('fileInputBatch').click()">
+        <button type="button" class="batch-toolbar-btn batch-toolbar-btn-add" data-action="pick-file" data-arg="fileInputBatch">
           <i class="fas fa-plus"></i> Dodaj kolejne pliki
         </button>
         <button type="button" class="batch-toolbar-btn batch-toolbar-btn-all" onclick="confirmGenerateAll()">
@@ -685,15 +685,15 @@
       </div>
     </div>
 
-    <div class="upload-area upo-upload-area" onclick="document.getElementById('fileInputUpo').click()">
+    <div class="upload-area upo-upload-area" data-action="pick-file" data-arg="fileInputUpo">
       <i class="fas fa-stamp" style="color:#27AE60;"></i>
       <h3>Wybierz plik UPO XML</h3>
       <p>Przeciągnij plik UPO pobrany z KSeF lub kliknij aby wybrać</p>
-      <p class="upload-hint">UPO pobierzesz z portalu <a href="https://www.podatki.gov.pl/ksef/" target="_blank" rel="noopener" onclick="event.stopPropagation()">podatki.gov.pl</a> → KSeF → Pobierz UPO</p>
-      <button class="upload-pill-btn upo-pill-btn" onclick="event.stopPropagation();document.getElementById('fileInputUpo').click()">
+      <p class="upload-hint">UPO pobierzesz z portalu <a href="https://www.podatki.gov.pl/ksef/" target="_blank" rel="noopener">podatki.gov.pl</a> → KSeF → Pobierz UPO</p>
+      <button class="upload-pill-btn upo-pill-btn" data-action="pick-file" data-arg="fileInputUpo">
         <i class="fas fa-upload"></i> Wybierz plik
       </button>
-      <button class="upload-pill-btn upload-pill-btn--ghost" onclick="event.stopPropagation();loadSampleUpo('samples/UPO_przyklad.xml','UPO_przyklad')">
+      <button class="upload-pill-btn upload-pill-btn--ghost" data-action="sample-upo" data-arg="UPO_przyklad">
         <i class="fas fa-play"></i> Załaduj przykład
       </button>
       <input type="file" id="fileInputUpo" accept=".xml" style="display:none;">
